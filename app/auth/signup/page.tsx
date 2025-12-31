@@ -21,6 +21,12 @@ export default function SignupPage() {
         const { error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    full_name: email.split('@')[0], // Defaulting to email prefix as name for now
+                    role: 'user', // Default role
+                }
+            }
         })
 
         if (error) {
