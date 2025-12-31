@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../utils/supabase/client'
+import { createClient } from '../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MOCK_ADS } from '../utils/mockData'
@@ -11,6 +11,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
     const checkUser = async () => {

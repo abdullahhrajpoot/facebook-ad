@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import AdCard from './AdCard'
+import SearchHistory from './SearchHistory'
+import SkeletonAdCard from './SkeletonAdCard'
 
 export default function SearchAds() {
     const [keyword, setKeyword] = useState('')
@@ -11,14 +13,23 @@ export default function SearchAds() {
     const [results, setResults] = useState<any[]>([])
     const [error, setError] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
+    const [searchCount, setSearchCount] = useState(0)
     const ITEMS_PER_PAGE = 12
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const executeSearch = async (searchKeyword: string, searchCountry: string, searchMax: number) => {
+        if (loading) return
+
+        console.log(`Executing search for: ${searchKeyword} in ${searchCountry}`)
+
         setLoading(true)
         setError('')
         setResults([])
         setCurrentPage(1)
+
+        // Update form state to reflect what's being searched
+        setKeyword(searchKeyword)
+        setCountry(searchCountry)
+        setMaxResults(searchMax)
 
         try {
             const res = await fetch('/api/ads/search', {
@@ -26,7 +37,7 @@ export default function SearchAds() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ keyword, country, maxResults }),
+                body: JSON.stringify({ keyword: searchKeyword, country: searchCountry, maxResults: searchMax }),
             })
 
             const data = await res.json()
@@ -36,11 +47,21 @@ export default function SearchAds() {
             }
 
             setResults(data)
+            setSearchCount(prev => prev + 1)
         } catch (err: any) {
             setError(err.message)
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleHistorySelect = (k: string, c: string, m: number) => {
+        executeSearch(k, c, m)
+    }
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault()
+        executeSearch(keyword, country, maxResults)
     }
 
     // Pagination Logic
@@ -64,6 +85,8 @@ export default function SearchAds() {
                     </svg>
                     Search Ads
                 </h2>
+
+                <SearchHistory onSelect={handleHistorySelect} refreshTrigger={searchCount} />
 
                 <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="md:col-span-2">
@@ -133,7 +156,7 @@ export default function SearchAds() {
 
             {error && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 flex items-center gap-3">
-                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     {error}
@@ -142,7 +165,17 @@ export default function SearchAds() {
 
             {/* Results Grid */}
             <div>
-                {results.length > 0 && (
+                {loading && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        {[...Array(8)].map((_, i) => (
+                            <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
+                                <SkeletonAdCard />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {!loading && results.length > 0 && (
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold flex items-center gap-2">
                             Search Results

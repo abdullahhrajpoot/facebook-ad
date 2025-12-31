@@ -94,22 +94,44 @@ export async function POST(request: Request) {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
+                const countryCode = country || 'US';
                 const filters = {
-                    country: country || 'US',
+                    country: countryCode,
                     maxResults: maxResults
                 };
 
-                const { error: saveError } = await supabase
+                // Check for existing entry to avoid duplicates
+                const { data: existingHistory } = await supabase
                     .from('search_history')
-                    .insert({
-                        user_id: user.id,
-                        keyword: keyword,
-                        filters: filters
-                    });
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .ilike('keyword', keyword.trim())
+                    .eq('filters->>country', countryCode)
+                    .maybeSingle();
 
-                if (saveError) {
-                    console.error('Failed to save search history:', saveError);
-                    // We don't block the response if saving history fails, but we log it.
+                if (existingHistory) {
+                    // Entry exists, try to update timestamp to bring it to top
+                    // We catch error here silently in case UPDATE policy is missing
+                    await supabase
+                        .from('search_history')
+                        .update({ created_at: new Date().toISOString() })
+                        .eq('id', existingHistory.id)
+                        .then(({ error }) => {
+                            if (error) console.log('Could not update history timestamp (RLS?):', error.message)
+                        });
+                } else {
+                    // New entry, insert it
+                    const { error: saveError } = await supabase
+                        .from('search_history')
+                        .insert({
+                            user_id: user.id,
+                            keyword: keyword.trim(),
+                            filters: filters
+                        });
+
+                    if (saveError) {
+                        console.error('Failed to save search history:', saveError);
+                    }
                 }
             }
         } catch (dbError) {

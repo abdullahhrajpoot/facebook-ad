@@ -1,17 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '../../../utils/supabase/client'
+import { createClient } from '../../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignupPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [gender, setGender] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const router = useRouter()
+    const supabase = createClient()
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -25,6 +27,7 @@ export default function SignupPage() {
                 data: {
                     full_name: email.split('@')[0], // Defaulting to email prefix as name for now
                     role: 'user', // Default role
+                    gender: gender,
                 }
             }
         })
@@ -80,34 +83,72 @@ export default function SignupPage() {
                     </div>
                 )}
 
-                <form onSubmit={handleSignup} className="space-y-6">
+                <form onSubmit={handleSignup} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Email Address
-                        </label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                            placeholder="you@example.com"
-                            required
-                        />
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                                placeholder="you@example.com"
+                                required
+                            />
+                        </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                            Password
-                        </label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                            placeholder="Min. 6 characters"
-                            minLength={6}
-                            required
-                        />
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                                placeholder="Min. 6 characters"
+                                minLength={6}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Gender</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <select
+                                value={gender}
+                                onChange={(e) => setGender(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-lg bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all appearance-none cursor-pointer"
+                                required
+                            >
+                                <option value="" disabled className="text-gray-500 bg-zinc-900">Select Gender</option>
+                                <option value="male" className="bg-zinc-900">Male</option>
+                                <option value="female" className="bg-zinc-900">Female</option>
+                                <option value="other" className="bg-zinc-900">Other</option>
+                                <option value="prefer_not_to_say" className="bg-zinc-900">Prefer not to say</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
                     </div>
 
                     <button

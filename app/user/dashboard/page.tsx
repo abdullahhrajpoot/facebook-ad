@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../utils/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import SearchAds from '../../../components/SearchAds'
+import SearchAds from '@/components/SearchAds'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
     const router = useRouter()
+    const supabase = createClient()
 
     useEffect(() => {
         const checkUser = async () => {

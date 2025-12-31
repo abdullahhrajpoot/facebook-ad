@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { MOCK_ADS } from '../../../utils/mockData'
-import { supabase } from '../../../utils/supabase/client'
+import { createClient } from '../../../utils/supabase/client'
 import Link from 'next/link'
 
 export default function AdDetailsPage() {
@@ -11,6 +11,7 @@ export default function AdDetailsPage() {
     const router = useRouter()
     const [ad, setAd] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const supabase = createClient()
 
     useEffect(() => {
         // 1. Check auth (basic protection)
