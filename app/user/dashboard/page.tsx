@@ -4,10 +4,16 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import SearchAds from '@/components/SearchAds'
+import UserSidebar from '@/components/UserSidebar'
+import UserProfile from '@/components/UserProfile'
+import SearchHistory from '@/components/SearchHistory'
+import SavedAds from '@/components/SavedAds'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<'discover' | 'history' | 'saved' | 'profile'>('discover')
     const router = useRouter()
     const supabase = createClient()
 
@@ -39,6 +45,17 @@ export default function UserDashboard() {
         checkUser()
     }, [router])
 
+    const handleSignOut = async () => {
+        await supabase.auth.signOut()
+        router.push('/')
+    }
+
+    const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
+        // Switch to discover
+        setActiveTab('discover')
+        // In a real app we'd pass these params to SearchAds via props or context
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -47,34 +64,85 @@ export default function UserDashboard() {
         )
     }
 
-    return (
-        <div className="min-h-screen bg-black text-white p-8">
-            <div className="max-w-7xl mx-auto">
-                <nav className="flex justify-between items-center mb-12">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg font-bold">
-                            {profile?.full_name ? profile.full_name[0].toUpperCase() : 'U'}
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-bold leading-tight">Dashboard</h1>
-                            <p className="text-gray-400 text-xs">Welcome back, {profile?.full_name || 'User'}</p>
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'discover':
+                return <SearchAds />
+            case 'history':
+                return (
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                            <h2 className="text-xl font-bold mb-6 text-white">Search History</h2>
+                            <SearchHistory onSelect={handleHistorySelect} refreshTrigger={0} />
                         </div>
                     </div>
-                    <button
-                        onClick={async () => {
-                            await supabase.auth.signOut()
-                            router.push('/')
-                        }}
-                        className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors border border-zinc-700"
-                    >
-                        Sign Out
-                    </button>
-                </nav>
+                )
+            case 'saved':
+                return <SavedAds />
+            case 'profile':
+                return <UserProfile profile={profile} setProfile={setProfile} />
+            default:
+                return <SearchAds />
+        }
+    }
 
-                {/* Dashboard Content */}
-                <div>
-                    <SearchAds />
-                </div>
+    const getHeaderTitle = () => {
+        switch (activeTab) {
+            case 'discover': return { title: 'Discover Ads', subtitle: 'Search and analyze competitors.' }
+            case 'history': return { title: 'Search History', subtitle: 'View your recent search activity.' }
+            case 'saved': return { title: 'Saved Ads', subtitle: 'Your collection of bookmarked ads.' }
+            case 'profile': return { title: 'Account Settings', subtitle: 'Manage your profile and security.' }
+        }
+    }
+
+    const header = getHeaderTitle()
+
+    return (
+        <div className="min-h-screen bg-black text-white flex">
+            {/* Sidebar */}
+            <UserSidebar
+                profile={profile}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                onSignOut={handleSignOut}
+                sidebarOpen={sidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+            />
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                {/* Mobile Header */}
+                <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
+                    <h1 className="text-xl font-bold italic tracking-tighter">
+                        <span className="text-blue-500">AD</span>PULSE
+                    </h1>
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="p-2 text-zinc-400 hover:text-white"
+                    >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </header>
+
+                <main className="flex-1 overflow-y-auto bg-black p-4 md:p-8 custom-scrollbar">
+                    <div className="max-w-7xl mx-auto">
+                        <header className="mb-8 hidden md:block">
+                            <h2 className="text-2xl font-bold text-white">
+                                {header?.title}
+                            </h2>
+                            <p className="text-gray-500 text-sm mt-1">
+                                {header?.subtitle}
+                            </p>
+                        </header>
+
+                        {/* Dashboard Content */}
+                        <div className="animate-fade-in-up">
+                            {renderContent()}
+                        </div>
+                    </div>
+                </main>
             </div>
         </div>
     )
