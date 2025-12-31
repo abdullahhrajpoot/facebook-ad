@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import AdCard from './AdCard'
 import SearchHistory from './SearchHistory'
 import SkeletonAdCard from './SkeletonAdCard'
@@ -14,6 +14,12 @@ export default function SearchAds() {
     const [error, setError] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [searchCount, setSearchCount] = useState(0)
+
+    // Heuristic Filter State
+    const [minActiveDays, setMinActiveDays] = useState(0)
+    const [onlyActive, setOnlyActive] = useState(false)
+    const [sortBy, setSortBy] = useState<'default' | 'duration' | 'impressions'>('default')
+
     const ITEMS_PER_PAGE = 12
 
     const executeSearch = async (searchKeyword: string, searchCountry: string, searchMax: number) => {
@@ -26,7 +32,11 @@ export default function SearchAds() {
         setResults([])
         setCurrentPage(1)
 
-        // Update form state to reflect what's being searched
+        // Reset heuristics on new search
+        setMinActiveDays(0)
+        setOnlyActive(false)
+        setSortBy('default')
+
         setKeyword(searchKeyword)
         setCountry(searchCountry)
         setMaxResults(searchMax)
@@ -34,9 +44,7 @@ export default function SearchAds() {
         try {
             const res = await fetch('/api/ads/search', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ keyword: searchKeyword, country: searchCountry, maxResults: searchMax }),
             })
 
@@ -64,15 +72,71 @@ export default function SearchAds() {
         executeSearch(keyword, country, maxResults)
     }
 
+    // Heuristic Logic & Filtering
+    const filteredResults = useMemo(() => {
+        let filtered = [...results]
+
+        // 1. Filter by Active Status (if selected)
+        if (onlyActive) {
+            filtered = filtered.filter(ad => {
+                const status = ad.status || (ad.is_active ? 'Active' : 'Ended')
+                return status === 'Active'
+            })
+        }
+
+        // 2. Filter by Duration (Active Days)
+        if (minActiveDays > 0) {
+            filtered = filtered.filter(ad => {
+                // Calculate duration
+                const start = ad.start_date || ad.startDate
+                if (!start) return false // Cannot determine duration
+
+                const startTime = typeof start === 'number' && start < 10000000000 ? start * 1000 : Number(new Date(start))
+                const end = ad.end_date || ad.endDate
+                const endTime = end ? (typeof end === 'number' && end < 10000000000 ? end * 1000 : Number(new Date(end))) : Date.now()
+
+                const daysActive = (endTime - startTime) / (1000 * 60 * 60 * 24)
+                return daysActive >= minActiveDays
+            })
+        }
+
+        // 3. Sorting (High Converting Heuristics)
+        if (sortBy === 'duration') {
+            filtered.sort((a, b) => {
+                const getDuration = (ad: any) => {
+                    const start = ad.start_date || ad.startDate
+                    if (!start) return 0
+                    const startTime = typeof start === 'number' ? start * 1000 : Number(new Date(start))
+                    const end = ad.end_date || ad.endDate
+                    const endTime = end ? (typeof end === 'number' ? end * 1000 : Number(new Date(end))) : Date.now()
+                    return endTime - startTime
+                }
+                return getDuration(b) - getDuration(a) // Longest running first
+            })
+        } else if (sortBy === 'impressions') {
+            filtered.sort((a, b) => {
+                const getImp = (ad: any) => {
+                    // Try to parse max bound or numeric value
+                    const imp = ad.impressions
+                    if (!imp) return 0
+                    if (typeof imp === 'object') return Number(imp.upper_bound || imp.max || 0)
+                    return 0
+                }
+                return getImp(b) - getImp(a)
+            })
+        }
+
+        return filtered
+    }, [results, onlyActive, minActiveDays, sortBy])
+
     // Pagination Logic
     const indexOfLastItem = currentPage * ITEMS_PER_PAGE
     const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE
-    const currentResults = results.slice(indexOfFirstItem, indexOfLastItem)
-    const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE)
+    const currentResults = filteredResults.slice(indexOfFirstItem, indexOfLastItem)
+    const totalPages = Math.ceil(filteredResults.length / ITEMS_PER_PAGE)
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page)
-        // Optional: Scroll to top of grid
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
@@ -163,6 +227,58 @@ export default function SearchAds() {
                 </div>
             )}
 
+            {/* HIGH CONVERTING HEURISTICS TOOLBAR */}
+            {results.length > 0 && !loading && (
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center justify-between animate-fade-in shadow-lg">
+                    <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium">
+                        <svg className="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Filter High Converting Ads:</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3 items-center">
+                        {/* Only Active Toggle */}
+                        <button
+                            onClick={() => setOnlyActive(!onlyActive)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${onlyActive
+                                    ? 'bg-green-500/20 text-green-400 border-green-500/50'
+                                    : 'bg-black text-zinc-500 border-zinc-700 hover:border-zinc-500'
+                                }`}
+                        >
+                            Active Only
+                        </button>
+
+                        {/* Duration Filters */}
+                        <div className="flex items-center gap-2 bg-black rounded-lg border border-zinc-800 p-1">
+                            {[0, 3, 7, 30].map(days => (
+                                <button
+                                    key={days}
+                                    onClick={() => setMinActiveDays(days)}
+                                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${minActiveDays === days
+                                            ? 'bg-zinc-800 text-white shadow-sm'
+                                            : 'text-zinc-500 hover:text-zinc-300'
+                                        }`}
+                                >
+                                    {days === 0 ? 'All Time' : `${days}+ Days`}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Sort Dropdown */}
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value as any)}
+                            className="bg-black border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                            <option value="default">Newest First</option>
+                            <option value="duration">Longest Running (Stable)</option>
+                            <option value="impressions">Highest Impressions</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+
             {/* Results Grid */}
             <div>
                 {loading && (
@@ -177,10 +293,10 @@ export default function SearchAds() {
 
                 {!loading && results.length > 0 && (
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold flex items-center gap-2">
+                        <h3 className="text-xl font-bold flex items-center gap-2 text-white">
                             Search Results
                             <span className="bg-zinc-800 text-zinc-400 text-xs py-1 px-2 rounded-full border border-zinc-700">
-                                {results.length} found
+                                {filteredResults.length} matches
                             </span>
                         </h3>
                     </div>
@@ -217,14 +333,14 @@ export default function SearchAds() {
                     </div>
                 )}
 
-                {!loading && results.length === 0 && !error && (
+                {!loading && (results.length === 0 || (results.length > 0 && filteredResults.length === 0)) && !error && (
                     <div className="text-center py-20 text-zinc-500">
                         <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg className="w-8 h-8 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        <p>Enter a keyword to start searching for ads.</p>
+                        <p>{results.length === 0 ? 'Enter a keyword to start searching for ads.' : 'No ads match your filters.'}</p>
                     </div>
                 )}
             </div>
