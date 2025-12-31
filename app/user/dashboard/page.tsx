@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { MOCK_ADS } from '../../../utils/mockData'
-import AdCard from '../../../components/AdCard'
+import SearchAds from '../../../components/SearchAds'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
@@ -73,15 +72,7 @@ export default function UserDashboard() {
 
                 {/* Dashboard Content */}
                 <div>
-                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                        <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-                        Available Ad Campaigns
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {MOCK_ADS.map((ad) => (
-                            <AdCard key={ad.id} ad={ad} />
-                        ))}
-                    </div>
+                    <SearchAds />
                 </div>
             </div>
         </div>
