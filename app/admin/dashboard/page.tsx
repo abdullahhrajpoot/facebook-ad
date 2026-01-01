@@ -7,11 +7,13 @@ import SearchAds from '@/components/SearchAds'
 import AdminSidebar from '@/components/AdminSidebar'
 import UsersList from '@/components/admin/UsersList'
 import AdminUserProfile from '@/components/admin/AdminUserProfile'
+import UserProfile from '@/components/UserProfile'
+import SearchHistory from '@/components/SearchHistory'
 
 export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
-    const [activeTab, setActiveTab] = useState<'users' | 'ads'>('users')
+    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'history' | 'profile'>('users')
 
     // Data State
     const [users, setUsers] = useState<any[]>([])
@@ -87,6 +89,11 @@ export default function AdminDashboard() {
         setSelectedUser(null)
     }
 
+    const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
+        setActiveTab('ads')
+        // In a real app, you'd pass filters to SearchAds here, possibly via context or URL params
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -96,27 +103,52 @@ export default function AdminDashboard() {
     }
 
     const renderContent = () => {
-        if (activeTab === 'users') {
-            if (userViewMode === 'detail') {
+        switch (activeTab) {
+            case 'users':
+                if (userViewMode === 'detail') {
+                    return (
+                        <AdminUserProfile
+                            user={selectedUser}
+                            onBack={handleUserBack}
+                            onSave={handleUserSave}
+                        />
+                    )
+                }
                 return (
-                    <AdminUserProfile
-                        user={selectedUser}
-                        onBack={handleUserBack}
-                        onSave={handleUserSave}
+                    <UsersList
+                        users={users}
+                        onSelectUser={handleUserSelect}
+                        onAddUser={handleAddUser}
                     />
                 )
-            }
-            return (
-                <UsersList
-                    users={users}
-                    onSelectUser={handleUserSelect}
-                    onAddUser={handleAddUser}
-                />
-            )
-        } else {
-            return <SearchAds />
+            case 'ads':
+                return <SearchAds />
+            case 'history':
+                return (
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                            <h2 className="text-xl font-bold mb-6 text-white">Admin Search History</h2>
+                            <SearchHistory onSelect={handleHistorySelect} refreshTrigger={0} />
+                        </div>
+                    </div>
+                )
+            case 'profile':
+                return <UserProfile profile={profile} setProfile={setProfile} />
+            default:
+                return null
         }
     }
+
+    const getHeaderTitle = () => {
+        switch (activeTab) {
+            case 'users': return { title: 'User Management', subtitle: 'Manage system access and user profiles.' }
+            case 'ads': return { title: 'Global Ad Campaigns', subtitle: 'Monitor and manage all advertisements across the platform.' }
+            case 'history': return { title: 'Search History', subtitle: 'Review past search queries and activity.' }
+            case 'profile': return { title: 'My Profile', subtitle: 'View your administrator account details.' }
+        }
+    }
+
+    const header = getHeaderTitle()
 
     return (
         <div className="min-h-screen bg-black text-white flex">
@@ -125,7 +157,6 @@ export default function AdminDashboard() {
                 activeTab={activeTab}
                 setActiveTab={(tab) => {
                     setActiveTab(tab)
-                    // Reset sub-views when switching main tabs
                     if (tab === 'users') setUserViewMode('list')
                 }}
                 onSignOut={handleSignOut}
@@ -154,15 +185,17 @@ export default function AdminDashboard() {
                     <div className="max-w-7xl mx-auto">
                         <header className="mb-8 hidden md:block">
                             <h2 className="text-2xl font-bold text-white">
-                                {activeTab === 'users' ? 'User Management' : 'Global Ad Campaigns'}
+                                {header?.title}
                             </h2>
                             <p className="text-gray-500 text-sm mt-1">
-                                {activeTab === 'users' ? 'Manage system access and user profiles.' : 'Monitor and manage all advertisements across the platform.'}
+                                {header?.subtitle}
                             </p>
                         </header>
 
                         {/* Content */}
-                        {renderContent()}
+                        <div className="animate-fade-in-up">
+                            {renderContent()}
+                        </div>
                     </div>
                 </main>
             </div>

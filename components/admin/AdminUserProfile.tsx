@@ -10,13 +10,15 @@ interface AdminUserProfileProps {
 }
 
 export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProfileProps) {
+    const isNew = !user // Determine if strict creation mode
+
     const [loading, setLoading] = useState(false)
     const [formData, setFormData] = useState({
         full_name: user?.full_name || '',
         email: user?.email || '',
         gender: user?.gender || '',
         role: user?.role || 'user',
-        password: '' // For new users or resetting password
+        password: '' // Only used for new users now
     })
     const supabase = createClient()
 
@@ -25,16 +27,14 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
         setLoading(true)
 
         try {
-            const isNew = !user
-
-            // 1. Handle Auth (Create or Update Password)
-            // Note: In a real Supabase admin context, creating users usually requires server-side admin client (service_role).
-            // Since we are client-side here, we might be limited. 
-            // However, assuming we use the API route /api/admin/users which we saw earlier, we should use that.
-
             const method = isNew ? 'POST' : 'PUT'
             const body: any = { ...formData }
-            if (!isNew) body.id = user.id
+
+            // If editing, remove password from body to prevent accidental reset (though backend should handle this safely too)
+            if (!isNew) {
+                body.id = user.id
+                delete body.password
+            }
 
             const res = await fetch('/api/admin/users', {
                 method,
@@ -119,7 +119,7 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
                                         className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all placeholder-zinc-700"
                                         placeholder="user@company.com"
                                         required
-                                        disabled={!!user} // Often simpler to disable email edit for ID stability, but can be enabled if backend supports
+                                        disabled={!!user}
                                     />
                                     {user && <p className="text-[10px] text-zinc-600 mt-1">Email cannot be changed directly.</p>}
                                 </div>
@@ -166,20 +166,27 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-400 mb-2">
-                                        {user ? 'Reset Password' : 'Password'}
-                                    </label>
-                                    <input
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all placeholder-zinc-700"
-                                        placeholder={user ? "Enter new password to reset" : "Set initial password"}
-                                        required={!user}
-                                        minLength={6}
-                                    />
-                                </div>
+                                {/* Conditionally Render Password Input ONLY for New Users */}
+                                {isNew && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-400 mb-2">
+                                            Password <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={formData.password}
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all placeholder-zinc-700"
+                                            placeholder="Set initial password"
+                                            required
+                                            minLength={6}
+                                        />
+                                        <p className="text-[10px] text-zinc-600 mt-1">
+                                            Required for creating a new account.
+                                        </p>
+                                    </div>
+                                )}
+
                             </div>
                         </div>
 
@@ -207,7 +214,7 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
                                     disabled={loading}
                                     className="px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
                                 >
-                                    {loading ? 'Saving...' : 'Save Changes'}
+                                    {loading ? 'Saving...' : (isNew ? 'Create User' : 'Save Changes')}
                                 </button>
                             </div>
                         </div>
