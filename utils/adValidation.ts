@@ -1,0 +1,87 @@
+export interface AdData {
+    id?: string
+    adArchiveID?: string
+    publisherPlatform?: string[]
+    startDate?: string
+    endDate?: string
+    isActive?: boolean // mapped from is_active
+    pageName?: string
+    pageId?: string
+
+    // Visuals
+    imageUrl?: string
+    videoUrl?: string
+
+    // Text
+    title?: string
+    body?: string
+    linkDescription?: string
+    ctaText?: string
+
+    // Action
+    linkUrl?: string
+
+    // Raw Snapshot (fallback)
+    snapshot?: any
+}
+
+export const validateAd = (ad: any): boolean => {
+    const snapshot = ad.snapshot || {}
+
+    // 1. MUST have a redirection URL (Link)
+    const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link;
+    if (!linkUrl) return false;
+
+    // 2. MUST have an Image (or Video Preview)
+    // We check for top level imageUrl, snapshot images, cards images (carousel), or video preview
+    const hasImage =
+        !!ad.imageUrl ||
+        (snapshot.images && snapshot.images.length > 0) ||
+        (snapshot.cards && snapshot.cards.length > 0 && snapshot.cards[0].original_image_url) ||
+        (snapshot.videos && snapshot.videos.length > 0 && snapshot.videos[0].video_preview_image_url);
+
+    if (!hasImage) return false;
+
+    // 3. MUST have Title OR Description
+    // We need at least some text to show
+    const title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title;
+    const body = ad.adCreativeBody || snapshot.body?.text || snapshot.message || snapshot.caption || ad.description;
+
+    if (!title && !body) return false;
+
+    return true;
+}
+
+export const normalizeAdData = (ad: any): AdData => {
+    const snapshot = ad.snapshot || {}
+
+    // Resolve Image
+    let imageUrl = ad.imageUrl
+    if (!imageUrl && snapshot.images?.[0]) imageUrl = snapshot.images[0].original_image_url
+    if (!imageUrl && snapshot.cards?.[0]) imageUrl = snapshot.cards[0].original_image_url
+    if (!imageUrl && snapshot.videos?.[0]) imageUrl = snapshot.videos[0].video_preview_image_url
+
+    // Resolve Text
+    const title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title || 'Sponsored Ad'
+    const bodyRaw = ad.adCreativeBody || snapshot.body || snapshot.message || snapshot.caption || ad.description
+    const body = typeof bodyRaw === 'object' ? bodyRaw?.text : bodyRaw
+
+    // Resolve Link
+    const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link
+
+    return {
+        id: ad.id || ad.adArchiveID,
+        adArchiveID: ad.adArchiveID,
+        isActive: ad.is_active,
+        startDate: ad.startDate || ad.start_date,
+        endDate: ad.endDate || ad.end_date,
+        pageName: ad.pageName || ad.page_name || snapshot.page_name || 'Unknown Page',
+        publisherPlatform: ad.publisher_platforms || snapshot.publisher_platforms,
+        imageUrl,
+        title,
+        body,
+        linkUrl,
+        ctaText: snapshot.cta_text || 'Learn More',
+        snapshot
+    }
+}

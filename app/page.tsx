@@ -5,7 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MOCK_ADS } from '../utils/mockData'
-import AdCard from '../components/AdCard'
+
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)

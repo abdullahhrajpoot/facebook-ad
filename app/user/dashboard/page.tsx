@@ -7,13 +7,13 @@ import SearchAds from '@/components/SearchAds'
 import UserSidebar from '@/components/UserSidebar'
 import UserProfile from '@/components/UserProfile'
 import SearchHistory from '@/components/SearchHistory'
-import SavedAds from '@/components/SavedAds'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
+    const [activeTab, setActiveTab] = useState<'ads' | 'history' | 'profile'>('ads')
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [activeTab, setActiveTab] = useState<'discover' | 'history' | 'saved' | 'profile'>('discover')
+
     const router = useRouter()
     const supabase = createClient()
 
@@ -26,15 +26,16 @@ export default function UserDashboard() {
                 return
             }
 
-            // Fetch profile
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single()
 
-            if (profile?.role === 'admin') {
-                router.push('/admin/dashboard')
+            if (!profile) {
+                // If no profile (error state), maybe redirect or show error
+                // For now, let's just proceed or redirect to login
+                router.push('/auth/login')
                 return
             }
 
@@ -51,9 +52,8 @@ export default function UserDashboard() {
     }
 
     const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
-        // Switch to discover
-        setActiveTab('discover')
-        // In a real app we'd pass these params to SearchAds via props or context
+        setActiveTab('ads')
+        // In a real app we'd pass these values to SearchAds, but for now we just switch tab
     }
 
     if (loading) {
@@ -66,32 +66,29 @@ export default function UserDashboard() {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'discover':
+            case 'ads':
                 return <SearchAds />
             case 'history':
                 return (
                     <div className="max-w-4xl mx-auto">
                         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                            <h2 className="text-xl font-bold mb-6 text-white">Search History</h2>
+                            <h2 className="text-xl font-bold mb-6 text-white">Your Search History</h2>
                             <SearchHistory onSelect={handleHistorySelect} refreshTrigger={0} />
                         </div>
                     </div>
                 )
-            case 'saved':
-                return <SavedAds />
             case 'profile':
                 return <UserProfile profile={profile} setProfile={setProfile} />
             default:
-                return <SearchAds />
+                return null
         }
     }
 
     const getHeaderTitle = () => {
         switch (activeTab) {
-            case 'discover': return { title: 'Discover Ads', subtitle: 'Search and analyze competitors.' }
+            case 'ads': return { title: 'Ad Intelligence Search', subtitle: 'Search and analyze competitors ads across Facebook and Instagram.' }
             case 'history': return { title: 'Search History', subtitle: 'View your recent search activity.' }
-            case 'saved': return { title: 'Saved Ads', subtitle: 'Your collection of bookmarked ads.' }
-            case 'profile': return { title: 'Account Settings', subtitle: 'Manage your profile and security.' }
+            case 'profile': return { title: 'My Profile', subtitle: 'Manage your account settings.' }
         }
     }
 
@@ -99,9 +96,7 @@ export default function UserDashboard() {
 
     return (
         <div className="min-h-screen bg-black text-white flex">
-            {/* Sidebar */}
             <UserSidebar
-                profile={profile}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onSignOut={handleSignOut}
@@ -109,9 +104,7 @@ export default function UserDashboard() {
                 setSidebarOpen={setSidebarOpen}
             />
 
-            {/* Main Content */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                {/* Mobile Header */}
                 <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
                     <h1 className="text-xl font-bold italic tracking-tighter">
                         <span className="text-blue-500">AD</span>PULSE
@@ -137,7 +130,6 @@ export default function UserDashboard() {
                             </p>
                         </header>
 
-                        {/* Dashboard Content */}
                         <div className="animate-fade-in-up">
                             {renderContent()}
                         </div>

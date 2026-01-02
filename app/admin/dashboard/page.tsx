@@ -91,7 +91,6 @@ export default function AdminDashboard() {
 
     const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
         setActiveTab('ads')
-        // In a real app, you'd pass filters to SearchAds here, possibly via context or URL params
     }
 
     if (loading) {
