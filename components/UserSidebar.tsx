@@ -59,11 +59,18 @@ export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOu
             `}>
                 {/* Logo Area */}
                 <div className="p-8 border-b border-zinc-900/50">
-                    <h1 className="text-3xl font-black italic tracking-tighter">
-                        <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">AD</span>
-                        <span className="text-white">PULSE</span>
-                    </h1>
-                    <div className="text-xs font-medium text-blue-500 tracking-widest mt-1 opacity-80">USER DASHBOARD</div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        <h1 className="text-xl font-black italic tracking-tighter leading-none">
+                            <span className="block text-white">IKONIC</span>
+                            <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">MARKETERS</span>
+                        </h1>
+                    </div>
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] ml-1">Ad Intelligence</div>
                 </div>
 
                 {/* Navigation */}

@@ -5,7 +5,7 @@ import { createClient } from '../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { MOCK_ADS } from '../utils/mockData'
-
+import AdCard from '../components/AdCard'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -60,7 +60,7 @@ export default function Home() {
             <div className="absolute inset-0 rounded-full border-4 border-zinc-800"></div>
             <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
           </div>
-          <div className="mt-4 text-zinc-500 font-medium animate-pulse">Loading AdPulse...</div>
+          <div className="mt-4 text-zinc-500 font-medium animate-pulse">Loading...</div>
         </div>
       </div>
     )
@@ -87,15 +87,13 @@ export default function Home() {
             <div className="flex-shrink-0 flex items-center gap-3 group cursor-default">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <span className="text-2xl font-black font-sans tracking-tight">
-                Ad<span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Pulse</span>
+              <span className="text-xl font-black font-sans tracking-tight">
+                IKONIC <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">MARKETERS</span>
               </span>
             </div>
-
-            {/* Removed Features & Pricing Links */}
 
             <div className="flex gap-4">
               <Link href="/auth/login" className="px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-all shadow-lg shadow-blue-600/25 hover:shadow-blue-600/40 hover:-translate-y-0.5">
@@ -187,7 +185,7 @@ export default function Home() {
       <footer className="border-t border-white/5 bg-black py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-zinc-500 text-sm">
-            © 2024 AdPulse Inc. All rights reserved.
+            © 2024 Ikonic Marketers Inc. All rights reserved.
           </div>
           <div className="flex gap-6">
             <a href="#" className="text-zinc-500 hover:text-white transition-colors">Privacy</a>

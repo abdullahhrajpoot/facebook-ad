@@ -3,8 +3,6 @@
 import React from 'react'
 
 export default function SavedAds() {
-    // Ideally this would fetch from a 'saved_ads' table
-    // For now, we will just show a placeholder as per plan
     return (
         <div className="max-w-4xl mx-auto text-center py-20">
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12">
@@ -15,7 +13,7 @@ export default function SavedAds() {
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">Saved Ads</h2>
                 <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                    Save your favorite ads to reference them later. This feature is coming soon to AdPulse!
+                    Save your favorite ads to reference them later. This feature is coming soon to Ikonic Marketers!
                 </p>
                 <div className="inline-block px-4 py-2 bg-zinc-800 rounded-lg text-xs font-mono text-zinc-500">
                     Feature: saved_ads_v1 (In Development)

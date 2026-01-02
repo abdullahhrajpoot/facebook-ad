@@ -167,8 +167,8 @@ export default function AdminDashboard() {
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Mobile Header */}
                 <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
-                    <h1 className="text-xl font-bold italic tracking-tighter">
-                        <span className="text-red-500">AD</span>PULSE
+                    <h1 className="text-lg font-black italic tracking-tighter">
+                        <span className="text-white">IKONIC</span> <span className="text-red-500">MARKETERS</span>
                     </h1>
                     <button
                         onClick={() => setSidebarOpen(true)}

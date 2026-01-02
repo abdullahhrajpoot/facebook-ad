@@ -7,11 +7,12 @@ import SearchAds from '@/components/SearchAds'
 import UserSidebar from '@/components/UserSidebar'
 import UserProfile from '@/components/UserProfile'
 import SearchHistory from '@/components/SearchHistory'
+import SavedAds from '@/components/SavedAds'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
-    const [activeTab, setActiveTab] = useState<'ads' | 'history' | 'profile'>('ads')
+    const [activeTab, setActiveTab] = useState<'discover' | 'history' | 'saved' | 'profile'>('discover')
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     const router = useRouter()
@@ -33,8 +34,6 @@ export default function UserDashboard() {
                 .single()
 
             if (!profile) {
-                // If no profile (error state), maybe redirect or show error
-                // For now, let's just proceed or redirect to login
                 router.push('/auth/login')
                 return
             }
@@ -52,8 +51,7 @@ export default function UserDashboard() {
     }
 
     const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
-        setActiveTab('ads')
-        // In a real app we'd pass these values to SearchAds, but for now we just switch tab
+        setActiveTab('discover')
     }
 
     if (loading) {
@@ -66,7 +64,7 @@ export default function UserDashboard() {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'ads':
+            case 'discover':
                 return <SearchAds />
             case 'history':
                 return (
@@ -77,6 +75,8 @@ export default function UserDashboard() {
                         </div>
                     </div>
                 )
+            case 'saved':
+                return <SavedAds />
             case 'profile':
                 return <UserProfile profile={profile} setProfile={setProfile} />
             default:
@@ -86,8 +86,9 @@ export default function UserDashboard() {
 
     const getHeaderTitle = () => {
         switch (activeTab) {
-            case 'ads': return { title: 'Ad Intelligence Search', subtitle: 'Search and analyze competitors ads across Facebook and Instagram.' }
+            case 'discover': return { title: 'Ad Intelligence Search', subtitle: 'Search and analyze competitors ads across Facebook and Instagram.' }
             case 'history': return { title: 'Search History', subtitle: 'View your recent search activity.' }
+            case 'saved': return { title: 'Saved Ads', subtitle: 'Your collected high-performing creatives.' }
             case 'profile': return { title: 'My Profile', subtitle: 'Manage your account settings.' }
         }
     }
@@ -97,6 +98,7 @@ export default function UserDashboard() {
     return (
         <div className="min-h-screen bg-black text-white flex">
             <UserSidebar
+                profile={profile}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onSignOut={handleSignOut}
@@ -106,8 +108,8 @@ export default function UserDashboard() {
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
-                    <h1 className="text-xl font-bold italic tracking-tighter">
-                        <span className="text-blue-500">AD</span>PULSE
+                    <h1 className="text-lg font-black italic tracking-tighter">
+                        <span className="text-white">IKONIC</span> <span className="text-blue-500">MARKETERS</span>
                     </h1>
                     <button
                         onClick={() => setSidebarOpen(true)}
