@@ -9,6 +9,7 @@ import AdCard from '../components/AdCard'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -18,6 +19,7 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         setUser(null)
+        setProfile(null)
         setLoading(false)
       } else {
         setUser(session.user)
@@ -28,6 +30,7 @@ export default function Home() {
           .eq('id', session.user.id)
           .single()
 
+        setProfile(profile)
         setLoading(false)
         if (profile?.role === 'admin') {
           router.push('/admin/dashboard')
@@ -62,6 +65,11 @@ export default function Home() {
       </div>
     )
   }
+
+  // Determine dashboard link based on role
+  const dashboardLink = user
+    ? (profile?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')
+    : '/auth/login'
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-x-hidden selection:bg-blue-500/30">
@@ -111,16 +119,15 @@ export default function Home() {
             Stop guessing. Start scaling. Analyze millions of successful ad campaigns to find your next winning creative instantly.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up delay-200">
-            <Link href="/auth/login" className="px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-zinc-200 transition-all shadow-xl shadow-white/10 hover:shadow-white/20 transform hover:-translate-y-1">
-              Start Free Trial
-            </Link>
-            <button className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-sm flex items-center justify-center gap-2 group">
-              <svg className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <Link
+              href={dashboardLink}
+              className="px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-zinc-200 transition-all shadow-xl shadow-white/10 hover:shadow-white/20 transform hover:-translate-y-1 flex items-center gap-2"
+            >
+              Continue to Dashboard
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-              Watch Demo
-            </button>
+            </Link>
           </div>
         </div>
       </div>
