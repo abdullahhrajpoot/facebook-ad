@@ -58,7 +58,6 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
                             <tr>
                                 <th className="px-6 py-5">User Profile</th>
                                 <th className="px-6 py-5">Role</th>
-                                <th className="px-6 py-5">Gender</th>
                                 <th className="px-6 py-5">Joined</th>
                                 <th className="px-6 py-5 text-right">Actions</th>
                             </tr>
@@ -87,7 +86,6 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
                                                 {user.role}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 capitalize">{user.gender || '-'}</td>
                                         <td className="px-6 py-4 font-mono text-zinc-500">{new Date(user.created_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

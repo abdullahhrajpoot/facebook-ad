@@ -42,16 +42,6 @@ export default function UserProfile({ profile }: UserProfileProps) {
                     </div>
 
                     <div>
-                        <label className="block text-xs uppercase font-bold text-gray-500 mb-2">Gender</label>
-                        <input
-                            type="text"
-                            value={profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Not specified'}
-                            disabled
-                            className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 cursor-not-allowed"
-                        />
-                    </div>
-
-                    <div>
                         <label className="block text-xs uppercase font-bold text-gray-500 mb-2">Role</label>
                         <div className="inline-block px-3 py-1 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-medium">
                             {profile?.role?.toUpperCase()}

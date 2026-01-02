@@ -16,7 +16,6 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
     const [formData, setFormData] = useState({
         full_name: user?.full_name || '',
         email: user?.email || '',
-        gender: user?.gender || '',
         role: user?.role || 'user',
         password: '' // Only used for new users now
     })
@@ -139,7 +138,7 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
                             <div className="space-y-4">
                                 <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider">Permissions & Info</h3>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-400 mb-2">Role</label>
                                         <select
@@ -149,19 +148,6 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
                                         >
                                             <option value="user">User</option>
                                             <option value="admin">Admin</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-400 mb-2">Gender</label>
-                                        <select
-                                            value={formData.gender}
-                                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                            className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer hover:border-zinc-700"
-                                        >
-                                            <option value="">Select...</option>
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                            <option value="other">Other</option>
                                         </select>
                                     </div>
                                 </div>
