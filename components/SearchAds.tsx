@@ -12,6 +12,7 @@ export default function SearchAds() {
     const [loading, setLoading] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [searchMode, setSearchMode] = useState<'keyword' | 'page'>('keyword')
 
     // New Filters State
     const [activeOnly, setActiveOnly] = useState(false)
@@ -40,14 +41,22 @@ export default function SearchAds() {
         setAds([])
 
         try {
-            const res = await fetch('/api/ads/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const endpoint = searchMode === 'keyword' ? '/api/ads/search' : '/api/ads/search-page'
+            const body = searchMode === 'keyword'
+                ? {
                     keyword,
                     country: country === 'ALL' ? undefined : country,
                     maxResults: Number(maxResults)
-                })
+                }
+                : {
+                    pageNameOrUrl: keyword,
+                    count: Number(maxResults)
+                }
+
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
             })
 
             const data = await res.json()
@@ -82,10 +91,28 @@ export default function SearchAds() {
         if (minDaysActive > 0) {
             const now = new Date().getTime()
             result = result.filter(ad => {
-                if (!ad.start_date) return false
-                const start = new Date(ad.start_date).getTime()
-                const diffTime = Math.abs(now - start)
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                const startDate = ad.start_date || ad.startDate
+                if (!startDate) return false
+
+                let startMs = 0
+                // Handle different date formats
+                if (typeof startDate === 'number') {
+                    // Check if seconds (10 digits) or milliseconds (13 digits)
+                    startMs = startDate < 10000000000 ? startDate * 1000 : startDate
+                } else if (typeof startDate === 'string' && !isNaN(Number(startDate)) && !startDate.includes('-')) {
+                    // Numeric string
+                    const num = Number(startDate)
+                    startMs = num < 10000000000 ? num * 1000 : num
+                } else {
+                    // Date string (YYYY-MM-DD)
+                    startMs = new Date(startDate).getTime()
+                }
+
+                if (!startMs || isNaN(startMs)) return false
+
+                const diffTime = Math.abs(now - startMs)
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
                 return diffDays >= minDaysActive
             })
         }
@@ -93,14 +120,14 @@ export default function SearchAds() {
         // 3. Sorting
         if (sortBy === 'longest_running') {
             result.sort((a, b) => {
-                const dateA = a.start_date ? new Date(a.start_date).getTime() : 0
-                const dateB = b.start_date ? new Date(b.start_date).getTime() : 0
+                const dateA = a.start_date || a.startDate ? new Date(a.start_date || a.startDate).getTime() : 0
+                const dateB = b.start_date || b.startDate ? new Date(b.start_date || b.startDate).getTime() : 0
                 return dateA - dateB // Ascending start date = older = running longer
             })
         } else if (sortBy === 'recent') {
             result.sort((a, b) => {
-                const dateA = a.start_date ? new Date(a.start_date).getTime() : 0
-                const dateB = b.start_date ? new Date(b.start_date).getTime() : 0
+                const dateA = a.start_date || a.startDate ? new Date(a.start_date || a.startDate).getTime() : 0
+                const dateB = b.start_date || b.startDate ? new Date(b.start_date || b.startDate).getTime() : 0
                 return dateB - dateA // Descending start date = newer
             })
         }
@@ -113,6 +140,22 @@ export default function SearchAds() {
         <div className="space-y-8 animate-fade-in-up">
             {/* Search Controls */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl">
+                {/* Search Mode Toggle */}
+                <div className="flex items-center gap-1 bg-black p-1 rounded-xl border border-zinc-800 w-fit mb-6">
+                    <button
+                        onClick={() => setSearchMode('keyword')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${searchMode === 'keyword' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        Keyword Search
+                    </button>
+                    <button
+                        onClick={() => setSearchMode('page')}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${searchMode === 'page' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-white'}`}
+                    >
+                        Search by Page
+                    </button>
+                </div>
+
                 <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -124,28 +167,30 @@ export default function SearchAds() {
                             type="text"
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
-                            placeholder="Search brands, keywords (e.g. 'Nike', 'Skincare')..."
+                            placeholder={searchMode === 'keyword' ? "Search brands, keywords (e.g. 'Nike', 'Skincare')..." : "Enter Page Name or URL (e.g. 'ZapierApp', 'https://facebook.com/ZapierApp')"}
                             className="w-full pl-12 pr-4 py-4 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all shadow-inner"
                         />
                     </div>
 
                     <div className="flex gap-4">
-                        <div className="relative min-w-[140px]">
-                            <select
-                                value={country}
-                                onChange={(e) => setCountry(e.target.value)}
-                                className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-4 pr-8 rounded-xl focus:outline-none focus:border-blue-600 cursor-pointer"
-                            >
-                                {countries.map((c) => (
-                                    <option key={c.code} value={c.code}>{c.name}</option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
+                        {searchMode === 'keyword' && (
+                            <div className="relative min-w-[140px]">
+                                <select
+                                    value={country}
+                                    onChange={(e) => setCountry(e.target.value)}
+                                    className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-4 pr-8 rounded-xl focus:outline-none focus:border-blue-600 cursor-pointer"
+                                >
+                                    {countries.map((c) => (
+                                        <option key={c.code} value={c.code}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="relative min-w-[100px]">
                             <select

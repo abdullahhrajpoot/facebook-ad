@@ -62,9 +62,18 @@ export const normalizeAdData = (ad: any): AdData => {
     if (!imageUrl && snapshot.videos?.[0]) imageUrl = snapshot.videos[0].video_preview_image_url
 
     // Resolve Text
-    const title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title || 'Sponsored Ad'
+    const cleanText = (text: string) => {
+        if (!text) return ''
+        // Remove template variables like {{product.name}}, {{product.brand}}
+        return text.replace(/\{\{.*?\}\}/g, '').trim()
+    }
+
+    let title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title || 'Sponsored Ad'
+    title = cleanText(title) || 'Sponsored Ad'
+
     const bodyRaw = ad.adCreativeBody || snapshot.body || snapshot.message || snapshot.caption || ad.description
-    const body = typeof bodyRaw === 'object' ? bodyRaw?.text : bodyRaw
+    const bodyText = typeof bodyRaw === 'object' ? bodyRaw?.text : bodyRaw
+    const body = cleanText(bodyText)
 
     // Resolve Link
     const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link
