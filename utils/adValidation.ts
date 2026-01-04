@@ -78,12 +78,29 @@ export const normalizeAdData = (ad: any): AdData => {
     // Resolve Link
     const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link
 
+    // Helper for date parsing
+    const parseDate = (d: any) => {
+        if (!d) return undefined;
+        // If numeric timestamp
+        if (typeof d === 'number') {
+            // Check if seconds or ms. If small (seconds), convert to ms.
+            return d < 10000000000 ? new Date(d * 1000).toISOString() : new Date(d).toISOString();
+        }
+        // If numeric string
+        if (!isNaN(Number(d)) && !d.includes('-')) {
+            const num = Number(d);
+            return num < 10000000000 ? new Date(num * 1000).toISOString() : new Date(num).toISOString();
+        }
+        // Else assume date string
+        return d;
+    }
+
     return {
         id: ad.id || ad.adArchiveID,
         adArchiveID: ad.adArchiveID,
         isActive: ad.is_active,
-        startDate: ad.startDate || ad.start_date,
-        endDate: ad.endDate || ad.end_date,
+        startDate: parseDate(ad.startDate || ad.start_date),
+        endDate: parseDate(ad.endDate || ad.end_date),
         pageName: ad.pageName || ad.page_name || snapshot.page_name || 'Unknown Page',
         publisherPlatform: ad.publisher_platforms || snapshot.publisher_platforms,
         imageUrl,

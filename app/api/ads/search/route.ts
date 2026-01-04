@@ -37,23 +37,35 @@ export async function POST(request: Request) {
             token: token,
         });
 
-        // Input for the actor uMnsf6khYz0VsDGlg (Facebook Ad Library Scraper)
-        // Fetch 5x the requested amount to allow for quality filtering/ranking
+        // Use the same reliable actor as Page Search (XtaWFhbtfxyzqrFmd)
+        // Manually construct the URL to ensure the keyword is strictly respected
+        // URL Format: https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country={COUNTRY}&q={KEYWORD}&search_type=keyword_unordered&media_type=all
+
         const fetchLimit = Number(maxResults) * 5;
+        const countryCode = country || 'US';
+        const encodedKeyword = encodeURIComponent(keyword.trim());
+
+        const searchUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=${countryCode}&q=${encodedKeyword}&search_type=keyword_unordered&media_type=all`;
+
+        console.log(`Generated Search URL: ${searchUrl}`);
+
         const runInput = {
-            searchTerms: [keyword],
-            countryCode: country || 'US',
-            adReachedCountries: [country || 'US'],
-            resultsLimit: fetchLimit,
-            maxItems: fetchLimit,
-            adActiveStatus: 'ALL',
+            "urls": [
+                {
+                    "url": searchUrl
+                }
+            ],
+            "count": fetchLimit,
+            "scrapePageAds.activeStatus": "all",
+            "scrapePageAds.countryCode": "ALL" // The URL param handles the country, but this ensures actor settings imply broad scraping
         };
 
-        const run = await client.actor('uMnsf6khYz0VsDGlg').call(runInput, {
+        const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
             waitSecs: 60,
         });
 
         if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
+            console.error('Apify run failed:', run);
             return NextResponse.json(
                 { error: 'Scraper run failed or was aborted' },
                 { status: 502 }
