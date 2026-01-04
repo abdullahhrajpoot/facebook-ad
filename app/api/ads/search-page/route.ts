@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 
+import { createClient } from '@/utils/supabase/server';
+
 export async function POST(request: Request) {
     try {
+        // Authenticate User
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await request.json();
         const { pageNameOrUrl, count = 100 } = body;
 
