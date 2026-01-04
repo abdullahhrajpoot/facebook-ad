@@ -1,5 +1,7 @@
 'use client'
 
+import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import { AdData } from '@/utils/adValidation'
 
 interface AdPreviewModalProps {
@@ -9,16 +11,23 @@ interface AdPreviewModalProps {
 }
 
 export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalProps) {
-    if (!isOpen) return null
+    const [mounted, setMounted] = useState(false)
 
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    useEffect(() => {
+        setMounted(true)
+        return () => setMounted(false)
+    }, [])
+
+    if (!isOpen || !mounted) return null
+
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             <div
-                className="absolute inset-0 bg-black/90 backdrop-blur-sm transition-opacity"
+                className="fixed inset-0 bg-black/90 backdrop-blur-sm transition-opacity"
                 onClick={onClose}
             />
 
-            <div className="relative w-full max-w-4xl bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+            <div className="relative w-full max-w-4xl bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh] animate-fade-in-up">
                 {/* Close Button */}
                 <button
                     onClick={onClose}
@@ -114,6 +123,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
