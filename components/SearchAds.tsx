@@ -93,9 +93,8 @@ export default function SearchAds() {
         { code: 'ALL', name: 'Global' },
     ]
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!keyword.trim()) return
+    const executeSearch = async (searchKeyword: string, mode: 'keyword' | 'page', searchCountry: string, count: string) => {
+        if (!searchKeyword.trim()) return
 
         setLoading(true)
         setError(null)
@@ -104,16 +103,16 @@ export default function SearchAds() {
         setSelectedCategories(new Set()) // Reset categories on new search
 
         try {
-            const endpoint = searchMode === 'keyword' ? '/api/ads/search' : '/api/ads/search-page'
-            const body = searchMode === 'keyword'
+            const endpoint = mode === 'keyword' ? '/api/ads/search' : '/api/ads/search-page'
+            const body = mode === 'keyword'
                 ? {
-                    keyword,
-                    country: country === 'ALL' ? undefined : country,
-                    maxResults: Number(maxResults)
+                    keyword: searchKeyword,
+                    country: searchCountry === 'ALL' ? undefined : searchCountry,
+                    maxResults: Number(count)
                 }
                 : {
-                    pageNameOrUrl: keyword,
-                    count: Number(maxResults)
+                    pageNameOrUrl: searchKeyword,
+                    count: Number(count)
                 }
 
             const res = await fetch(endpoint, {
@@ -139,6 +138,11 @@ export default function SearchAds() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault()
+        await executeSearch(keyword, searchMode, country, maxResults)
     }
 
     // 1. Dynamic Category Extraction (Memoized)
@@ -259,26 +263,57 @@ export default function SearchAds() {
 
                         {/* Recent Searches Dropdown */}
                         {showHistory && recentSearches.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
-                                <div className="px-4 py-2 bg-zinc-800/50 border-b border-zinc-700 text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                                    Recent Searches
+                            <div className="absolute top-full left-0 right-0 mt-3 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="px-5 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                                    <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Clock className="w-3 h-3" />
+                                        Recent Searches
+                                    </span>
                                 </div>
-                                {recentSearches.map((item, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => {
-                                            setKeyword(item.keyword)
-                                            setSearchMode(item.filters?.searchType === 'page' ? 'page' : 'keyword') // infer mode if possible
-                                            setShowHistory(false)
-                                        }}
-                                        className="w-full text-left px-4 py-3 hover:bg-zinc-800 flex items-center gap-3 text-sm text-zinc-300 transition-colors group"
-                                    >
-                                        <Clock className="w-4 h-4 text-zinc-500 group-hover:text-blue-400" />
-                                        <span className="font-medium">{item.keyword}</span>
-                                        {item.filters?.country && <span className="ml-auto text-xs text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">{item.filters.country}</span>}
-                                    </button>
-                                ))}
+                                <div className="max-h-[300px] overflow-y-auto">
+                                    {recentSearches.map((item, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                const term = item.keyword
+                                                const mode = item.filters?.searchType === 'page' ? 'page' : 'keyword'
+                                                const filterCountry = item.filters?.country || 'US'
+
+                                                setKeyword(term)
+                                                setSearchMode(mode)
+                                                if (mode === 'keyword') setCountry(filterCountry)
+
+                                                setShowHistory(false)
+
+                                                // Immediate search
+                                                executeSearch(term, mode, filterCountry, maxResults)
+                                            }}
+                                            className="w-full text-left px-5 py-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-4 text-sm text-zinc-300 transition-all group active:scale-[0.99]"
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-colors">
+                                                {item.filters?.searchType === 'page' ? <Globe className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-zinc-200 truncate group-hover:text-white transition-colors">{item.keyword}</div>
+                                                <div className="text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
+                                                    <span>{item.filters?.searchType === 'page' ? 'Page Search' : 'Keyword Search'}</span>
+                                                    {item.filters?.country && (
+                                                        <>
+                                                            <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                                                            <span>{countries.find(c => c.code === item.filters.country)?.name || item.filters.country}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transform duration-200">
+                                                <div className="p-1.5 rounded-lg bg-blue-600/20 text-blue-400">
+                                                    <Search className="w-3.5 h-3.5" />
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

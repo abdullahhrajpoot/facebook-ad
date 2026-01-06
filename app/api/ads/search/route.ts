@@ -106,48 +106,47 @@ export async function POST(request: Request) {
         const topAds = validatedAds.slice(0, Number(maxResults));
 
         // Save to Supabase Search History (Fire and Forget)
-        (async () => {
-            try {
-                const supabase = await createClient();
-                const { data: { user } } = await supabase.auth.getUser();
+        // Save to Supabase Search History
+        try {
+            const supabase = await createClient();
+            const { data: { user } } = await supabase.auth.getUser();
 
-                if (user) {
-                    const countryCode = country || 'US';
+            if (user) {
+                const countryCode = country || 'US';
 
-                    const { data: existingHistory } = await supabase
+                const { data: existingHistory } = await supabase
+                    .from('search_history')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .ilike('keyword', keyword.trim())
+                    .eq('filters->country', countryCode)
+                    .eq('filters->searchType', 'keyword')
+                    .maybeSingle();
+
+                if (existingHistory) {
+                    await supabase
                         .from('search_history')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .ilike('keyword', keyword.trim())
-                        .eq('filters->country', countryCode)
-                        .eq('filters->searchType', 'keyword')
-                        .maybeSingle();
-
-                    if (existingHistory) {
-                        await supabase
-                            .from('search_history')
-                            .update({ created_at: new Date().toISOString() })
-                            .eq('id', existingHistory.id);
-                    } else {
-                        await supabase
-                            .from('search_history')
-                            .insert({
-                                user_id: user.id,
-                                keyword: keyword.trim(),
-                                filters: {
-                                    searchType: 'keyword',
-                                    country: countryCode,
-                                    maxResults
-                                }
-                            });
-                    }
-
-                    console.log('✅ Keyword search saved to history');
+                        .update({ created_at: new Date().toISOString() })
+                        .eq('id', existingHistory.id);
+                } else {
+                    await supabase
+                        .from('search_history')
+                        .insert({
+                            user_id: user.id,
+                            keyword: keyword.trim(),
+                            filters: {
+                                searchType: 'keyword',
+                                country: countryCode,
+                                maxResults
+                            }
+                        });
                 }
-            } catch (dbError) {
-                console.error('Error saving keyword search history:', dbError);
+
+                console.log('✅ Keyword search saved to history');
             }
-        })();
+        } catch (dbError) {
+            console.error('Error saving keyword search history:', dbError);
+        }
 
         return NextResponse.json(topAds);
     } catch (error: any) {

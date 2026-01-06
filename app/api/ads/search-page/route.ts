@@ -94,47 +94,46 @@ export async function POST(request: Request) {
         const topAds = validatedAds.slice(0, Number(count));
 
         // Save to Supabase Search History (Fire and Forget)
-        (async () => {
-            try {
-                const supabase = await createClient();
-                const { data: { user } } = await supabase.auth.getUser();
+        // Save to Supabase Search History
+        try {
+            const supabase = await createClient();
+            const { data: { user } } = await supabase.auth.getUser();
 
-                if (user) {
-                    // Check for existing entry with same page search
-                    const { data: existingHistory } = await supabase
+            if (user) {
+                // Check for existing entry with same page search
+                const { data: existingHistory } = await supabase
+                    .from('search_history')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .ilike('keyword', pageNameOrUrl.trim())
+                    .eq('filters->searchType', 'page')
+                    .maybeSingle();
+
+                if (existingHistory) {
+                    // Update timestamp
+                    await supabase
                         .from('search_history')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .ilike('keyword', pageNameOrUrl.trim())
-                        .eq('filters->searchType', 'page')
-                        .maybeSingle();
-
-                    if (existingHistory) {
-                        // Update timestamp
-                        await supabase
-                            .from('search_history')
-                            .update({ created_at: new Date().toISOString() })
-                            .eq('id', existingHistory.id);
-                    } else {
-                        // Insert new entry
-                        await supabase
-                            .from('search_history')
-                            .insert({
-                                user_id: user.id,
-                                keyword: pageNameOrUrl.trim(),
-                                filters: {
-                                    searchType: 'page',
-                                    count: Number(count)
-                                }
-                            });
-                    }
-
-                    console.log('✅ Page search saved to history');
+                        .update({ created_at: new Date().toISOString() })
+                        .eq('id', existingHistory.id);
+                } else {
+                    // Insert new entry
+                    await supabase
+                        .from('search_history')
+                        .insert({
+                            user_id: user.id,
+                            keyword: pageNameOrUrl.trim(),
+                            filters: {
+                                searchType: 'page',
+                                count: Number(count)
+                            }
+                        });
                 }
-            } catch (dbError) {
-                console.error('Error saving page search history:', dbError);
+
+                console.log('✅ Page search saved to history');
             }
-        })();
+        } catch (dbError) {
+            console.error('Error saving page search history:', dbError);
+        }
 
         return NextResponse.json(topAds);
 
