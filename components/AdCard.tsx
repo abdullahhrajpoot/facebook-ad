@@ -22,7 +22,12 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
         setIsSaved(initialIsSaved)
     }, [initialIsSaved])
 
-    const ad: AdData = normalizeAdData(rawAd)
+    const ad: AdData = rawAd.adArchiveID ? rawAd as AdData : normalizeAdData(rawAd)
+
+    // Get primary image and link
+    const primaryImage = ad.images[0] || ''
+    const primaryLink = ad.links[0] || '#'
+
 
     const handleSaveToggle = async (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -109,10 +114,10 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
 
                 {/* Image Section */}
                 <div className="relative aspect-square bg-black overflow-hidden group-hover:opacity-90 transition-opacity cursor-pointer" onClick={() => setShowPreview(true)}>
-                    {ad.imageUrl ? (
+                    {primaryImage ? (
                         <img
-                            src={ad.imageUrl}
-                            alt={ad.title}
+                            src={primaryImage}
+                            alt={ad.title || ad.pageName}
                             className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                             loading="lazy"
                         />
@@ -121,6 +126,7 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                             <span className="text-zinc-600 text-xs">No Image</span>
                         </div>
                     )}
+
 
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
@@ -170,7 +176,7 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                         </div>
 
                         <a
-                            href={ad.linkUrl}
+                            href={primaryLink}
                             target="_blank"
                             rel="noopener"
                             className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors"

@@ -1,113 +1,238 @@
 export interface AdData {
-    id?: string
-    adArchiveID?: string
-    publisherPlatform?: string[]
+    // Core Identifiers
+    adArchiveID: string
+    pageId: string
+
+    // Page Information
+    pageName: string
+    pageProfileUrl: string
+    pageProfilePictureUrl: string
+    pageCategories: string[]
+    pageLikeCount: number
+
+    // Content
+    body: string
+    title?: string
+
+    // Media
+    images: string[]  // Array of image URLs
+    videos: string[]  // Array of video URLs
+
+    // Links
+    links: string[]  // All links blended into one array
+
+    // Status & Metadata
+    isActive: boolean
+    hasUserReported: boolean
+    containsSensitiveContent: boolean
+    brandedContent: boolean
+
+    // Platform
+    platforms: string[]  // e.g., ["FACEBOOK", "INSTAGRAM"]
+
+    // Dates
     startDate?: string
     endDate?: string
-    isActive?: boolean // mapped from is_active
-    pageName?: string
-    pageId?: string
 
-    // Visuals
-    imageUrl?: string
-    videoUrl?: string
-
-    // Text
-    title?: string
-    body?: string
-    linkDescription?: string
-    ctaText?: string
-
-    // Action
-    linkUrl?: string
-
-    // Raw Snapshot (fallback)
+    // Raw snapshot for reference
     snapshot?: any
 }
 
+/**
+ * Validates if an ad has minimum required data
+ */
 export const validateAd = (ad: any): boolean => {
     const snapshot = ad.snapshot || {}
 
-    // 1. MUST have a redirection URL (Link)
-    const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link;
-    if (!linkUrl) return false;
+    // 1. MUST have ad_archive_id
+    if (!ad.ad_archive_id && !ad.adArchiveID && !ad.id) return false
 
-    // 2. MUST have an Image (or Video Preview)
-    // We check for top level imageUrl, snapshot images, cards images (carousel), or video preview
+    // 2. MUST have at least one image or video
     const hasImage =
-        !!ad.imageUrl ||
         (snapshot.images && snapshot.images.length > 0) ||
-        (snapshot.cards && snapshot.cards.length > 0 && snapshot.cards[0].original_image_url) ||
-        (snapshot.videos && snapshot.videos.length > 0 && snapshot.videos[0].video_preview_image_url);
+        (snapshot.cards && snapshot.cards.length > 0) ||
+        (snapshot.videos && snapshot.videos.length > 0) ||
+        (snapshot.extra_images && snapshot.extra_images.length > 0)
 
-    if (!hasImage) return false;
+    if (!hasImage) return false
 
-    // 3. MUST have Title OR Description
-    // We need at least some text to show
-    const title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title;
-    const body = ad.adCreativeBody || snapshot.body?.text || snapshot.message || snapshot.caption || ad.description;
+    // 3. MUST have some text content
+    const hasText =
+        snapshot.body?.text ||
+        snapshot.title ||
+        snapshot.link_description ||
+        ad.adCreativeBody ||
+        ad.adCreativeLinkTitle
 
-    if (!title && !body) return false;
+    if (!hasText) return false
 
-    return true;
+    // 4. MUST have at least one link
+    const hasLink =
+        snapshot.link_url ||
+        ad.adCreativeLinkUrl ||
+        (snapshot.extra_links && snapshot.extra_links.length > 0)
+
+    if (!hasLink) return false
+
+    return true
 }
 
+/**
+ * Normalizes raw API ad data into a clean, consistent format
+ */
 export const normalizeAdData = (ad: any): AdData => {
     const snapshot = ad.snapshot || {}
 
-    // Resolve Image
-    let imageUrl = ad.imageUrl
-    if (!imageUrl && snapshot.images?.[0]) imageUrl = snapshot.images[0].original_image_url
-    if (!imageUrl && snapshot.cards?.[0]) imageUrl = snapshot.cards[0].original_image_url
-    if (!imageUrl && snapshot.videos?.[0]) imageUrl = snapshot.videos[0].video_preview_image_url
+    // ===== IDENTIFIERS =====
+    const adArchiveID = ad.ad_archive_id || ad.adArchiveID || ad.archive_id || ad.id || String(Date.now())
+    const pageId = snapshot.page_id || ad.page_id || ''
 
-    // Resolve Text
+    // ===== PAGE INFORMATION =====
+    const pageName = snapshot.page_name || ad.page_name || ad.pageName || 'Unknown Page'
+    const pageProfileUrl = snapshot.page_profile_uri || ad.page_profile_uri || ''
+    const pageProfilePictureUrl = snapshot.page_profile_picture_url || ad.page_profile_picture_url || ''
+    const pageCategories = snapshot.page_categories || ad.page_categories || []
+    const pageLikeCount = snapshot.page_like_count || ad.page_like_count || 0
+
+    // ===== TEXT CONTENT =====
+    // Clean template variables like {{product.name}}
     const cleanText = (text: string) => {
         if (!text) return ''
-        // Remove template variables like {{product.name}}, {{product.brand}}
         return text.replace(/\{\{.*?\}\}/g, '').trim()
     }
 
-    let title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title || 'Sponsored Ad'
-    title = cleanText(title) || 'Sponsored Ad'
+    const bodyRaw = snapshot.body?.text || snapshot.body || ad.adCreativeBody || snapshot.message || snapshot.caption || ''
+    const body = cleanText(bodyRaw)
 
-    const bodyRaw = ad.adCreativeBody || snapshot.body || snapshot.message || snapshot.caption || ad.description
-    const bodyText = typeof bodyRaw === 'object' ? bodyRaw?.text : bodyRaw
-    const body = cleanText(bodyText)
+    const titleRaw = snapshot.title || ad.adCreativeLinkTitle || snapshot.link_description || snapshot.cards?.[0]?.title || ''
+    const title = cleanText(titleRaw)
 
-    // Resolve Link
-    const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link
+    // ===== IMAGES =====
+    const images: string[] = []
 
-    // Helper for date parsing
-    const parseDate = (d: any) => {
-        if (!d) return undefined;
-        // If numeric timestamp
-        if (typeof d === 'number') {
-            // Check if seconds or ms. If small (seconds), convert to ms.
-            return d < 10000000000 ? new Date(d * 1000).toISOString() : new Date(d).toISOString();
-        }
-        // If numeric string
-        if (!isNaN(Number(d)) && !d.includes('-')) {
-            const num = Number(d);
-            return num < 10000000000 ? new Date(num * 1000).toISOString() : new Date(num).toISOString();
-        }
-        // Else assume date string
-        return d;
+    // Primary images from snapshot.images
+    if (snapshot.images && Array.isArray(snapshot.images)) {
+        snapshot.images.forEach((img: any) => {
+            if (img.original_image_url) images.push(img.original_image_url)
+        })
     }
 
+    // Carousel cards
+    if (snapshot.cards && Array.isArray(snapshot.cards)) {
+        snapshot.cards.forEach((card: any) => {
+            if (card.original_image_url) images.push(card.original_image_url)
+        })
+    }
+
+    // Extra images
+    if (snapshot.extra_images && Array.isArray(snapshot.extra_images)) {
+        snapshot.extra_images.forEach((img: any) => {
+            if (img.original_image_url) images.push(img.original_image_url)
+        })
+    }
+
+    // Video preview images as fallback
+    if (images.length === 0 && snapshot.videos && Array.isArray(snapshot.videos)) {
+        snapshot.videos.forEach((vid: any) => {
+            if (vid.video_preview_image_url) images.push(vid.video_preview_image_url)
+        })
+    }
+
+    // Fallback to top-level imageUrl if exists
+    if (images.length === 0 && ad.imageUrl) {
+        images.push(ad.imageUrl)
+    }
+
+    // ===== VIDEOS =====
+    const videos: string[] = []
+
+    if (snapshot.videos && Array.isArray(snapshot.videos)) {
+        snapshot.videos.forEach((vid: any) => {
+            if (vid.video_hd_url) videos.push(vid.video_hd_url)
+            else if (vid.video_sd_url) videos.push(vid.video_sd_url)
+        })
+    }
+
+    if (snapshot.extra_videos && Array.isArray(snapshot.extra_videos)) {
+        snapshot.extra_videos.forEach((vid: any) => {
+            if (vid.video_hd_url) videos.push(vid.video_hd_url)
+            else if (vid.video_sd_url) videos.push(vid.video_sd_url)
+        })
+    }
+
+    // ===== LINKS (Blended into one array) =====
+    const links: string[] = []
+
+    // Primary link
+    const primaryLink = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link
+    if (primaryLink) links.push(primaryLink)
+
+    // Extra links
+    if (snapshot.extra_links && Array.isArray(snapshot.extra_links)) {
+        snapshot.extra_links.forEach((link: string) => {
+            if (link && !links.includes(link)) links.push(link)
+        })
+    }
+
+    // Card links
+    if (snapshot.cards && Array.isArray(snapshot.cards)) {
+        snapshot.cards.forEach((card: any) => {
+            if (card.link && !links.includes(card.link)) links.push(card.link)
+        })
+    }
+
+    // ===== STATUS & FLAGS =====
+    const isActive = ad.is_active === true
+    const hasUserReported = ad.has_user_reported === true
+    const containsSensitiveContent = ad.contains_sensitive_content === true
+    const brandedContent = snapshot.branded_content === true || snapshot.branded_content === 'true'
+
+    // ===== PLATFORMS =====
+    const platforms = ad.publisher_platform || ad.publisher_platforms || snapshot.publisher_platforms || []
+
+    // ===== DATES =====
+    const parseDate = (d: any) => {
+        if (!d) return undefined
+
+        // If numeric timestamp
+        if (typeof d === 'number') {
+            // Check if seconds (10 digits) or ms (13 digits)
+            return d < 10000000000 ? new Date(d * 1000).toISOString() : new Date(d).toISOString()
+        }
+
+        // If numeric string
+        if (!isNaN(Number(d)) && !String(d).includes('-')) {
+            const num = Number(d)
+            return num < 10000000000 ? new Date(num * 1000).toISOString() : new Date(num).toISOString()
+        }
+
+        // Else assume date string
+        return d
+    }
+
+    const startDate = parseDate(ad.start_date || ad.startDate)
+    const endDate = parseDate(ad.end_date || ad.endDate)
+
     return {
-        id: ad.id || ad.adArchiveID,
-        adArchiveID: ad.adArchiveID || ad.ad_archive_id || ad.archive_id || ad.id || String(Date.now()), // Fallback to avoid crashes, though ideally should be unique
-        isActive: ad.is_active,
-        startDate: parseDate(ad.startDate || ad.start_date),
-        endDate: parseDate(ad.endDate || ad.end_date),
-        pageName: ad.pageName || ad.page_name || snapshot.page_name || 'Unknown Page',
-        publisherPlatform: ad.publisher_platforms || snapshot.publisher_platforms,
-        imageUrl,
-        title,
+        adArchiveID,
+        pageId,
+        pageName,
+        pageProfileUrl,
+        pageProfilePictureUrl,
+        pageCategories,
+        pageLikeCount,
         body,
-        linkUrl,
-        ctaText: snapshot.cta_text || 'Learn More',
+        title,
+        images,
+        videos,
+        links,
+        isActive,
+        hasUserReported,
+        containsSensitiveContent,
+        brandedContent,
+        platforms,
+        startDate,
+        endDate,
         snapshot
     }
 }
