@@ -18,7 +18,7 @@ export default function SearchAds() {
     // New Filters State
     const [activeOnly, setActiveOnly] = useState(false)
     const [minDaysActive, setMinDaysActive] = useState<number>(0)
-    const [sortBy, setSortBy] = useState<'longest_running' | 'recent' | 'none'>('recent')
+    const [sortBy, setSortBy] = useState<'highest_performing' | 'engagement_score' | 'most_likes' | 'most_impressions' | 'longest_running' | 'recent'>('highest_performing')
 
     const countries = [
         { code: 'US', name: 'United States' },
@@ -61,6 +61,7 @@ export default function SearchAds() {
             })
 
             const data = await res.json()
+            console.log('API Response Data:', data)
 
             if (!res.ok) throw new Error(data.error || 'Failed to fetch ads')
 
@@ -85,7 +86,7 @@ export default function SearchAds() {
 
         // 1. Status Filter
         if (activeOnly) {
-            result = result.filter(ad => ad.is_active)
+            result = result.filter(ad => ad.is_active || ad.isActive)
         }
 
         // 2. Duration Filter
@@ -119,19 +120,57 @@ export default function SearchAds() {
         }
 
         // 3. Sorting
-        if (sortBy === 'longest_running') {
-            result.sort((a, b) => {
-                const dateA = a.start_date || a.startDate ? new Date(a.start_date || a.startDate).getTime() : 0
-                const dateB = b.start_date || b.startDate ? new Date(b.start_date || b.startDate).getTime() : 0
-                return dateA - dateB // Ascending start date = older = running longer
-            })
-        } else if (sortBy === 'recent') {
-            result.sort((a, b) => {
-                const dateA = a.start_date || a.startDate ? new Date(a.start_date || a.startDate).getTime() : 0
-                const dateB = b.start_date || b.startDate ? new Date(b.start_date || b.startDate).getTime() : 0
-                return dateB - dateA // Descending start date = newer
-            })
-        }
+        result.sort((a, b) => {
+            // Helper for date
+            const getMs = (d: any) => d ? new Date(d).getTime() : 0
+            const dateA = getMs(a.start_date || a.startDate)
+            const dateB = getMs(b.start_date || b.startDate)
+
+            // Metrics (Backend provided or fallback)
+            const perfA = a.performanceScore || 0
+            const perfB = b.performanceScore || 0
+
+            const engageA = a.engagementScore || 0
+            const engageB = b.engagementScore || 0
+
+            const likesA = a.pageLikes || a.snapshot?.page_like_count || 0
+            const likesB = b.pageLikes || b.snapshot?.page_like_count || 0
+
+            const impA = a.normImpressions || 0
+            const impB = b.normImpressions || 0
+
+            if (sortBy === 'highest_performing') {
+                // Use backend calculated performance score
+                if (perfA !== perfB) return perfB - perfA
+                return dateA - dateB // Tie breaker
+            }
+
+            if (sortBy === 'engagement_score') {
+                if (engageA !== engageB) return engageB - engageA
+                return perfB - perfA
+            }
+
+            if (sortBy === 'most_likes') {
+                if (likesA !== likesB) return likesB - likesA
+                return perfB - perfA
+            }
+
+            if (sortBy === 'most_impressions') {
+                if (impA !== impB) return impB - impA
+                return perfB - perfA
+            }
+
+            if (sortBy === 'longest_running') {
+                // Pure Duration
+                return dateA - dateB
+            }
+
+            if (sortBy === 'recent') {
+                return dateB - dateA
+            }
+
+            return 0
+        })
 
         return result
     }, [ads, activeOnly, minDaysActive, sortBy])
@@ -270,8 +309,12 @@ export default function SearchAds() {
                                 onChange={(e) => setSortBy(e.target.value as any)}
                                 className="bg-black border border-zinc-800 text-zinc-300 text-xs font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:border-zinc-600 cursor-pointer"
                             >
-                                <option value="recent">Recent First</option>
+                                <option value="highest_performing">Highest Performing</option>
+                                <option value="engagement_score">Top Engagement Score</option>
+                                <option value="most_likes">Most Page Likes</option>
+                                <option value="most_impressions">Most Impressions (Est)</option>
                                 <option value="longest_running">Longest Running</option>
+                                <option value="recent">Recent First</option>
                             </select>
                         </div>
                     </div>

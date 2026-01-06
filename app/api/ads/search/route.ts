@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
-
-export async function GET() {
-    return NextResponse.json(
-        { error: 'Method not allowed. Please use POST with { keyword, country, maxResults }' },
-        { status: 405 }
-    );
-}
+import { normalizeAdData, AdData } from '@/utils/adValidation';
 
 export async function POST(request: Request) {
     try {
@@ -22,7 +16,11 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { keyword, country, maxResults = 10 } = body;
 
-        console.log(`Received search request for keyword: "${keyword}", country: ${country}, maxResults: ${maxResults}`);
+        // Clamp strict limits
+        const safeMaxResults = Math.min(Number(maxResults), 50);
+        const fetchLimit = Math.min(safeMaxResults * 5, 200);
+
+        console.log(`Received search request for keyword: "${keyword}", country: ${country}, maxResults: ${safeMaxResults}, fetchLimit: ${fetchLimit}`);
 
         if (!keyword) {
             return NextResponse.json(
@@ -49,7 +47,6 @@ export async function POST(request: Request) {
         // Manually construct the URL to ensure the keyword is strictly respected
         // URL Format: https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country={COUNTRY}&q={KEYWORD}&search_type=keyword_unordered&media_type=all
 
-        const fetchLimit = Number(maxResults) * 5;
         const countryCode = country || 'US';
         const encodedKeyword = encodeURIComponent(keyword.trim());
 
@@ -65,7 +62,7 @@ export async function POST(request: Request) {
             ],
             "count": fetchLimit,
             "scrapePageAds.activeStatus": "all",
-            "scrapePageAds.countryCode": "ALL" // The URL param handles the country, but this ensures actor settings imply broad scraping
+            "scrapePageAds.countryCode": countryCode
         };
 
         const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
@@ -80,47 +77,59 @@ export async function POST(request: Request) {
             );
         }
 
-        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        const { items } = await client.dataset(run.defaultDatasetId).listItems({
+            limit: fetchLimit
+        });
+
+        console.log('Raw Apify Results:', JSON.stringify(items, null, 2));
 
         // --- Quality Sorting & Ranking Logic ---
-        // 1. Prioritize Valid Ads (basic check)
-        // 2. Prioritize ACTIVE ads over Inactive
-        // 3. Prioritize LONGER RUNNING ads (older startDate is better)
+        // 1. Normalize all items to calculate performance scores
+        // 2. Sort by Performance Score (Descending)
+        // 3. Deduplicate
 
-        const rankedItems = items.sort((a, b) => {
-            // 1. Active Status Priority
-            if (a.is_active && !b.is_active) return -1; // a comes first
-            if (!a.is_active && b.is_active) return 1;  // b comes first
+        const normalizedItems = items.map(item => normalizeAdData(item));
 
-            // 2. Duration Priority (Longest Running = Oldest Start Date)
-            const dateA = a.startDate || a.start_date ? new Date((a.startDate || a.start_date) as string).getTime() : Date.now();
-            const dateB = b.startDate || b.start_date ? new Date((b.startDate || b.start_date) as string).getTime() : Date.now();
+        const rankedItems = normalizedItems.sort((a, b) => {
+            // Priority 1: Performance Score (Higher is better)
+            const scoreA = a.performanceScore || 0;
+            const scoreB = b.performanceScore || 0;
+            if (scoreB !== scoreA) return scoreB - scoreA;
 
-            return dateA - dateB; // Ascending sort: Oldest date (smallest timestamp) comes first
+            // Priority 2: Active Status (Active is better)
+            const activeA = a.isActive ? 1 : 0;
+            const activeB = b.isActive ? 1 : 0;
+            if (activeB !== activeA) return activeB - activeA;
+
+            // Priority 3: Duration (Older Start Date is better/longer running)
+            // Using start date timestamp; smaller is older
+            const dateA = a.startDate ? new Date(a.startDate).getTime() : Date.now();
+            const dateB = b.startDate ? new Date(b.startDate).getTime() : Date.now();
+            return dateA - dateB;
         });
 
         // --- Deduplication Ranking ---
         // Separate unique ads from duplicates (based on content signature)
-        // Since the list is already sorted by quality (Active + Duration), the "First" one we encounter
-        // will be the "Best" version of that ad. Subsequent ones are duplicates and get downranked.
+        // Since the list is already sorted by quality, the "First" one we encounter
+        // will be the "Best" version of that ad.
         const seenSignatures = new Set();
-        const uniqueAds: any[] = [];
-        const duplicateAds: any[] = [];
+        const uniqueAds: AdData[] = [];
+        const duplicateAds: AdData[] = [];
 
         for (const item of rankedItems) {
-            // Create a signature based on core content (Title + Body + Link)
-            const snap = (item.snapshot || {}) as any;
-            const title = item.adCreativeLinkTitle || snap.title || snap.link_description || '';
-            const body = item.adCreativeBody || snap.body?.text || snap.message || '';
-            const link = item.adCreativeLinkUrl || snap.link_url || '';
+            // Create a signature based on content
+            const title = item.title || '';
+            const body = item.body || '';
+            const link = item.linkUrl || '';
 
             // Simple signature; lowercase to handle minor casing diffs
             const signature = `${title}|${body}|${link}`.toLowerCase();
+            const isEmpty = !title && !body && !link;
 
-            if (seenSignatures.has(signature)) {
+            if (!isEmpty && seenSignatures.has(signature)) {
                 duplicateAds.push(item);
             } else {
-                seenSignatures.add(signature);
+                if (!isEmpty) seenSignatures.add(signature);
                 uniqueAds.push(item);
             }
         }
@@ -130,34 +139,22 @@ export async function POST(request: Request) {
 
         // --- Post-Processing Validation ---
         // Ensure we only return ads that will pass the frontend validation
-        // (Must have Link, Image, and Text)
-        const validatedAds: any[] = [];
+        const validatedAds: AdData[] = [];
         for (const ad of finalRanked) {
-            const snapshot = ad.snapshot || {};
-
             // Check Link
-            const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link;
-            if (!linkUrl) continue;
+            if (!ad.linkUrl) continue;
 
             // Check Image
-            const hasImage = !!ad.imageUrl ||
-                (snapshot.images && snapshot.images.length > 0) ||
-                (snapshot.cards && snapshot.cards.length > 0 && snapshot.cards[0].original_image_url) ||
-                (snapshot.videos && snapshot.videos.length > 0 && snapshot.videos[0].video_preview_image_url);
-            if (!hasImage) continue;
+            // ad.imageUrl is already resolved by normalizeAdData
+            if (!ad.imageUrl) continue;
 
             // Check Text
-            const title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title;
-            const body = ad.adCreativeBody || snapshot.body?.text || snapshot.message || snapshot.caption || ad.description;
-            if (!title && !body) continue;
+            if (!ad.title && !ad.body) continue;
 
             validatedAds.push(ad);
-
-            // Optimization: Stop once we have enough unique valid ads? 
-            // Better to validate all high-ranked ones to ensure we fill the quota
         }
 
-        const topAds = validatedAds.slice(0, Number(maxResults));
+        const topAds = validatedAds.slice(0, safeMaxResults);
 
         // Save to Supabase Search History (Fire and Forget)
         (async () => {
@@ -188,7 +185,7 @@ export async function POST(request: Request) {
                             .insert({
                                 user_id: user.id,
                                 keyword: keyword.trim(),
-                                filters: { country: countryCode, maxResults }
+                                filters: { country: countryCode, maxResults: safeMaxResults }
                             });
                     }
                 }

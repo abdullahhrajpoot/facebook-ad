@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { normalizeAdData, AdData } from '@/utils/adValidation'
 import AdPreviewModal from './AdPreviewModal'
 
@@ -32,11 +33,12 @@ export default function AdCard({ ad: rawAd }: AdCardProps) {
                 {/* Image Section */}
                 <div className="relative aspect-square bg-black overflow-hidden group-hover:opacity-90 transition-opacity cursor-pointer" onClick={() => setShowPreview(true)}>
                     {ad.imageUrl ? (
-                        <img
+                        <Image
                             src={ad.imageUrl}
-                            alt={ad.title}
-                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                            loading="lazy"
+                            alt={ad.title || 'Ad Image'}
+                            fill
+                            className="object-cover transform group-hover:scale-105 transition-transform duration-700"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-zinc-800">
@@ -64,9 +66,22 @@ export default function AdCard({ ad: rawAd }: AdCardProps) {
                                 <span className="text-sm font-bold text-white line-clamp-1" title={ad.pageName}>
                                     {ad.pageName}
                                 </span>
-                                <span className="text-[10px] text-zinc-500 font-mono">
-                                    ID: {ad.adArchiveID}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] text-zinc-500 font-mono">
+                                        ID: {ad.adArchiveID}
+                                    </span>
+                                    {ad.pageLikes && ad.pageLikes > 0 && (
+                                        <span className="flex items-center gap-1 text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700" title="Total Page Likes (Followers)">
+                                            <svg className="w-3 h-3 text-zinc-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                            </svg>
+                                            <span className="font-medium text-zinc-300">
+                                                {new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(ad.pageLikes)}
+                                            </span>
+                                            <span className="text-zinc-500 hidden sm:inline">Page Likes</span>
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -79,6 +94,29 @@ export default function AdCard({ ad: rawAd }: AdCardProps) {
                         <p className="text-xs text-zinc-400 leading-relaxed line-clamp-3">
                             {ad.body || 'No description available'}
                         </p>
+
+                        {/* Metrics Row */}
+                        {(ad.impressionsText || ad.spend) && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                                {ad.impressionsText && (
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-zinc-300 bg-zinc-800 px-2 py-1 rounded border border-zinc-700">
+                                        <svg className="w-3 h-3 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        {ad.impressionsText}
+                                    </span>
+                                )}
+                                {ad.spend && (
+                                    <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded border border-green-400/20">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {typeof ad.spend === 'object' ? `${ad.spend.currency || '$'}${ad.spend.lower_bound || '0'}-${ad.spend.upper_bound || '+'}` : ad.spend}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer Stats / Link */}
@@ -87,8 +125,10 @@ export default function AdCard({ ad: rawAd }: AdCardProps) {
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            {ad.startDate ? new Date(ad.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'N/A'}
-                            {ad.endDate && ` - ${new Date(ad.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+                            {ad.startDate ? new Date(ad.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                            {ad.isActive && (
+                                <span className="ml-1 text-green-500 font-bold">• Active</span>
+                            )}
                         </div>
 
                         <a

@@ -54,16 +54,53 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-blue-500/20">
                             {ad.pageName?.[0]}
                         </div>
-                        <div>
+                        <div className="flex-1">
                             <h3 className="font-bold text-lg text-white">{ad.pageName}</h3>
-                            <div className="flex items-center gap-2 text-xs text-zinc-400">
-                                <span className={`w-2 h-2 rounded-full ${ad.isActive ? 'bg-green-500' : 'bg-gray-500'}`} />
-                                {ad.isActive ? 'Active' : 'Inactive'}
-                                <span>•</span>
-                                <span>ID: {ad.adArchiveID}</span>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400 mt-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`w-2 h-2 rounded-full ${ad.isActive ? 'bg-green-500' : 'bg-gray-500'}`} />
+                                    {ad.isActive ? 'Active' : 'Inactive'}
+                                </div>
+                                <span className="text-zinc-600">•</span>
+                                <span className="font-mono text-zinc-500">ID: {ad.adArchiveID}</span>
+
+                                {ad.pageLikes && ad.pageLikes > 0 && (
+                                    <>
+                                        <span className="text-zinc-600">•</span>
+                                        <div className="flex items-center gap-1.5 bg-zinc-800 px-2 py-0.5 rounded-full border border-zinc-700">
+                                            <svg className="w-3 h-3 text-zinc-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                            </svg>
+                                            <span className="text-zinc-300 font-medium">
+                                                {new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(ad.pageLikes)}
+                                            </span>
+                                            <span className="text-zinc-500">Page Likes</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
+
+                    {/* Performance Stats Banner */}
+                    {(ad.impressionsText || ad.spend) && (
+                        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-zinc-800/50 to-zinc-900/50 border border-zinc-700/50 flex divide-x divide-zinc-700/50">
+                            {ad.impressionsText && (
+                                <div className="px-4 first:pl-0 flex-1 text-center">
+                                    <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">Impressions</div>
+                                    <div className="text-lg font-bold text-white shadow-glow">{ad.impressionsText}</div>
+                                </div>
+                            )}
+                            {ad.spend && (
+                                <div className="px-4 flex-1 text-center">
+                                    <div className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold mb-1">Total Spend</div>
+                                    <div className="text-lg font-bold text-green-400">
+                                        {typeof ad.spend === 'object' ? `${ad.spend.currency || '$'}${ad.spend.lower_bound || '0'}-${ad.spend.upper_bound || '+'}` : ad.spend}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Ad Content */}
                     <div className="space-y-6 flex-1">
