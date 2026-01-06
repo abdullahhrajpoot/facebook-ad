@@ -97,7 +97,7 @@ export const normalizeAdData = (ad: any): AdData => {
 
     return {
         id: ad.id || ad.adArchiveID,
-        adArchiveID: ad.adArchiveID,
+        adArchiveID: ad.adArchiveID || ad.ad_archive_id || ad.archive_id || ad.id || String(Date.now()), // Fallback to avoid crashes, though ideally should be unique
         isActive: ad.is_active,
         startDate: parseDate(ad.startDate || ad.start_date),
         endDate: parseDate(ad.endDate || ad.end_date),

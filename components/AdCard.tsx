@@ -1,17 +1,78 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { normalizeAdData, AdData } from '@/utils/adValidation'
 import AdPreviewModal from './AdPreviewModal'
+import { createClient } from '@/utils/supabase/client'
 
 interface AdCardProps {
     ad: any // Raw ad data from API
+    initialIsSaved?: boolean
+    onToggleSave?: (newState: boolean) => void
 }
 
-export default function AdCard({ ad: rawAd }: AdCardProps) {
+export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave }: AdCardProps) {
     const [showPreview, setShowPreview] = useState(false)
+    const [isSaved, setIsSaved] = useState(initialIsSaved)
+    const [isSaving, setIsSaving] = useState(false)
+    const supabase = createClient()
+
+    // Sync internal state if prop changes (important for search results that might update later)
+    useEffect(() => {
+        setIsSaved(initialIsSaved)
+    }, [initialIsSaved])
 
     const ad: AdData = normalizeAdData(rawAd)
+
+    const handleSaveToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (isSaving) return
+
+        setIsSaving(true)
+        const previousState = isSaved
+        // Optimistic update
+        setIsSaved(!previousState)
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                // Determine what to do if not logged in - for now revert
+                setIsSaved(previousState)
+                return
+            }
+
+            if (!previousState) {
+                // Save the ad
+                const { error } = await supabase
+                    .from('saved_ads')
+                    .insert({
+                        user_id: user.id,
+                        ad_archive_id: ad.adArchiveID,
+                        ad_data: rawAd
+                    })
+                if (error) throw error
+            } else {
+                // Unsave the ad
+                const { error } = await supabase
+                    .from('saved_ads')
+                    .delete()
+                    .eq('ad_archive_id', ad.adArchiveID)
+                    .eq('user_id', user.id)
+                if (error) throw error
+            }
+
+            // Notify parent if needed
+            if (onToggleSave) onToggleSave(!previousState)
+
+        } catch (error: any) {
+            console.error('Error toggling save:', error)
+            // Revert on error
+            alert(`Failed to save ad: ${error.message || 'Unknown error'}`)
+            setIsSaved(previousState)
+        } finally {
+            setIsSaving(false)
+        }
+    }
 
     return (
         <>
@@ -28,6 +89,23 @@ export default function AdCard({ ad: rawAd }: AdCardProps) {
                         {ad.isActive ? 'Active' : 'Stopped'}
                     </span>
                 </div>
+
+                {/* Save Button */}
+                <button
+                    onClick={handleSaveToggle}
+                    disabled={isSaving}
+                    className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white hover:bg-black/70 hover:scale-110 transition-all duration-200 group/btn"
+                >
+                    <svg
+                        className={`w-5 h-5 transition-colors ${isSaved ? 'text-red-500 fill-red-500' : 'text-white group-hover/btn:text-red-400'}`}
+                        fill={isSaved ? "currentColor" : "none"}
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={isSaved ? 0 : 2}
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </button>
 
                 {/* Image Section */}
                 <div className="relative aspect-square bg-black overflow-hidden group-hover:opacity-90 transition-opacity cursor-pointer" onClick={() => setShowPreview(true)}>

@@ -10,10 +10,12 @@ import AdminUserProfile from '@/components/admin/AdminUserProfile'
 import UserProfile from '@/components/UserProfile'
 import SearchHistory from '@/components/SearchHistory'
 
+import SavedAds from '@/components/SavedAds'
+
 export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
-    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'history' | 'profile'>('users')
+    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'saved' | 'history' | 'profile'>('users')
 
     // Data State
     const [users, setUsers] = useState<any[]>([])
@@ -122,6 +124,8 @@ export default function AdminDashboard() {
                 )
             case 'ads':
                 return <SearchAds />
+            case 'saved':
+                return <SavedAds />
             case 'history':
                 return (
                     <div className="max-w-4xl mx-auto">
@@ -142,6 +146,7 @@ export default function AdminDashboard() {
         switch (activeTab) {
             case 'users': return { title: 'User Management', subtitle: 'Manage system access and user profiles.' }
             case 'ads': return { title: 'Global Ad Campaigns', subtitle: 'Monitor and manage all advertisements across the platform.' }
+            case 'saved': return { title: 'Saved Library', subtitle: 'Curated collection of high-performing ads.' }
             case 'history': return { title: 'Search History', subtitle: 'Review past search queries and activity.' }
             case 'profile': return { title: 'My Profile', subtitle: 'View your administrator account details.' }
         }

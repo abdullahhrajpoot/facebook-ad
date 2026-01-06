@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 
 interface AdminSidebarProps {
-    activeTab: 'users' | 'ads' | 'history' | 'profile'
-    setActiveTab: (tab: 'users' | 'ads' | 'history' | 'profile') => void
+    activeTab: 'users' | 'ads' | 'saved' | 'history' | 'profile'
+    setActiveTab: (tab: 'users' | 'ads' | 'saved' | 'history' | 'profile') => void
     onSignOut: () => void
     sidebarOpen: boolean
     setSidebarOpen: (open: boolean) => void
@@ -24,6 +24,14 @@ export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sideb
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+            )
+
+        },
+        {
+            id: 'saved', label: 'Saved Ads', icon: (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
             )
         },

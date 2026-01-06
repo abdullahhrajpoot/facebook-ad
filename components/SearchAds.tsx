@@ -5,15 +5,38 @@ import AdCard from './AdCard'
 import SkeletonAdCard from './SkeletonAdCard'
 import { validateAd } from '@/utils/adValidation'
 
+import { createClient } from '@/utils/supabase/client'
+
 export default function SearchAds() {
     const [keyword, setKeyword] = useState('')
     const [country, setCountry] = useState('US')
     const [maxResults, setMaxResults] = useState('10')
     const [ads, setAds] = useState<any[]>([])
+    const [savedAdIds, setSavedAdIds] = useState<Set<string>>(new Set())
     const [loading, setLoading] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [searchMode, setSearchMode] = useState<'keyword' | 'page'>('keyword')
+
+    const supabase = createClient()
+
+    // Fetch saved ads on mount
+    React.useEffect(() => {
+        const fetchSavedAds = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data } = await supabase
+                .from('saved_ads')
+                .select('ad_archive_id')
+                .eq('user_id', user.id)
+
+            if (data) {
+                setSavedAdIds(new Set(data.map(item => item.ad_archive_id)))
+            }
+        }
+        fetchSavedAds()
+    }, [])
 
     // New Filters State
     const [activeOnly, setActiveOnly] = useState(false)
@@ -301,7 +324,20 @@ export default function SearchAds() {
                     ) : filteredAds.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {filteredAds.map((ad, i) => (
-                                <AdCard key={ad.adArchiveID || i} ad={ad} />
+                                <AdCard
+                                    key={ad.adArchiveID || i}
+                                    ad={ad}
+                                    initialIsSaved={savedAdIds.has(ad.adArchiveID)}
+                                    onToggleSave={(isSaved) => {
+                                        const newSet = new Set(savedAdIds)
+                                        if (isSaved) {
+                                            newSet.add(ad.adArchiveID)
+                                        } else {
+                                            newSet.delete(ad.adArchiveID)
+                                        }
+                                        setSavedAdIds(newSet)
+                                    }}
+                                />
                             ))}
                         </div>
                     ) : (
