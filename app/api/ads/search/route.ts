@@ -49,26 +49,22 @@ export async function POST(request: Request) {
             token: token,
         });
 
-        const fetchLimit = Number(maxResults) * 5;
         const countryCode = country || 'US';
-        const encodedKeyword = encodeURIComponent(keyword.trim());
-
-        const searchUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=${countryCode}&q=${encodedKeyword}&search_type=keyword_unordered&media_type=all`;
-
-        console.log(`Generated Search URL: ${searchUrl}`);
 
         const runInput = {
-            "urls": [
-                {
-                    "url": searchUrl
-                }
+            "query": keyword,
+            "country": countryCode,
+            "max_results": Number(maxResults),
+            "keyword_type": "KEYWORD_EXACT_PHRASE",
+            "languages": [
+                "en"
             ],
-            "count": fetchLimit,
-            "scrapePageAds.activeStatus": "all",
-            "scrapePageAds.countryCode": "ALL"
+            "media_type": "all",
+            "start_date_min": "2020-01-01",
+            "start_date_max": new Date().toISOString().split('T')[0]
         };
 
-        const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
+        const run = await client.actor('uMnsf6khYz0VsDGlg').call(runInput, {
             waitSecs: 60,
         });
 
@@ -93,8 +89,18 @@ export async function POST(request: Request) {
             if (!a.is_active && b.is_active) return 1;
 
             // 2. Duration Priority (Longest Running = Oldest Start Date)
-            const dateA = a.startDate || a.start_date ? new Date((a.startDate || a.start_date) as string).getTime() : Date.now();
-            const dateB = b.startDate || b.start_date ? new Date((b.startDate || b.start_date) as string).getTime() : Date.now();
+            const getTimestamp = (d: any) => {
+                if (!d) return Date.now();
+                if (typeof d === 'number') {
+                    // If small number (seconds), convert to ms. If large (ms), keep as is.
+                    // 10 digits is usually seconds (up to year 2286). 13 is ms.
+                    return d < 10000000000 ? d * 1000 : d;
+                }
+                return new Date(d).getTime();
+            };
+
+            const dateA = getTimestamp(a.startDate || a.start_date);
+            const dateB = getTimestamp(b.startDate || b.start_date);
 
             return dateA - dateB;
         });
