@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import AdCard from './AdCard'
+import SkeletonAdCard from './SkeletonAdCard'
 import { validateAd } from '@/utils/adValidation'
 
 export default function SearchAds() {
@@ -278,18 +279,26 @@ export default function SearchAds() {
             </div>
 
             {/* Results Grid */}
-            {hasSearched && !loading && (
+            {(hasSearched || loading) && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-bold text-white">
-                            Search Results
-                            <span className="ml-3 text-sm font-normal text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
-                                {filteredAds.length} ads found
-                            </span>
+                            {loading ? 'Searching Ads...' : 'Search Results'}
+                            {!loading && (
+                                <span className="ml-3 text-sm font-normal text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
+                                    {filteredAds.length} ads found
+                                </span>
+                            )}
                         </h2>
                     </div>
 
-                    {filteredAds.length > 0 ? (
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {[...Array(8)].map((_, i) => (
+                                <SkeletonAdCard key={i} />
+                            ))}
+                        </div>
+                    ) : filteredAds.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {filteredAds.map((ad, i) => (
                                 <AdCard key={ad.adArchiveID || i} ad={ad} />
