@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
-import { normalizeAdData, validateAd } from '@/utils/adValidation';
+import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
 
 export async function POST(request: Request) {
     try {
@@ -81,84 +81,10 @@ export async function POST(request: Request) {
         console.log(`Total items fetched: ${items.length}`);
         console.log(`======================================\n`);
 
-        // Quality Sorting & Ranking
-        const rankedItems = items.sort((a, b) => {
-            // 1. Active Status Priority
-            if (a.is_active && !b.is_active) return -1;
-            if (!a.is_active && b.is_active) return 1;
-
-            // 2. Duration Priority (Longest Running = Oldest Start Date)
-            const getTimestamp = (d: any) => {
-                if (!d) return Date.now();
-                if (typeof d === 'number') {
-                    return d < 10000000000 ? d * 1000 : d;
-                }
-                return new Date(d).getTime();
-            };
-
-            const dateA = getTimestamp(a.startDate || a.start_date);
-            const dateB = getTimestamp(b.startDate || b.start_date);
-
-            return dateA - dateB;
-        });
-
-        // Deduplication
-        const seenSignatures = new Set();
-        const uniqueAds: any[] = [];
-        const duplicateAds: any[] = [];
-
-        for (const item of rankedItems) {
-            const snap = (item.snapshot || {}) as any;
-            const title = item.adCreativeLinkTitle || snap.title || snap.link_description || '';
-            const body = item.adCreativeBody || snap.body?.text || snap.message || '';
-            const link = item.adCreativeLinkUrl || snap.link_url || '';
-
-            const signature = `${title}|${body}|${link}`.toLowerCase();
-
-            if (seenSignatures.has(signature)) {
-                duplicateAds.push(item);
-            } else {
-                seenSignatures.add(signature);
-                uniqueAds.push(item);
-            }
-        }
-
-        const finalRanked = [...uniqueAds, ...duplicateAds];
-
-        // Validation & Normalization
-        const validatedAds: any[] = [];
-
-        console.log(`\n========== PROCESSING ADS ==========`);
-
-        for (let i = 0; i < finalRanked.length; i++) {
-            const rawAd = finalRanked[i];
-
-            // Validate first
-            if (!validateAd(rawAd)) {
-                console.log(`❌ Ad ${i + 1} failed validation (missing required fields)`);
-                continue;
-            }
-
-            // Normalize the ad data
-            const normalizedAd = normalizeAdData(rawAd);
-
-            validatedAds.push(normalizedAd);
-
-            // Log first 2 ads for debugging
-            if (i < 2) {
-                console.log(`\n✅ Ad ${i + 1} - NORMALIZED DATA:`);
-                console.log(`   ID: ${normalizedAd.adArchiveID}`);
-                console.log(`   Page: ${normalizedAd.pageName}`);
-                console.log(`   Images: ${normalizedAd.images.length}`);
-                console.log(`   Videos: ${normalizedAd.videos.length}`);
-                console.log(`   Links: ${normalizedAd.links.length}`);
-            }
-
-            // Stop once we have enough
-            if (validatedAds.length >= Number(count)) {
-                break;
-            }
-        }
+        // Simple Validation & Normalization
+        const validatedAds: AdData[] = items
+            .filter(item => validateAd(item))
+            .map(item => normalizeAdData(item));
 
         console.log(`\n========== RESULTS SUMMARY ==========`);
         console.log(`Total Valid Ads: ${validatedAds.length}`);

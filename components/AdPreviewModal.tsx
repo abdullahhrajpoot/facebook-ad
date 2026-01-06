@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { AdData } from '@/utils/adValidation'
+import {
+    X, ChevronLeft, ChevronRight, Image as ImageIcon, Video,
+    ThumbsUp, Eye, Layers, Calendar, FileText, Monitor, Link as LinkIcon,
+    ExternalLink
+} from 'lucide-react'
 
 interface AdPreviewModalProps {
     ad: AdData
@@ -57,9 +62,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                     onClick={onClose}
                     className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-white hover:bg-red-600 hover:border-red-500 transition-all duration-200 group"
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="w-5 h-5" />
                 </button>
 
                 <div className="overflow-y-auto max-h-[95vh] custom-scrollbar">
@@ -93,17 +96,13 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         onClick={prevMedia}
                                         className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl z-10"
                                     >
-                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                                        </svg>
+                                        <ChevronLeft className="w-6 h-6" />
                                     </button>
                                     <button
                                         onClick={nextMedia}
                                         className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl z-10"
                                     >
-                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                        </svg>
+                                        <ChevronRight className="w-6 h-6" />
                                     </button>
 
                                     {/* Media Counter */}
@@ -115,8 +114,9 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                             {/* Media Type Badge */}
                             {currentMedia && (
-                                <div className="absolute top-4 left-4 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white z-10">
-                                    {currentMedia.type === 'image' ? '📷 Image' : '🎥 Video'}
+                                <div className="absolute top-4 left-4 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white z-10 flex items-center gap-1.5">
+                                    {currentMedia.type === 'image' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                                    {currentMedia.type === 'image' ? 'Image' : 'Video'}
                                 </div>
                             )}
                         </div>
@@ -129,17 +129,15 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         key={index}
                                         onClick={() => setCurrentMediaIndex(index)}
                                         className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${currentMediaIndex === index
-                                                ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105'
-                                                : 'border-zinc-700 hover:border-zinc-600 opacity-60 hover:opacity-100'
+                                            ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105'
+                                            : 'border-zinc-700 hover:border-zinc-600 opacity-60 hover:opacity-100'
                                             }`}
                                     >
                                         {media.type === 'image' ? (
                                             <img src={media.url} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                                                </svg>
+                                                <Video className="w-6 h-6 text-white" />
                                             </div>
                                         )}
                                     </button>
@@ -187,9 +185,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             {/* Page Likes */}
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                                    </svg>
+                                    <ThumbsUp className="w-4 h-4 text-blue-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Page Likes</span>
                                 </div>
                                 <p className="text-xl font-bold text-white">
@@ -200,10 +196,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             {/* Impressions */}
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
+                                    <Eye className="w-4 h-4 text-green-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Impressions</span>
                                 </div>
                                 <p className="text-xl font-bold text-white">
@@ -214,9 +207,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             {/* Categories */}
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                    </svg>
+                                    <Layers className="w-4 h-4 text-purple-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Category</span>
                                 </div>
                                 <p className="text-sm font-bold text-white">
@@ -229,9 +220,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         {(ad.startDate || ad.endDate) && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
+                                    <Calendar className="w-4 h-4 text-orange-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Active Period</span>
                                 </div>
                                 <p className="text-sm font-bold text-white">
@@ -248,9 +237,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         {ad.body && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-4 h-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
+                                    <FileText className="w-4 h-4 text-cyan-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Ad Description</span>
                                 </div>
                                 <div className="prose prose-invert max-w-none">
@@ -265,9 +252,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         {ad.title && ad.title !== ad.body && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                    </svg>
+                                    <FileText className="w-4 h-4 text-yellow-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Headline</span>
                                 </div>
                                 <p className="text-base font-bold text-white">
@@ -280,9 +265,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         {ad.platforms.length > 0 && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-4 h-4 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                    </svg>
+                                    <Monitor className="w-4 h-4 text-pink-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Platforms</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -302,9 +285,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         {ad.links.length > 0 && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
+                                    <LinkIcon className="w-4 h-4 text-green-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">All Links ({ad.links.length})</span>
                                 </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
@@ -317,9 +298,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                             className="block p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-blue-500/50 rounded-lg text-xs text-blue-400 hover:text-blue-300 font-mono transition-all duration-200 group"
                                         >
                                             <span className="flex items-center gap-2">
-                                                <svg className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                </svg>
+                                                <ExternalLink className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                                                 <span className="truncate break-all">{link}</span>
                                             </span>
                                         </a>

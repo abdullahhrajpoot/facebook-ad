@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
-import { normalizeAdData, validateAd } from '@/utils/adValidation';
+import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
 
 export async function GET() {
     return NextResponse.json(
@@ -82,103 +82,26 @@ export async function POST(request: Request) {
         console.log(`Total items fetched: ${items.length}`);
         console.log(`======================================\n`);
 
-        // Quality Sorting & Ranking
-        const rankedItems = items.sort((a, b) => {
-            // 1. Active Status Priority
-            if (a.is_active && !b.is_active) return -1;
-            if (!a.is_active && b.is_active) return 1;
-
-            // 2. Duration Priority (Longest Running = Oldest Start Date)
-            const getTimestamp = (d: any) => {
-                if (!d) return Date.now();
-                if (typeof d === 'number') {
-                    // If small number (seconds), convert to ms. If large (ms), keep as is.
-                    // 10 digits is usually seconds (up to year 2286). 13 is ms.
-                    return d < 10000000000 ? d * 1000 : d;
-                }
-                return new Date(d).getTime();
-            };
-
-            const dateA = getTimestamp(a.startDate || a.start_date);
-            const dateB = getTimestamp(b.startDate || b.start_date);
-
-            return dateA - dateB;
-        });
-
-        // Deduplication
-        const seenSignatures = new Set();
-        const uniqueAds: any[] = [];
-        const duplicateAds: any[] = [];
-
-        for (const item of rankedItems) {
-            const snap = (item.snapshot || {}) as any;
-            const title = item.adCreativeLinkTitle || snap.title || snap.link_description || '';
-            const body = item.adCreativeBody || snap.body?.text || snap.message || '';
-            const link = item.adCreativeLinkUrl || snap.link_url || '';
-
-            const signature = `${title}|${body}|${link}`.toLowerCase();
-
-            if (seenSignatures.has(signature)) {
-                duplicateAds.push(item);
-            } else {
-                seenSignatures.add(signature);
-                uniqueAds.push(item);
-            }
-        }
-
-        const finalRanked = [...uniqueAds, ...duplicateAds];
-
-        // Validation & Normalization
-        const validatedAds: any[] = [];
-
-        console.log(`\n========== PROCESSING ADS ==========`);
-
-        for (let i = 0; i < finalRanked.length; i++) {
-            const rawAd = finalRanked[i];
-
-            // Validate first
-            if (!validateAd(rawAd)) {
-                console.log(`❌ Ad ${i + 1} failed validation (missing required fields)`);
-                continue;
-            }
-
-            // Normalize the ad data
-            const normalizedAd = normalizeAdData(rawAd);
-
-            validatedAds.push(normalizedAd);
-
-            // Log first 3 ads for debugging
-            if (i < 3) {
-                console.log(`\n✅ Ad ${i + 1} - NORMALIZED DATA:`);
-                console.log(`   ID: ${normalizedAd.adArchiveID}`);
-                console.log(`   Page: ${normalizedAd.pageName} (ID: ${normalizedAd.pageId})`);
-                console.log(`   Page Profile: ${normalizedAd.pageProfileUrl}`);
-                console.log(`   Page PFP: ${normalizedAd.pageProfilePictureUrl}`);
-                console.log(`   Page Categories: [${normalizedAd.pageCategories.join(', ')}]`);
-                console.log(`   Page Likes: ${normalizedAd.pageLikeCount}`);
-                console.log(`   Title: ${normalizedAd.title?.substring(0, 50)}...`);
-                console.log(`   Body: ${normalizedAd.body?.substring(0, 80)}...`);
-                console.log(`   Images (${normalizedAd.images.length}): ${normalizedAd.images.slice(0, 2).join(', ')}`);
-                console.log(`   Videos (${normalizedAd.videos.length}): ${normalizedAd.videos.join(', ')}`);
-                console.log(`   Links (${normalizedAd.links.length}): ${normalizedAd.links.join(', ')}`);
-                console.log(`   Platforms: [${normalizedAd.platforms.join(', ')}]`);
-                console.log(`   Status: ${normalizedAd.isActive ? '🟢 Active' : '⚫ Inactive'}`);
-                console.log(`   Branded Content: ${normalizedAd.brandedContent ? 'Yes' : 'No'}`);
-                console.log(`   User Reported: ${normalizedAd.hasUserReported ? 'Yes' : 'No'}`);
-                console.log(`   Sensitive Content: ${normalizedAd.containsSensitiveContent ? 'Yes' : 'No'}`);
-                console.log(`   Dates: ${normalizedAd.startDate} → ${normalizedAd.endDate}`);
-            }
-
-            // Stop once we have enough
-            if (validatedAds.length >= Number(maxResults)) {
-                break;
-            }
-        }
+        // Simple Validation & Normalization
+        const validatedAds: AdData[] = items
+            .filter(item => validateAd(item))
+            .map(item => normalizeAdData(item));
 
         console.log(`\n========== RESULTS SUMMARY ==========`);
         console.log(`Total Valid Ads: ${validatedAds.length}`);
         console.log(`Returning: ${Math.min(validatedAds.length, Number(maxResults))} ads`);
         console.log(`====================================\n`);
+
+        // Log first 3 ads for debugging
+        for (let i = 0; i < Math.min(3, validatedAds.length); i++) {
+            const normalizedAd = validatedAds[i];
+            console.log(`\n✅ Ad ${i + 1} - NORMALIZED DATA:`);
+            console.log(`   ID: ${normalizedAd.adArchiveID}`);
+            console.log(`   Page: ${normalizedAd.pageName} (ID: ${normalizedAd.pageId})`);
+            console.log(`   Score: ${normalizedAd.performanceScore} (Auth: ${normalizedAd.pageAuthorityScore}, Media: ${normalizedAd.mediaType})`);
+            console.log(`   Title: ${normalizedAd.title?.substring(0, 50)}...`);
+            console.log(`   Dates: ${normalizedAd.startDate} → ${normalizedAd.endDate} (${normalizedAd.adActiveDays} days)`);
+        }
 
         const topAds = validatedAds.slice(0, Number(maxResults));
 

@@ -35,6 +35,15 @@ export interface AdData {
     startDate?: string
     endDate?: string
 
+    // Derived Metrics (New)
+    adActiveDays: number
+    hasVideo: boolean
+    hasImage: boolean
+    mediaType: 'VIDEO' | 'IMAGE' | 'CAROUSEL' | 'TEXT'
+    impressionsEstimated: number | null
+    pageAuthorityScore: number
+    performanceScore: number
+
     // Raw snapshot for reference
     snapshot?: any
 }
@@ -192,30 +201,92 @@ export const normalizeAdData = (ad: any): AdData => {
     const platforms = ad.publisher_platform || ad.publisher_platforms || snapshot.publisher_platforms || []
 
     // ===== DATES =====
-    const parseDate = (d: any) => {
-        if (!d) return undefined
-
-        // If numeric timestamp
+    const parseTimestamp = (d: any): number => {
+        if (!d) return 0
         if (typeof d === 'number') {
-            // Check if seconds (10 digits) or ms (13 digits)
-            return d < 10000000000 ? new Date(d * 1000).toISOString() : new Date(d).toISOString()
+            return d < 10000000000 ? d * 1000 : d
         }
-
-        // If numeric string
         if (!isNaN(Number(d)) && !String(d).includes('-')) {
             const num = Number(d)
-            return num < 10000000000 ? new Date(num * 1000).toISOString() : new Date(num).toISOString()
+            return num < 10000000000 ? num * 1000 : num
         }
-
-        // Else assume date string
-        return d
+        return new Date(d).getTime()
     }
 
-    const startDate = parseDate(ad.start_date || ad.startDate)
-    const endDate = parseDate(ad.end_date || ad.endDate)
+    const parseDateISO = (d: any) => {
+        const ts = parseTimestamp(d)
+        return ts ? new Date(ts).toISOString() : undefined
+    }
 
-    // ===== IMPRESSIONS =====
-    const impressions = ad.impressions_with_index?.impressions_text ||
+    const startDate = parseDateISO(ad.start_date || ad.startDate)
+    const endDate = parseDateISO(ad.end_date || ad.endDate)
+
+    // ===== DERIVED METRICS =====
+
+    // 1. Ad Active Days
+    const startTs = parseTimestamp(ad.start_date || ad.startDate)
+    const endTs = endDate ? parseTimestamp(endDate) : Date.now()
+    const adActiveDays = startTs ? Math.max(0, Math.floor((endTs - startTs) / (1000 * 60 * 60 * 24))) : 0
+
+    // 2. Media Type & Flags
+    const hasVideo = videos.length > 0
+    const hasImage = images.length > 0
+
+    let mediaType: 'VIDEO' | 'IMAGE' | 'CAROUSEL' | 'TEXT' = 'TEXT'
+    if (hasVideo) mediaType = 'VIDEO'
+    else if ((snapshot.cards && snapshot.cards.length > 1) || images.length > 1) mediaType = 'CAROUSEL'
+    else if (hasImage) mediaType = 'IMAGE'
+
+    // 3. Impressions Estimate
+    // Formats: "<100", "1K-5K", "100-500", etc.
+    let impressionsEstimated: number | null = null
+    const impressionsRaw = ad.impressions_with_index?.impressions_text
+
+    if (impressionsRaw) {
+        if (impressionsRaw.includes('<')) {
+            impressionsEstimated = 50 // estimate for <100
+        } else if (impressionsRaw.includes('-')) {
+            const parts = impressionsRaw.split('-').map((s: string) => {
+                const val = s.toUpperCase().trim()
+                if (val.includes('K')) return parseFloat(val) * 1000
+                if (val.includes('M')) return parseFloat(val) * 1000000
+                return parseFloat(val)
+            })
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                impressionsEstimated = Math.floor((parts[0] + parts[1]) / 2)
+            }
+        } else {
+            // Try parsing raw number
+            const val = parseInt(impressionsRaw.replace(/[^0-9]/g, ''))
+            if (!isNaN(val)) impressionsEstimated = val
+        }
+    } else if (typeof ad.impressions === 'number') {
+        impressionsEstimated = ad.impressions
+    }
+
+    // 4. Page Authority Score (Log Scale of Likes)
+    // Log10(1) = 0, Log10(1000) = 3, Log10(1M) = 6. 
+    // We Map 0-1M+ to 0-100 score roughly.
+    // 1M likes => 6 * 16.6 ~= 100
+    const pageAuthorityScore = pageLikeCount > 0
+        ? Math.min(100, Math.round(Math.log10(pageLikeCount) * 15))
+        : 0
+
+    // 5. Performance Score (Composite)
+    // Weights: Media (30%), Authority (30%), Duration (20%), Impressions (20%)
+    const mediaScore = mediaType === 'VIDEO' ? 100 : mediaType === 'CAROUSEL' ? 80 : mediaType === 'IMAGE' ? 60 : 20
+    const durationScore = Math.min(100, adActiveDays * 2) // 50 days = 100 score
+    const impressionScore = impressionsEstimated ? Math.min(100, (Math.log10(impressionsEstimated) * 20)) : 50 // Default average
+
+    const performanceScore = Math.round(
+        (mediaScore * 0.3) +
+        (pageAuthorityScore * 0.3) +
+        (durationScore * 0.2) +
+        (impressionScore * 0.2)
+    )
+
+    // ===== OLD IMPRESSIONS FIELD (Keep for backward compatibility) =====
+    const impressions = impressionsRaw ||
         (ad.impressions_with_index?.impressions_index >= 0 ?
             `${ad.impressions_with_index.impressions_index}` : undefined)
 
@@ -261,6 +332,14 @@ export const normalizeAdData = (ad: any): AdData => {
         platforms,
         startDate,
         endDate,
-        snapshot
+        snapshot,
+        // New Derived Metrics
+        adActiveDays,
+        hasVideo,
+        hasImage,
+        mediaType,
+        impressionsEstimated,
+        pageAuthorityScore,
+        performanceScore
     }
 }

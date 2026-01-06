@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { normalizeAdData, AdData } from '@/utils/adValidation'
 import AdPreviewModal from './AdPreviewModal'
 import { createClient } from '@/utils/supabase/client'
+import { Heart, ExternalLink, Zap, ImageOff, Layers } from 'lucide-react'
 
 interface AdCardProps {
     ad: any
@@ -78,31 +79,26 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 onClick={() => setShowPreview(true)}
             >
                 {/* Top Bar: Ad ID + Category + Status */}
-                <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-                    {/* Ad ID */}
-                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
-                        <svg className="w-3 h-3 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                        </svg>
-                        <span className="text-[10px] font-mono text-zinc-300 font-bold tracking-tight">
-                            {ad.adArchiveID.slice(0, 12)}...
-                        </span>
+                <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+                    {/* Ad ID & Category */}
+                    <div className="flex items-center gap-2 pointer-events-auto">
+                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+                            <Layers className="w-3 h-3 text-blue-400" />
+                            <span className="text-[10px] font-mono text-zinc-300 font-bold tracking-tight uppercase truncate max-w-[80px]">
+                                {primaryCategory}
+                            </span>
+                        </div>
                     </div>
 
-                    {/* Category + Status */}
-                    <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-800/80 text-zinc-400 border border-zinc-700/50 backdrop-blur-sm">
-                            {primaryCategory}
-                        </span>
-                        <span className={`
-                            inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold backdrop-blur-sm border shadow-lg
-                            ${ad.isActive
-                                ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                                : 'bg-zinc-800/80 text-zinc-500 border-zinc-700/50'}
-                        `}>
-                            <span className={`w-1 h-1 rounded-full ${ad.isActive ? 'bg-green-400 animate-pulse' : 'bg-zinc-500'}`}></span>
-                            {ad.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                    {/* Status Toggle */}
+                    <div className={`
+                        pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold backdrop-blur-sm border shadow-lg
+                        ${ad.isActive
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                            : 'bg-zinc-800/80 text-zinc-500 border-zinc-700/50'}
+                    `}>
+                        {ad.isActive ? <Zap className="w-3 h-3 fill-current" /> : <div className="w-2 h-2 rounded-full bg-zinc-500" />}
+                        {ad.isActive ? 'Active' : 'Inactive'}
                     </div>
                 </div>
 
@@ -110,21 +106,15 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 <button
                     onClick={handleSaveToggle}
                     disabled={isSaving}
-                    className="absolute top-14 right-3 z-10 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white hover:bg-black/80 hover:scale-110 transition-all duration-200 group/btn"
+                    className="absolute top-14 right-3 z-20 p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/80 hover:scale-110 transition-all duration-200 group/btn"
                 >
-                    <svg
-                        className={`w-4 h-4 transition-colors ${isSaved ? 'text-red-500 fill-red-500' : 'text-white group-hover/btn:text-red-400'}`}
-                        fill={isSaved ? "currentColor" : "none"}
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={isSaved ? 0 : 2}
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
+                    <Heart
+                        className={`w-4 h-4 transition-all ${isSaved ? 'text-red-500 fill-red-500 scale-110' : 'text-white group-hover/btn:text-red-400'}`}
+                    />
                 </button>
 
                 {/* Image Section */}
-                <div className="relative aspect-[4/5] bg-gradient-to-br from-zinc-800 to-black overflow-hidden">
+                <div className="relative aspect-[4/5] bg-zinc-900 overflow-hidden">
                     {primaryImage ? (
                         <img
                             src={primaryImage}
@@ -133,34 +123,38 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                             loading="lazy"
                         />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <div className="text-center">
-                                <svg className="w-12 h-12 text-zinc-700 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span className="text-zinc-600 text-xs">No Image</span>
+                        <div className="w-full h-full flex items-center justify-center bg-zinc-800/50">
+                            <div className="flex flex-col items-center gap-2 text-zinc-600">
+                                <ImageOff className="w-8 h-8 opacity-50" />
+                                <span className="text-xs font-bold">No Image</span>
                             </div>
                         </div>
                     )}
 
-                    {/* Gradient Overlay for bottom readability */}
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/50 to-transparent pointer-events-none"></div>
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none"></div>
                 </div>
 
                 {/* Bottom Section: Page Info */}
-                <div className="relative p-4 bg-black">
-                    <div className="flex items-center gap-3 mb-3">
+                <div className="relative p-4 bg-black flex-1 flex flex-col justify-end">
+                    <div className="flex items-center gap-3 mb-4">
                         {/* Page Profile Picture */}
-                        <div className="shrink-0">
+                        <div className="shrink-0 relative">
                             {ad.pageProfilePictureUrl ? (
                                 <img
                                     src={ad.pageProfilePictureUrl}
                                     alt={ad.pageName}
-                                    className="w-10 h-10 rounded-full border-2 border-zinc-800 object-cover"
+                                    className="w-10 h-10 rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
                                 />
                             ) : (
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-zinc-800">
                                     {ad.pageName[0]?.toUpperCase()}
+                                </div>
+                            )}
+                            {/* Platform Badge (Small) */}
+                            {ad.platforms[0] && (
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500" />
                                 </div>
                             )}
                         </div>
@@ -175,9 +169,6 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                                     {ad.title}
                                 </p>
                             )}
-                            <p className="text-[10px] text-zinc-600 truncate mt-0.5">
-                                {ad.platforms.join(' • ')}
-                            </p>
                         </div>
                     </div>
 
@@ -187,17 +178,12 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-lg shadow-blue-600/20 hover:shadow-blue-500/40 hover:scale-[1.02] group/cta"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 hover:bg-blue-600/10 text-zinc-300 hover:text-blue-400 text-xs font-bold rounded-xl transition-all duration-200 group/cta"
                     >
-                        <span>Visit Page</span>
-                        <svg className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
+                        <span>View Details</span>
+                        <ExternalLink className="w-3 h-3 transition-transform group-hover/cta:translate-x-0.5" />
                     </a>
                 </div>
-
-                {/* Hover Pulse Effect */}
-                <div className="absolute inset-0 border-2 border-blue-500/0 group-hover:border-blue-500/20 rounded-2xl transition-all duration-500 pointer-events-none"></div>
             </div>
 
             <AdPreviewModal
