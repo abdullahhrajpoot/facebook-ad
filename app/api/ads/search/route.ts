@@ -197,6 +197,7 @@ export async function POST(request: Request) {
                         .eq('user_id', user.id)
                         .ilike('keyword', keyword.trim())
                         .eq('filters->country', countryCode)
+                        .eq('filters->searchType', 'keyword')
                         .maybeSingle();
 
                     if (existingHistory) {
@@ -210,12 +211,18 @@ export async function POST(request: Request) {
                             .insert({
                                 user_id: user.id,
                                 keyword: keyword.trim(),
-                                filters: { country: countryCode, maxResults }
+                                filters: {
+                                    searchType: 'keyword',
+                                    country: countryCode,
+                                    maxResults
+                                }
                             });
                     }
+
+                    console.log('✅ Keyword search saved to history');
                 }
             } catch (dbError) {
-                console.error('Error saving history:', dbError);
+                console.error('Error saving keyword search history:', dbError);
             }
         })();
 
