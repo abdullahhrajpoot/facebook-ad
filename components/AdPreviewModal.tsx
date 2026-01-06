@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { AdData } from '@/utils/adValidation'
 import {
     X, ChevronLeft, ChevronRight, Image as ImageIcon, Video,
@@ -50,11 +51,16 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
     const currentMedia = allMedia[currentMediaIndex]
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in"
-            onClick={onClose}>
+    // Portal to document.body to avoid z-index/transform stacking context issues
+    if (typeof document === 'undefined') return null
+
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-md animate-fade-in" aria-hidden="true" />
+
             <div
-                className="relative w-full max-w-5xl max-h-[95vh] bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-scale-in"
+                className="relative w-full max-w-5xl max-h-[95vh] bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-scale-in z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close Button */}
@@ -309,6 +315,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
