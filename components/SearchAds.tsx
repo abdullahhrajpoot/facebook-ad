@@ -1,47 +1,85 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import AdCard from './AdCard'
 import SkeletonAdCard from './SkeletonAdCard'
-import { validateAd } from '@/utils/adValidation'
-
+import { validateAd, AdData } from '@/utils/adValidation'
 import { createClient } from '@/utils/supabase/client'
+import {
+    Search, Filter, Calendar, Play, Image as ImageIcon,
+    Monitor, Trophy, TrendingUp, Clock, Globe,
+    ChevronDown, X, Layers, Activity
+} from 'lucide-react'
+
+type SortOption = 'performance' | 'recent' | 'oldest' | 'longest' | 'authority' | 'impressions'
+type MediaType = 'ALL' | 'VIDEO' | 'IMAGE' | 'CAROUSEL'
 
 export default function SearchAds() {
+    // Search State
     const [keyword, setKeyword] = useState('')
     const [country, setCountry] = useState('US')
-    const [maxResults, setMaxResults] = useState('10')
-    const [ads, setAds] = useState<any[]>([])
+    const [maxResults, setMaxResults] = useState('20')
+    const [searchMode, setSearchMode] = useState<'keyword' | 'page'>('keyword')
+
+    // Data State
+    const [ads, setAds] = useState<AdData[]>([])
     const [savedAdIds, setSavedAdIds] = useState<Set<string>>(new Set())
     const [loading, setLoading] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [searchMode, setSearchMode] = useState<'keyword' | 'page'>('keyword')
+
+    // Filter State
+    const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
+    const [mediaType, setMediaType] = useState<MediaType>('ALL')
+    const [platform, setPlatform] = useState<string>('ALL')
+    const [activeOnly, setActiveOnly] = useState(false)
+    const [minDaysActive, setMinDaysActive] = useState<number>(0)
+
+    // Sort State
+    const [sortBy, setSortBy] = useState<SortOption>('performance')
+
+    // History State
+    const [recentSearches, setRecentSearches] = useState<any[]>([])
+    const [showHistory, setShowHistory] = useState(false)
 
     const supabase = createClient()
 
-    // Fetch saved ads on mount
-    React.useEffect(() => {
-        const fetchSavedAds = async () => {
+    // Fetch saved ads & history on mount
+    useEffect(() => {
+        const fetchInitialData = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            const { data } = await supabase
+            // 1. Fetch Saved Ads
+            const { data: saved } = await supabase
                 .from('saved_ads')
                 .select('ad_archive_id')
                 .eq('user_id', user.id)
 
-            if (data) {
-                setSavedAdIds(new Set(data.map(item => item.ad_archive_id)))
+            if (saved) {
+                setSavedAdIds(new Set(saved.map(item => item.ad_archive_id)))
+            }
+
+            // 2. Fetch History (Client-side unique filter since we want recent distinct keywords)
+            const { data: history } = await supabase
+                .from('search_history')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(20)
+
+            if (history) {
+                const unique = new Map()
+                history.forEach(item => {
+                    if (!unique.has(item.keyword) && unique.size < 5) {
+                        unique.set(item.keyword, item)
+                    }
+                })
+                setRecentSearches(Array.from(unique.values()))
             }
         }
-        fetchSavedAds()
+        fetchInitialData()
     }, [])
-
-    // New Filters State
-    const [activeOnly, setActiveOnly] = useState(false)
-    const [minDaysActive, setMinDaysActive] = useState<number>(0)
-    const [sortBy, setSortBy] = useState<'longest_running' | 'recent' | 'none'>('recent')
 
     const countries = [
         { code: 'US', name: 'United States' },
@@ -63,6 +101,7 @@ export default function SearchAds() {
         setError(null)
         setHasSearched(true)
         setAds([])
+        setSelectedCategories(new Set()) // Reset categories on new search
 
         try {
             const endpoint = searchMode === 'keyword' ? '/api/ads/search' : '/api/ads/search-page'
@@ -87,11 +126,11 @@ export default function SearchAds() {
 
             if (!res.ok) throw new Error(data.error || 'Failed to fetch ads')
 
-            // Strict Validation Filtering
-            const validAds = Array.isArray(data) ? data.filter(validateAd) : []
+            // The API handles normalization now
+            const validAds = Array.isArray(data) ? data : []
 
             if (validAds.length === 0 && Array.isArray(data) && data.length > 0) {
-                setError(`Found ${data.length} raw ads, but 0 passed quality filters (missing images/links).`)
+                setError(`Found ${data.length} raw ads, but 0 passed quality filters.`)
             }
 
             setAds(validAds)
@@ -102,217 +141,333 @@ export default function SearchAds() {
         }
     }
 
-    // Client-side Filtering & Sorting
+    // 1. Dynamic Category Extraction (Memoized)
+    const availableCategories = useMemo(() => {
+        const cats = new Set<string>()
+        ads.forEach(ad => {
+            ad.pageCategories.forEach(c => cats.add(c))
+        })
+        return Array.from(cats).sort()
+    }, [ads])
+
+    // 2. Comprehensive Filtering & Sorting (Memoized)
     const filteredAds = useMemo(() => {
         let result = [...ads]
 
-        // 1. Status Filter
+        // --- FILTERS ---
+
+        // Category Filter
+        if (selectedCategories.size > 0) {
+            result = result.filter(ad =>
+                ad.pageCategories.some(c => selectedCategories.has(c))
+            )
+        }
+
+        // Media Type Filter
+        if (mediaType !== 'ALL') {
+            result = result.filter(ad => ad.mediaType === mediaType)
+        }
+
+        // Platform Filter
+        if (platform !== 'ALL') {
+            result = result.filter(ad =>
+                ad.platforms.some(p => p.toUpperCase().includes(platform))
+            )
+        }
+
+        // Active Status
         if (activeOnly) {
-            result = result.filter(ad => ad.is_active)
+            result = result.filter(ad => ad.isActive)
         }
 
-        // 2. Duration Filter
+        // Duration Filter
         if (minDaysActive > 0) {
-            const now = new Date().getTime()
-            result = result.filter(ad => {
-                const startDate = ad.start_date || ad.startDate
-                if (!startDate) return false
-
-                let startMs = 0
-                // Handle different date formats
-                if (typeof startDate === 'number') {
-                    // Check if seconds (10 digits) or milliseconds (13 digits)
-                    startMs = startDate < 10000000000 ? startDate * 1000 : startDate
-                } else if (typeof startDate === 'string' && !isNaN(Number(startDate)) && !startDate.includes('-')) {
-                    // Numeric string
-                    const num = Number(startDate)
-                    startMs = num < 10000000000 ? num * 1000 : num
-                } else {
-                    // Date string (YYYY-MM-DD)
-                    startMs = new Date(startDate).getTime()
-                }
-
-                if (!startMs || isNaN(startMs)) return false
-
-                const diffTime = Math.abs(now - startMs)
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-                return diffDays >= minDaysActive
-            })
+            result = result.filter(ad => ad.adActiveDays >= minDaysActive)
         }
 
-        // 3. Sorting
-        if (sortBy === 'longest_running') {
-            result.sort((a, b) => {
-                const dateA = a.start_date || a.startDate ? new Date(a.start_date || a.startDate).getTime() : 0
-                const dateB = b.start_date || b.startDate ? new Date(b.start_date || b.startDate).getTime() : 0
-                return dateA - dateB // Ascending start date = older = running longer
-            })
-        } else if (sortBy === 'recent') {
-            result.sort((a, b) => {
-                const dateA = a.start_date || a.startDate ? new Date(a.start_date || a.startDate).getTime() : 0
-                const dateB = b.start_date || b.startDate ? new Date(b.start_date || b.startDate).getTime() : 0
-                return dateB - dateA // Descending start date = newer
-            })
-        }
+        // --- SORTING ---
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case 'performance':
+                    return b.performanceScore - a.performanceScore
+                case 'recent':
+                    return new Date(b.startDate || 0).getTime() - new Date(a.startDate || 0).getTime()
+                case 'oldest':
+                    return new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime()
+                case 'longest':
+                    return b.adActiveDays - a.adActiveDays
+                case 'authority':
+                    return b.pageAuthorityScore - a.pageAuthorityScore
+                case 'impressions':
+                    return (b.impressionsEstimated || 0) - (a.impressionsEstimated || 0)
+                default:
+                    return 0
+            }
+        })
 
         return result
-    }, [ads, activeOnly, minDaysActive, sortBy])
+    }, [ads, selectedCategories, mediaType, platform, activeOnly, minDaysActive, sortBy])
 
+    // Toggle Category Selection
+    const toggleCategory = (cat: string) => {
+        const newSet = new Set(selectedCategories)
+        if (newSet.has(cat)) newSet.delete(cat)
+        else newSet.add(cat)
+        setSelectedCategories(newSet)
+    }
 
     return (
-        <div className="space-y-8 animate-fade-in-up">
-            {/* Search Controls */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl">
-                {/* Search Mode Toggle */}
-                <div className="flex items-center gap-1 bg-black p-1 rounded-xl border border-zinc-800 w-fit mb-6">
+        <div className="space-y-8 animate-fade-in-up pb-20">
+            {/* Main Search Panel */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl relative group">
+                <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+                    <div className="absolute top-0 right-0 p-32 bg-blue-600/10 blur-[100px] rounded-full group-hover:bg-blue-600/20 transition-all duration-1000"></div>
+                </div>
+
+                {/* Search Mode Tabs */}
+                <div className="flex items-center gap-1 bg-black/50 p-1.5 rounded-2xl border border-zinc-800 w-fit mb-6 backdrop-blur-sm relative z-10">
                     <button
                         onClick={() => setSearchMode('keyword')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${searchMode === 'keyword' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-white'}`}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${searchMode === 'keyword' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                     >
-                        Keyword Search
+                        <Search className="w-4 h-4" />
+                        Keyword
                     </button>
                     <button
                         onClick={() => setSearchMode('page')}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${searchMode === 'page' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-white'}`}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${searchMode === 'page' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
                     >
-                        Search by Page
+                        <Globe className="w-4 h-4" />
+                        Page
                     </button>
                 </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1 relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
+                <form onSubmit={handleSearch} className="flex flex-col xl:flex-row gap-4 relative z-10">
+                    <div className="flex-1 relative group/input">
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <Search className="w-5 h-5 text-zinc-500 group-focus-within/input:text-blue-500 transition-colors" />
                         </div>
                         <input
                             type="text"
                             value={keyword}
                             onChange={(e) => setKeyword(e.target.value)}
-                            placeholder={searchMode === 'keyword' ? "Search brands, keywords (e.g. 'Nike', 'Skincare')..." : "Enter Page Name or URL (e.g. 'ZapierApp', 'https://facebook.com/ZapierApp')"}
-                            className="w-full pl-12 pr-4 py-4 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all shadow-inner"
+                            onFocus={() => setShowHistory(true)}
+                            onBlur={() => setTimeout(() => setShowHistory(false), 200)} // Delay to allow click
+                            placeholder={searchMode === 'keyword' ? "Search for brands, products, or keywords (e.g. 'Nike', 'SaaS')..." : "Enter Facebook Page Name or URL..."}
+                            className="w-full pl-12 pr-4 py-4 bg-black border border-zinc-800 rounded-2xl text-white placeholder-zinc-600 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-900/20 transition-all shadow-inner text-lg"
                         />
+
+                        {/* Recent Searches Dropdown */}
+                        {showHistory && recentSearches.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in-up">
+                                <div className="px-4 py-2 bg-zinc-800/50 border-b border-zinc-700 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                                    Recent Searches
+                                </div>
+                                {recentSearches.map((item, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => {
+                                            setKeyword(item.keyword)
+                                            setSearchMode(item.filters?.searchType === 'page' ? 'page' : 'keyword') // infer mode if possible
+                                            setShowHistory(false)
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-zinc-800 flex items-center gap-3 text-sm text-zinc-300 transition-colors group"
+                                    >
+                                        <Clock className="w-4 h-4 text-zinc-500 group-hover:text-blue-400" />
+                                        <span className="font-medium">{item.keyword}</span>
+                                        {item.filters?.country && <span className="ml-auto text-xs text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">{item.filters.country}</span>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-wrap gap-3">
                         {searchMode === 'keyword' && (
-                            <div className="relative min-w-[140px]">
+                            <div className="relative min-w-[160px] flex-1 xl:flex-none group">
                                 <select
                                     value={country}
                                     onChange={(e) => setCountry(e.target.value)}
-                                    className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-4 pr-8 rounded-xl focus:outline-none focus:border-blue-600 cursor-pointer"
+                                    className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-5 pr-10 rounded-2xl focus:outline-none focus:border-blue-600 cursor-pointer font-medium hover:bg-zinc-900/50 transition-colors shadow-sm"
                                 >
                                     {countries.map((c) => (
                                         <option key={c.code} value={c.code}>{c.name}</option>
                                     ))}
                                 </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
-                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
+                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
                             </div>
                         )}
 
-                        <div className="relative min-w-[100px]">
+                        <div className="relative min-w-[120px] flex-1 xl:flex-none group">
                             <select
                                 value={maxResults}
                                 onChange={(e) => setMaxResults(e.target.value)}
-                                className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-4 pr-8 rounded-xl focus:outline-none focus:border-blue-600 cursor-pointer"
+                                className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-5 pr-10 rounded-2xl focus:outline-none focus:border-blue-600 cursor-pointer font-medium hover:bg-zinc-900/50 transition-colors shadow-sm"
                             >
                                 <option value="10">10 Ads</option>
                                 <option value="20">20 Ads</option>
+                                <option value="30">30 Ads</option>
                                 <option value="50">50 Ads</option>
                             </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading || !keyword}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 whitespace-nowrap"
+                            className="flex-1 xl:flex-none bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center gap-2"
                         >
                             {loading ? (
-                                <span className="flex items-center gap-2">
-                                    <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Searching...
-                                </span>
-                            ) : 'Find Ads'}
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Searching...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Search className="w-4 h-4" />
+                                    <span>Find Ads</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
 
-                {/* Filters Toolbar */}
+                {/* Filters Section */}
                 {ads.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-zinc-800 flex flex-wrap gap-4 items-center">
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest mr-2">Filters:</span>
+                    <div className="mt-8 space-y-6 animate-fade-in relative z-10">
+                        {/* Dynamic Categories */}
+                        {availableCategories.length > 0 && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                                    <Layers className="w-3 h-3" />
+                                    <span>Categories</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableCategories.slice(0, 15).map(cat => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => toggleCategory(cat)}
+                                            className={`
+                                                px-3 py-1.5 rounded-lg text-xs font-bold transition-all border
+                                                ${selectedCategories.has(cat)
+                                                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20'
+                                                    : 'bg-black/40 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'}
+                                            `}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                    {availableCategories.length > 15 && (
+                                        <span className="px-2 py-1 text-xs text-zinc-600 flex items-center">
+                                            +{availableCategories.length - 15} more
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
-                        <label className={`flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border transition-all ${activeOnly ? 'bg-green-500/10 border-green-500/50 text-green-400' : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}`}>
-                            <input
-                                type="checkbox"
-                                checked={activeOnly}
-                                onChange={(e) => setActiveOnly(e.target.checked)}
-                                className="hidden"
-                            />
-                            <span className="w-2 h-2 rounded-full bg-current"></span>
-                            <span className="text-xs font-bold">Active Only</span>
-                        </label>
+                        <div className="h-px bg-zinc-800" />
 
-                        <div className="h-6 w-px bg-zinc-800 mx-2"></div>
+                        {/* Advanced Filters Toolbar */}
+                        <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mr-2">
+                                <Filter className="w-3 h-3" />
+                                <span>Filters</span>
+                            </div>
 
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-500">Min Duration:</span>
-                            <div className="flex bg-black border border-zinc-800 rounded-lg p-0.5">
-                                {[0, 3, 7, 30].map(days => (
+                            {/* Media Type */}
+                            <div className="flex bg-black border border-zinc-800 rounded-xl p-1">
+                                {[
+                                    { id: 'ALL', label: 'All', icon: Layers },
+                                    { id: 'VIDEO', label: 'Video', icon: Play },
+                                    { id: 'IMAGE', label: 'Image', icon: ImageIcon },
+                                    { id: 'CAROUSEL', label: 'Carousel', icon: Layers },
+                                ].map((type) => (
                                     <button
-                                        key={days}
-                                        onClick={() => setMinDaysActive(days)}
-                                        className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${minDaysActive === days ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        key={type.id}
+                                        onClick={() => setMediaType(type.id as MediaType)}
+                                        className={`
+                                            flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
+                                            ${mediaType === type.id
+                                                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/5'
+                                                : 'text-zinc-500 hover:text-zinc-300'}
+                                        `}
                                     >
-                                        {days === 0 ? 'Any' : `${days}d+`}
+                                        <type.icon className="w-3 h-3" />
+                                        {type.label}
                                     </button>
                                 ))}
                             </div>
-                        </div>
 
-                        <div className="h-6 w-px bg-zinc-800 mx-2"></div>
-
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-500">Sort By:</span>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as any)}
-                                className="bg-black border border-zinc-800 text-zinc-300 text-xs font-bold rounded-lg px-2 py-1.5 focus:outline-none focus:border-zinc-600 cursor-pointer"
+                            {/* Status */}
+                            <button
+                                onClick={() => setActiveOnly(!activeOnly)}
+                                className={`
+                                    flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                    ${activeOnly
+                                        ? 'bg-green-500/10 border-green-500/50 text-green-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                `}
                             >
-                                <option value="recent">Recent First</option>
-                                <option value="longest_running">Longest Running</option>
-                            </select>
+                                <div className={`w-2 h-2 rounded-full ${activeOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                                Active Only
+                            </button>
+
+                            {/* Duration */}
+                            <div className="relative group">
+                                <select
+                                    value={minDaysActive}
+                                    onChange={(e) => setMinDaysActive(Number(e.target.value))}
+                                    className="appearance-none bg-black border border-zinc-800 text-zinc-300 text-xs font-bold rounded-xl pl-9 pr-8 py-2 hover:border-zinc-600 focus:outline-none cursor-pointer"
+                                >
+                                    <option value={0}>Any Duration</option>
+                                    <option value={3}>3+ Days</option>
+                                    <option value={7}>7+ Days</option>
+                                    <option value={30}>30+ Days</option>
+                                </select>
+                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500 pointer-events-none" />
+                            </div>
+
+                            <div className="flex-1" />
+
+                            {/* Sort Dropdown */}
+                            {/* Sort Dropdown */}
+                            <div className="relative group">
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                                    className="appearance-none bg-black border border-zinc-800 text-white text-xs font-bold rounded-xl pl-4 pr-10 py-2.5 hover:border-zinc-600 focus:outline-none cursor-pointer min-w-[160px]"
+                                >
+                                    <option value="performance">🔥 Best Performance</option>
+                                    <option value="recent">✨ Newest First</option>
+                                    <option value="oldest">📅 Oldest First</option>
+                                    <option value="longest">⏳ Longest Running</option>
+                                    <option value="authority">🏆 Page Authority</option>
+                                    <option value="impressions">👁️ Most Impressions</option>
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
+                            </div>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Results Grid */}
+            {/* Results Header & Grid */}
             {(hasSearched || loading) && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-xl font-bold text-white">
-                            {loading ? 'Searching Ads...' : 'Search Results'}
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-bold text-white tracking-tight">
+                                {loading ? 'Scanning Ads Library...' : 'Search Results'}
+                            </h2>
                             {!loading && (
-                                <span className="ml-3 text-sm font-normal text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
-                                    {filteredAds.length} ads found
+                                <span className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-zinc-400 border border-zinc-700">
+                                    {filteredAds.length} Ads
                                 </span>
                             )}
-                        </h2>
+                        </div>
                     </div>
 
                     {loading ? (
@@ -341,26 +496,35 @@ export default function SearchAds() {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-20 bg-zinc-900/50 border border-zinc-800 border-dashed rounded-3xl">
+                        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                             {error ? (
-                                <div className="max-w-md mx-auto">
-                                    <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
+                                <div className="max-w-md bg-red-500/10 border border-red-500/20 rounded-3xl p-8">
+                                    <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <X className="w-8 h-8 text-red-500" />
                                     </div>
-                                    <h3 className="text-white font-bold mb-2">Search Failed</h3>
-                                    <p className="text-zinc-400 text-sm">{error}</p>
+                                    <h3 className="text-xl font-bold text-white mb-2">Search Failed</h3>
+                                    <p className="text-zinc-400">{error}</p>
                                 </div>
                             ) : (
-                                <div>
-                                    <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <svg className="w-8 h-8 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
+                                <div className="max-w-md">
+                                    <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-800 shadow-xl">
+                                        <Search className="w-10 h-10 text-zinc-600" />
                                     </div>
-                                    <h3 className="text-white font-bold mb-2">No Ads Found</h3>
-                                    <p className="text-zinc-400 text-sm">Try using different keywords or broad search terms.</p>
+                                    <h3 className="text-2xl font-bold text-white mb-3">No Ads Found</h3>
+                                    <p className="text-zinc-400 leading-relaxed">
+                                        We couldn't find any ads matching your criteria. Try adjusting your filters or using broader keywords.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedCategories(new Set())
+                                            setMediaType('ALL')
+                                            setActiveOnly(false)
+                                            setMinDaysActive(0)
+                                        }}
+                                        className="mt-6 text-blue-400 hover:text-blue-300 font-bold text-sm"
+                                    >
+                                        Clear all filters
+                                    </button>
                                 </div>
                             )}
                         </div>

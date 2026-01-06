@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
-
 import { createClient } from '@/utils/supabase/server';
+import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
 
 export async function POST(request: Request) {
     try {
@@ -16,7 +16,10 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { pageNameOrUrl, count = 100 } = body;
 
-        console.log(`Received page search request for: "${pageNameOrUrl}", count: ${count}`);
+        console.log(`\n========== PAGE SEARCH REQUEST ==========`);
+        console.log(`Page: "${pageNameOrUrl}"`);
+        console.log(`Count: ${count}`);
+        console.log(`=========================================\n`);
 
         if (!pageNameOrUrl) {
             return NextResponse.json(
@@ -41,11 +44,10 @@ export async function POST(request: Request) {
         // Construct the URL
         let targetUrl = pageNameOrUrl.trim();
         if (!targetUrl.startsWith('http')) {
-            // Assume it's a page name/handle, e.g. "ZapierApp" -> "https://www.facebook.com/ZapierApp"
+            // Assume it's a page name/handle
             targetUrl = `https://www.facebook.com/${targetUrl}`;
         }
 
-        // Input for the actor XtaWFhbtfxyzqrFmd (Facebook Ads Scraper)
         // Fetch 5x to allow for quality sorting
         const fetchLimit = Number(count) * 5;
         const runInput = {
@@ -59,10 +61,10 @@ export async function POST(request: Request) {
             "scrapePageAds.countryCode": "ALL"
         };
 
-        console.log('Starting Apify Actor run with input:', JSON.stringify(runInput));
+        console.log('Starting Apify Actor run with URL:', targetUrl);
 
         const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
-            waitSecs: 120, // Wait up to 2 mins for completion
+            waitSecs: 120,
         });
 
         if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
@@ -73,72 +75,66 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log('Apify run finished, fetching results from dataset:', run.defaultDatasetId);
-
-        // Fetch results with pagination if needed, but client.dataset().listItems() fetches all by default (paginated internally)
         const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
-        // --- Quality Sorting & Ranking Logic ---
-        const rankedItems = items.sort((a, b) => {
-            // 1. Active Status Priority
-            if (a.is_active && !b.is_active) return -1;
-            if (!a.is_active && b.is_active) return 1;
+        console.log(`\n========== RAW API RESPONSE ==========`);
+        console.log(`Total items fetched: ${items.length}`);
+        console.log(`======================================\n`);
 
-            // 2. Duration Priority
-            const dateA = a.startDate || a.start_date ? new Date((a.startDate || a.start_date) as string).getTime() : Date.now();
-            const dateB = b.startDate || b.start_date ? new Date((b.startDate || b.start_date) as string).getTime() : Date.now();
+        // Simple Validation & Normalization
+        const validatedAds: AdData[] = items
+            .filter(item => validateAd(item))
+            .map(item => normalizeAdData(item));
 
-            return dateA - dateB; // Ascending sort: Oldest date comes first
-        });
-
-        // --- Deduplication Ranking ---
-        const seenSignatures = new Set();
-        const uniqueAds: any[] = [];
-        const duplicateAds: any[] = [];
-
-        for (const item of rankedItems) {
-            const snap = (item.snapshot || {}) as any;
-            const title = item.adCreativeLinkTitle || snap.title || snap.link_description || '';
-            const body = item.adCreativeBody || snap.body?.text || snap.message || '';
-            const link = item.adCreativeLinkUrl || snap.link_url || '';
-
-            const signature = `${title}|${body}|${link}`.toLowerCase();
-
-            if (seenSignatures.has(signature)) {
-                duplicateAds.push(item);
-            } else {
-                seenSignatures.add(signature);
-                uniqueAds.push(item);
-            }
-        }
-
-        const finalRanked = [...uniqueAds, ...duplicateAds];
-
-        // --- Post-Processing Validation ---
-        const validatedAds: any[] = [];
-        for (const ad of finalRanked) {
-            const snapshot = ad.snapshot || {};
-
-            // Check Link
-            const linkUrl = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link;
-            if (!linkUrl) continue;
-
-            // Check Image
-            const hasImage = !!ad.imageUrl ||
-                (snapshot.images && snapshot.images.length > 0) ||
-                (snapshot.cards && snapshot.cards.length > 0 && snapshot.cards[0].original_image_url) ||
-                (snapshot.videos && snapshot.videos.length > 0 && snapshot.videos[0].video_preview_image_url);
-            if (!hasImage) continue;
-
-            // Check Text
-            const title = ad.adCreativeLinkTitle || snapshot.title || snapshot.link_description || snapshot.cards?.[0]?.title;
-            const body = ad.adCreativeBody || snapshot.body?.text || snapshot.message || snapshot.caption || ad.description;
-            if (!title && !body) continue;
-
-            validatedAds.push(ad);
-        }
+        console.log(`\n========== RESULTS SUMMARY ==========`);
+        console.log(`Total Valid Ads: ${validatedAds.length}`);
+        console.log(`Returning: ${Math.min(validatedAds.length, Number(count))} ads`);
+        console.log(`====================================\n`);
 
         const topAds = validatedAds.slice(0, Number(count));
+
+        // Save to Supabase Search History (Fire and Forget)
+        (async () => {
+            try {
+                const supabase = await createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    // Check for existing entry with same page search
+                    const { data: existingHistory } = await supabase
+                        .from('search_history')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .ilike('keyword', pageNameOrUrl.trim())
+                        .eq('filters->searchType', 'page')
+                        .maybeSingle();
+
+                    if (existingHistory) {
+                        // Update timestamp
+                        await supabase
+                            .from('search_history')
+                            .update({ created_at: new Date().toISOString() })
+                            .eq('id', existingHistory.id);
+                    } else {
+                        // Insert new entry
+                        await supabase
+                            .from('search_history')
+                            .insert({
+                                user_id: user.id,
+                                keyword: pageNameOrUrl.trim(),
+                                filters: {
+                                    searchType: 'page',
+                                    count: Number(count)
+                                }
+                            });
+                    }
+
+                    console.log('✅ Page search saved to history');
+                }
+            } catch (dbError) {
+                console.error('Error saving page search history:', dbError);
+            }
+        })();
 
         return NextResponse.json(topAds);
 
