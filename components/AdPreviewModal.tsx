@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AdData } from '@/utils/adValidation'
 
 interface AdPreviewModalProps {
@@ -19,6 +19,19 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
     ]
 
     const hasMultipleMedia = allMedia.length > 1
+
+    // Reset index when modal opens and log media
+    useEffect(() => {
+        if (isOpen) {
+            setCurrentMediaIndex(0)
+            console.log('🎬 Media Slideshow:', {
+                images: ad.images.length,
+                videos: ad.videos.length,
+                total: allMedia.length,
+                links: ad.links.length
+            })
+        }
+    }, [isOpen])
 
     const nextMedia = () => {
         setCurrentMediaIndex((prev) => (prev + 1) % allMedia.length)
@@ -62,8 +75,10 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     />
                                 ) : (
                                     <video
+                                        key={currentMedia.url}
                                         src={currentMedia.url}
                                         controls
+                                        autoPlay
                                         className="w-full h-full object-contain"
                                     />
                                 )
@@ -76,7 +91,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                 <>
                                     <button
                                         onClick={prevMedia}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl"
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl z-10"
                                     >
                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -84,7 +99,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     </button>
                                     <button
                                         onClick={nextMedia}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl z-10"
                                     >
                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -92,7 +107,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     </button>
 
                                     {/* Media Counter */}
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 rounded-full text-xs font-bold text-white">
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 rounded-full text-xs font-bold text-white z-10">
                                         {currentMediaIndex + 1} / {allMedia.length}
                                     </div>
                                 </>
@@ -100,13 +115,13 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                             {/* Media Type Badge */}
                             {currentMedia && (
-                                <div className="absolute top-4 left-4 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white">
+                                <div className="absolute top-4 left-4 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white z-10">
                                     {currentMedia.type === 'image' ? '📷 Image' : '🎥 Video'}
                                 </div>
                             )}
                         </div>
 
-                        {/* Thumbnail Strip - Only show if multiple media */}
+                        {/*Thumbnail Strip - Only show if multiple media */}
                         {hasMultipleMedia && (
                             <div className="flex gap-2 p-4 overflow-x-auto bg-zinc-950 border-t border-zinc-800">
                                 {allMedia.map((media, index) => (
@@ -168,8 +183,8 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         </div>
 
                         {/* Stats Row */}
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Likes Count */}
+                        <div className="grid grid-cols-3 gap-4">
+                            {/* Page Likes */}
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-1">
                                     <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -177,8 +192,22 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     </svg>
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Page Likes</span>
                                 </div>
-                                <p className="text-2xl font-bold text-white">
+                                <p className="text-xl font-bold text-white">
                                     {ad.pageLikeCount > 0 ? ad.pageLikeCount.toLocaleString() : <span className="text-sm text-zinc-600">No likes found</span>}
+                                </p>
+                            </div>
+
+                            {/* Impressions */}
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <span className="text-xs font-bold text-zinc-500 uppercase">Impressions</span>
+                                </div>
+                                <p className="text-xl font-bold text-white">
+                                    {ad.impressions || <span className="text-sm text-zinc-600">No data</span>}
                                 </p>
                             </div>
 
@@ -276,22 +305,22 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                                     </svg>
-                                    <span className="text-xs font-bold text-zinc-500 uppercase">Links ({ad.links.length})</span>
+                                    <span className="text-xs font-bold text-zinc-500 uppercase">All Links ({ad.links.length})</span>
                                 </div>
-                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
                                     {ad.links.map((link, index) => (
                                         <a
                                             key={index}
                                             href={link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block p-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-blue-500/50 rounded-lg text-xs text-blue-400 hover:text-blue-300 font-mono truncate transition-all duration-200 group"
+                                            className="block p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-blue-500/50 rounded-lg text-xs text-blue-400 hover:text-blue-300 font-mono transition-all duration-200 group"
                                         >
                                             <span className="flex items-center gap-2">
-                                                <svg className="w-3 h-3 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                                 </svg>
-                                                <span className="truncate">{link}</span>
+                                                <span className="truncate break-all">{link}</span>
                                             </span>
                                         </a>
                                     ))}

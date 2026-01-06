@@ -170,7 +170,12 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                             <h3 className="text-sm font-bold text-white truncate" title={ad.pageName}>
                                 {ad.pageName}
                             </h3>
-                            <p className="text-xs text-zinc-500 truncate">
+                            {ad.title && (
+                                <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5" title={ad.title}>
+                                    {ad.title}
+                                </p>
+                            )}
+                            <p className="text-[10px] text-zinc-600 truncate mt-0.5">
                                 {ad.platforms.join(' • ')}
                             </p>
                         </div>

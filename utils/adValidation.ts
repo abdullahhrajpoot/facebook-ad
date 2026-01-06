@@ -9,6 +9,7 @@ export interface AdData {
     pageProfilePictureUrl: string
     pageCategories: string[]
     pageLikeCount: number
+    impressions?: string  // Impressions text from impressions_with_index
 
     // Content
     body: string
@@ -213,6 +214,32 @@ export const normalizeAdData = (ad: any): AdData => {
     const startDate = parseDate(ad.start_date || ad.startDate)
     const endDate = parseDate(ad.end_date || ad.endDate)
 
+    // ===== IMPRESSIONS =====
+    const impressions = ad.impressions_with_index?.impressions_text ||
+        (ad.impressions_with_index?.impressions_index >= 0 ?
+            `${ad.impressions_with_index.impressions_index}` : undefined)
+
+    // ===== ENHANCED LINK COLLECTION =====
+    // Collect any additional links we might have missed from top-level properties
+    if (ad.url && !links.includes(ad.url)) links.push(ad.url)
+    if (ad.ad_library_url && !links.includes(ad.ad_library_url)) links.push(ad.ad_library_url)
+
+    // Extract links from extra_texts if they contain URLs
+    if (snapshot.extra_texts && Array.isArray(snapshot.extra_texts)) {
+        snapshot.extra_texts.forEach((textObj: any) => {
+            const text = textObj?.text || textObj
+            if (typeof text === 'string') {
+                // Simple URL regex to find links in text
+                const urlMatches = text.match(/https?:\/\/[^\s]+/g)
+                if (urlMatches) {
+                    urlMatches.forEach(url => {
+                        if (!links.includes(url)) links.push(url)
+                    })
+                }
+            }
+        })
+    }
+
     return {
         adArchiveID,
         pageId,
@@ -221,6 +248,7 @@ export const normalizeAdData = (ad: any): AdData => {
         pageProfilePictureUrl,
         pageCategories,
         pageLikeCount,
+        impressions,
         body,
         title,
         images,
