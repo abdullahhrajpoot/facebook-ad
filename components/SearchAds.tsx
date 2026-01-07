@@ -36,6 +36,7 @@ export default function SearchAds() {
     const [platform, setPlatform] = useState<string>('ALL')
     const [activeOnly, setActiveOnly] = useState(false)
     const [minDaysActive, setMinDaysActive] = useState<number>(0)
+    const [mustHaveImpressions, setMustHaveImpressions] = useState(false)
 
     // Sort State
     const [sortBy, setSortBy] = useState<SortOption>('performance')
@@ -192,8 +193,14 @@ export default function SearchAds() {
         }
 
         // Duration Filter
+        // Duration Filter
         if (minDaysActive > 0) {
             result = result.filter(ad => ad.adActiveDays >= minDaysActive)
+        }
+
+        // Must Have Impressions Filter
+        if (mustHaveImpressions) {
+            result = result.filter(ad => (ad.impressionsEstimated || 0) > 0)
         }
 
         // --- SORTING ---
@@ -287,7 +294,7 @@ export default function SearchAds() {
                     </button>
                 </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col xl:flex-row gap-4 relative z-10">
+                <form onSubmit={handleSearch} className="flex flex-col xl:flex-row gap-4 relative z-50">
                     <div className="flex-1 relative group/input">
                         <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                             <Search className="w-5 h-5 text-zinc-500 group-focus-within/input:text-blue-500 transition-colors" />
@@ -316,19 +323,23 @@ export default function SearchAds() {
                                         <button
                                             key={idx}
                                             type="button"
-                                            onClick={() => {
+                                            onMouseDown={(e) => {
+                                                e.preventDefault() // Prevent input blur
                                                 const term = item.keyword
                                                 const mode = item.filters?.searchType === 'page' ? 'page' : 'keyword'
                                                 const filterCountry = item.filters?.country || 'US'
+                                                // Default to current maxResults if not in history, ensuring we handle string conversion
+                                                const historyMaxResults = item.filters?.maxResults ? String(item.filters.maxResults) : maxResults
 
                                                 setKeyword(term)
                                                 setSearchMode(mode)
                                                 if (mode === 'keyword') setCountry(filterCountry)
+                                                setMaxResults(historyMaxResults)
 
                                                 setShowHistory(false)
 
-                                                // Immediate search
-                                                executeSearch(term, mode, filterCountry, maxResults)
+                                                // Immediate search with correct parameters
+                                                executeSearch(term, mode, filterCountry, historyMaxResults)
                                             }}
                                             className="w-full text-left px-5 py-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-4 text-sm text-zinc-300 transition-all group active:scale-[0.99]"
                                         >
@@ -385,6 +396,7 @@ export default function SearchAds() {
                                 <option value="20">20 Ads</option>
                                 <option value="30">30 Ads</option>
                                 <option value="50">50 Ads</option>
+                                <option value="100">100 Ads</option>
                             </select>
                             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
                         </div>
@@ -506,6 +518,20 @@ export default function SearchAds() {
                                 </button>
                             )}
 
+                            {/* Must Have Impressions */}
+                            <button
+                                onClick={() => setMustHaveImpressions(!mustHaveImpressions)}
+                                className={`
+                                    flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                    ${mustHaveImpressions
+                                        ? 'bg-purple-500/10 border-purple-500/50 text-purple-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                `}
+                            >
+                                <div className={`w-2 h-2 rounded-full ${mustHaveImpressions ? 'bg-purple-500 animate-pulse' : 'bg-zinc-600'}`} />
+                                Must Have Impressions
+                            </button>
+
                             {/* Duration */}
                             <div className="relative group">
                                 <select
@@ -619,7 +645,9 @@ export default function SearchAds() {
                                             setSelectedCategories(new Set())
                                             setMediaType('ALL')
                                             setActiveOnly(false)
+                                            setActiveOnly(false)
                                             setMinDaysActive(0)
+                                            setMustHaveImpressions(false)
                                         }}
                                         className="mt-6 text-blue-400 hover:text-blue-300 font-bold text-sm"
                                     >
