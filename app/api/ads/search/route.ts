@@ -21,12 +21,13 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { keyword, country, maxResults = 10 } = body;
+        const { keyword, country, maxResults = 10, unique = false } = body;
 
         console.log(`\n========== AD SEARCH REQUEST ==========`);
         console.log(`Keyword: "${keyword}"`);
         console.log(`Country: ${country}`);
         console.log(`Max Results: ${maxResults}`);
+        console.log(`Unique Mode: ${unique}`);
         console.log(`========================================\n`);
 
         if (!keyword) {
@@ -50,11 +51,12 @@ export async function POST(request: Request) {
         });
 
         const countryCode = country || 'US';
+        const fetchMultiplier = unique ? 3 : 1;
 
         const runInput = {
             "query": keyword,
             "country": countryCode,
-            "max_results": Number(maxResults),
+            "max_results": Number(maxResults) * fetchMultiplier,
             "keyword_type": "KEYWORD_EXACT_PHRASE",
             "languages": [
                 "en"
@@ -76,6 +78,8 @@ export async function POST(request: Request) {
             );
         }
 
+        console.log(run)
+
         const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
         console.log(`\n========== RAW API RESPONSE ==========`);
@@ -89,7 +93,37 @@ export async function POST(request: Request) {
 
         console.log(`\n========== RESULTS SUMMARY ==========`);
         console.log(`Total Valid Ads: ${validatedAds.length}`);
-        console.log(`Returning: ${Math.min(validatedAds.length, Number(maxResults))} ads`);
+
+        let cutoffIndex = validatedAds.length;
+        let validUniqueCount = validatedAds.length;
+
+        if (unique) {
+            // Smart Slicing: Ensure we return 'maxResults' *unique* ads
+            // We include duplicates encountered along the way so the frontend can "Show Duplicates"
+            const uniqueTarget = Number(maxResults);
+            const seen = new Set<string>();
+            validUniqueCount = 0;
+            cutoffIndex = 0;
+
+            for (let i = 0; i < validatedAds.length; i++) {
+                const ad = validatedAds[i];
+                const key = `${ad.pageId}|${ad.title}|${ad.body}`;
+
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    validUniqueCount++;
+                }
+
+                cutoffIndex = i + 1;
+                if (validUniqueCount >= uniqueTarget) break;
+            }
+        } else {
+            // Standard Slicing (No guarantee of uniqueness, just raw count)
+            cutoffIndex = Math.min(validatedAds.length, Number(maxResults));
+            validUniqueCount = cutoffIndex; // Treat as if all were "requested"
+        }
+
+        console.log(`Returning: ${cutoffIndex} ads (containing ${validUniqueCount} unique)`);
         console.log(`====================================\n`);
 
         // Log first 3 ads for debugging
@@ -103,7 +137,7 @@ export async function POST(request: Request) {
             console.log(`   Dates: ${normalizedAd.startDate} → ${normalizedAd.endDate} (${normalizedAd.adActiveDays} days)`);
         }
 
-        const topAds = validatedAds.slice(0, Number(maxResults));
+        const topAds = validatedAds.slice(0, cutoffIndex);
 
         // Save to Supabase Search History (Fire and Forget)
         // Save to Supabase Search History

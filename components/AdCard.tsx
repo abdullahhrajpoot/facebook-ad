@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 
 import { useState, useEffect } from 'react'
 import { normalizeAdData, AdData } from '@/utils/adValidation'
@@ -116,11 +117,13 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 {/* Image Section */}
                 <div className="relative aspect-[4/5] bg-zinc-900 overflow-hidden">
                     {primaryImage ? (
-                        <img
+                        <Image
                             src={primaryImage}
                             alt={ad.title || ad.pageName}
-                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                            loading="lazy"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover transform group-hover:scale-105 transition-transform duration-700"
+                            unoptimized={!primaryImage.includes('fbcdn.net') && !primaryImage.includes('facebook.com')} // Fallback if domain mismatch
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-zinc-800/50">
@@ -141,10 +144,13 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                         {/* Page Profile Picture */}
                         <div className="shrink-0 relative">
                             {ad.pageProfilePictureUrl ? (
-                                <img
+                                <Image
                                     src={ad.pageProfilePictureUrl}
                                     alt={ad.pageName}
-                                    className="w-10 h-10 rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
+                                    unoptimized={!ad.pageProfilePictureUrl.includes('fbcdn.net') && !ad.pageProfilePictureUrl.includes('facebook.com')}
                                 />
                             ) : (
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-zinc-800">

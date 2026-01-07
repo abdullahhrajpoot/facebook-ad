@@ -14,11 +14,12 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { pageNameOrUrl, count = 100 } = body;
+        const { pageNameOrUrl, count = 100, unique = false } = body;
 
         console.log(`\n========== PAGE SEARCH REQUEST ==========`);
         console.log(`Page: "${pageNameOrUrl}"`);
         console.log(`Count: ${count}`);
+        console.log(`Unique Mode: ${unique}`);
         console.log(`=========================================\n`);
 
         if (!pageNameOrUrl) {
@@ -48,8 +49,10 @@ export async function POST(request: Request) {
             targetUrl = `https://www.facebook.com/${targetUrl}`;
         }
 
-        // Fetch 5x to allow for quality sorting
-        const fetchLimit = Number(count) * 5;
+        // Fetch multiplier based on mode
+        // Unique = 3x (User requested), Standard = 1x (Exact count)
+        const fetchLimit = Number(count) * (unique ? 3 : 1);
+
         const runInput = {
             "urls": [
                 {
@@ -88,10 +91,39 @@ export async function POST(request: Request) {
 
         console.log(`\n========== RESULTS SUMMARY ==========`);
         console.log(`Total Valid Ads: ${validatedAds.length}`);
-        console.log(`Returning: ${Math.min(validatedAds.length, Number(count))} ads`);
+
+        let cutoffIndex = validatedAds.length;
+        let validUniqueCount = validatedAds.length;
+
+        if (unique) {
+            // Smart Slicing: Ensure we return 'count' *unique* ads
+            const uniqueTarget = Number(count);
+            const seen = new Set<string>();
+            validUniqueCount = 0;
+            cutoffIndex = 0;
+
+            for (let i = 0; i < validatedAds.length; i++) {
+                const ad = validatedAds[i];
+                const key = `${ad.pageId}|${ad.title}|${ad.body}`;
+
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    validUniqueCount++;
+                }
+
+                cutoffIndex = i + 1;
+                if (validUniqueCount >= uniqueTarget) break;
+            }
+        } else {
+            // Standard Slicing
+            cutoffIndex = Math.min(validatedAds.length, Number(count));
+            validUniqueCount = cutoffIndex;
+        }
+
+        console.log(`Returning: ${cutoffIndex} ads (containing ${validUniqueCount} unique)`);
         console.log(`====================================\n`);
 
-        const topAds = validatedAds.slice(0, Number(count));
+        const topAds = validatedAds.slice(0, cutoffIndex);
 
         // Save to Supabase Search History (Fire and Forget)
         // Save to Supabase Search History

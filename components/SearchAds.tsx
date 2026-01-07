@@ -8,7 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import {
     Search, Filter, Calendar, Play, Image as ImageIcon,
     Monitor, Trophy, TrendingUp, Clock, Globe,
-    ChevronDown, X, Layers, Activity
+    ChevronDown, X, Layers, Activity, Copy, Fingerprint
 } from 'lucide-react'
 
 type SortOption = 'performance' | 'recent' | 'oldest' | 'longest' | 'authority' | 'impressions'
@@ -27,6 +27,8 @@ export default function SearchAds() {
     const [loading, setLoading] = useState(false)
     const [hasSearched, setHasSearched] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [ensureUnique, setEnsureUnique] = useState(false)
+    const [wasUniqueSearch, setWasUniqueSearch] = useState(false)
 
     // Filter State
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
@@ -41,6 +43,7 @@ export default function SearchAds() {
     // History State
     const [recentSearches, setRecentSearches] = useState<any[]>([])
     const [showHistory, setShowHistory] = useState(false)
+    const [showDuplicates, setShowDuplicates] = useState(false)
 
     const supabase = createClient()
 
@@ -101,6 +104,8 @@ export default function SearchAds() {
         setHasSearched(true)
         setAds([])
         setSelectedCategories(new Set()) // Reset categories on new search
+        setShowDuplicates(false) // Reset view mode
+        setWasUniqueSearch(ensureUnique) // Track if this search was unique
 
         try {
             const endpoint = mode === 'keyword' ? '/api/ads/search' : '/api/ads/search-page'
@@ -108,11 +113,13 @@ export default function SearchAds() {
                 ? {
                     keyword: searchKeyword,
                     country: searchCountry === 'ALL' ? undefined : searchCountry,
-                    maxResults: Number(count)
+                    maxResults: Number(count),
+                    unique: ensureUnique
                 }
                 : {
                     pageNameOrUrl: searchKeyword,
-                    count: Number(count)
+                    count: Number(count),
+                    unique: ensureUnique
                 }
 
             const res = await fetch(endpoint, {
@@ -155,7 +162,7 @@ export default function SearchAds() {
     }, [ads])
 
     // 2. Comprehensive Filtering & Sorting (Memoized)
-    const filteredAds = useMemo(() => {
+    const { filteredAds, hiddenDuplicateCount } = useMemo(() => {
         let result = [...ads]
 
         // --- FILTERS ---
@@ -209,8 +216,31 @@ export default function SearchAds() {
             }
         })
 
-        return result
-    }, [ads, selectedCategories, mediaType, platform, activeOnly, minDaysActive, sortBy])
+        // --- DEDUPLICATION ---
+        const seen = new Set<string>()
+        const unique: AdData[] = []
+        const duplicates: AdData[] = []
+
+        result.forEach(ad => {
+            // Identifier for duplicate content: Page + Title + Body
+            const key = `${ad.title} | ${ad.body} | ${ad.pageId}`
+            if (seen.has(key)) {
+                duplicates.push(ad)
+            } else {
+                seen.add(key)
+                unique.push(ad)
+            }
+        })
+
+        if (showDuplicates || !wasUniqueSearch) {
+            // Show all (sorted)
+            return { filteredAds: result, hiddenDuplicateCount: 0 }
+        } else {
+            // Show unique only
+            return { filteredAds: unique, hiddenDuplicateCount: duplicates.length }
+        }
+
+    }, [ads, selectedCategories, mediaType, platform, activeOnly, minDaysActive, sortBy, showDuplicates, wasUniqueSearch])
 
     // Toggle Category Selection
     const toggleCategory = (cat: string) => {
@@ -243,6 +273,17 @@ export default function SearchAds() {
                     >
                         <Globe className="w-4 h-4" />
                         Page
+                    </button>
+
+                    <div className="w-px h-6 bg-zinc-700 mx-2" />
+
+                    <button
+                        onClick={() => setEnsureUnique(!ensureUnique)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${ensureUnique ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        title="Fetch extra ads to ensure unique results"
+                    >
+                        <Fingerprint className="w-4 h-4" />
+                        {ensureUnique ? 'Unique On' : 'Unique Off'}
                     </button>
                 </div>
 
@@ -449,6 +490,22 @@ export default function SearchAds() {
                                 Active Only
                             </button>
 
+                            {/* Show Duplicates (Only if search was unique) */}
+                            {wasUniqueSearch && (
+                                <button
+                                    onClick={() => setShowDuplicates(!showDuplicates)}
+                                    className={`
+                                        flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                        ${showDuplicates
+                                            ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
+                                            : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                    `}
+                                >
+                                    <Copy className="w-3 h-3" />
+                                    {showDuplicates ? 'Hide Duplicates' : 'Show Duplicates'}
+                                </button>
+                            )}
+
                             {/* Duration */}
                             <div className="relative group">
                                 <select
@@ -498,12 +555,20 @@ export default function SearchAds() {
                                 {loading ? 'Scanning Ads Library...' : 'Search Results'}
                             </h2>
                             {!loading && (
-                                <span className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-zinc-400 border border-zinc-700">
-                                    {filteredAds.length} Ads
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-zinc-400 border border-zinc-700">
+                                        {filteredAds.length} {showDuplicates ? 'Total' : 'Unique'} Ads
+                                    </span>
+                                    {hiddenDuplicateCount > 0 && !showDuplicates && (
+                                        <span className="px-3 py-1 bg-blue-900/30 rounded-full text-xs font-bold text-blue-400 border border-blue-800/50">
+                                            +{hiddenDuplicateCount} Duplicates Hidden
+                                        </span>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
+
 
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -569,3 +634,4 @@ export default function SearchAds() {
         </div>
     )
 }
+
