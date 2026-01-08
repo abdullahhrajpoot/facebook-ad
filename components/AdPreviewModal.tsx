@@ -20,6 +20,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
     const [isTranscribing, setIsTranscribing] = useState(false)
     const [transcriptionText, setTranscriptionText] = useState<string | null>(null)
     const [hasCopied, setHasCopied] = useState(false)
+    const [isDownloading, setIsDownloading] = useState(false)
 
     // Combine images and videos into one media array
     const allMedia = [
@@ -50,14 +51,28 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
         setCurrentMediaIndex((prev) => (prev - 1 + allMedia.length) % allMedia.length)
     }
 
+    const [loadingMessage, setLoadingMessage] = useState('Initializing...')
+
     const handleTranscribe = async (videoUrl: string) => {
         try {
             setIsTranscribing(true)
+            setTranscriptionText(null)
+
+            // Dynamic loading messages to manage user expectations
+            setLoadingMessage('Connecting...')
+            const timer1 = setTimeout(() => setLoadingMessage('Downloading video...'), 1000)
+            const timer2 = setTimeout(() => setLoadingMessage('Processing audio...'), 4000)
+            const timer3 = setTimeout(() => setLoadingMessage('Transcribing with AI...'), 8000)
+
             const response = await fetch('/api/transcribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ videoUrl })
             })
+
+            clearTimeout(timer1)
+            clearTimeout(timer2)
+            clearTimeout(timer3)
 
             const data = await response.json()
 
@@ -69,6 +84,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
             alert('Failed to transcribe video. Please try again.')
         } finally {
             setIsTranscribing(false)
+            setLoadingMessage('')
         }
     }
 
@@ -94,6 +110,37 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
         document.body.removeChild(a)
     }
 
+    const handleDownloadMedia = async (url: string, type: 'video' | 'image') => {
+        try {
+            setIsDownloading(true)
+            const filename = `${ad.pageName.replace(/\s+/g, '_')}_${type}_${Date.now()}.${type === 'video' ? 'mp4' : 'jpg'}`
+            const response = await fetch('/api/download-media', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, filename }),
+            })
+
+            if (!response.ok) throw new Error('Download failed')
+
+            const blob = await response.blob()
+            const blobUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = blobUrl
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(blobUrl)
+            document.body.removeChild(a)
+        } catch (error) {
+            console.error('Download failed:', error)
+            alert('Failed to download media.')
+        } finally {
+            setIsDownloading(false)
+        }
+    }
+
+
+
     if (!isOpen) return null
 
     const currentMedia = allMedia[currentMediaIndex]
@@ -107,29 +154,47 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
             <div className="absolute inset-0 bg-black/90 backdrop-blur-md animate-fade-in" aria-hidden="true" />
 
             <div
-                className="relative w-full max-w-5xl max-h-[95vh] bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-scale-in z-10"
+                className="relative w-full max-w-6xl h-[90vh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-scale-in z-10 flex flex-col lg:flex-row"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Close Button */}
+                {/* Close Button Mobile/Corner */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-white hover:bg-red-600 hover:border-red-500 transition-all duration-200 group"
+                    className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-white hover:bg-red-600 hover:border-red-500 transition-all duration-200 group lg:bg-zinc-900"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
-                <div className="overflow-y-auto max-h-[95vh] custom-scrollbar">
-                    {/* Media Carousel Section */}
-                    <div className="relative bg-black">
-                        <div className="relative aspect-video bg-gradient-to-br from-zinc-900 to-black flex items-center justify-center">
-                            {currentMedia ? (
-                                currentMedia.type === 'image' ? (
+                {/* LEFT COLUMN: Media Player */}
+                <div className="h-[40vh] lg:h-full lg:w-3/5 bg-black relative flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-900 group/media">
+                    <div className="flex-1 relative flex items-center justify-center bg-gradient-to-br from-zinc-900 to-black overflow-hidden">
+                        {currentMedia ? (
+                            currentMedia.type === 'image' ? (
+                                <div className="relative w-full h-full flex items-center justify-center group/image">
                                     <img
                                         src={currentMedia.url}
                                         alt={ad.title || ad.pageName}
                                         className="w-full h-full object-contain"
                                     />
-                                ) : (
+                                    {/* Image Actions Overlay */}
+                                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-4">
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (!isDownloading) handleDownloadMedia(currentMedia.url, 'image')
+                                            }}
+                                            disabled={isDownloading}
+                                            className="p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 hover:scale-110 transition-all font-bold flex items-center gap-2 border border-zinc-700 disabled:opacity-50"
+                                            title="Download Image"
+                                        >
+                                            {isDownloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                                            <span className="text-sm">{isDownloading ? 'Saving...' : 'Save'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="relative w-full h-full">
                                     <video
                                         key={currentMedia.url}
                                         src={currentMedia.url}
@@ -137,88 +202,109 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         autoPlay
                                         className="w-full h-full object-contain"
                                     />
-                                )
-                            ) : (
-                                <div className="text-zinc-600">No media available</div>
-                            )}
-
-                            {/* Navigation Arrows - Only show if multiple media */}
-                            {hasMultipleMedia && (
-                                <>
-                                    <button
-                                        onClick={prevMedia}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl z-10"
-                                    >
-                                        <ChevronLeft className="w-6 h-6" />
-                                    </button>
-                                    <button
-                                        onClick={nextMedia}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 shadow-xl z-10"
-                                    >
-                                        <ChevronRight className="w-6 h-6" />
-                                    </button>
-
-                                    {/* Media Counter */}
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 rounded-full text-xs font-bold text-white z-10">
-                                        {currentMediaIndex + 1} / {allMedia.length}
+                                    {/* Video Actions Overlay (Top Right) */}
+                                    <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (!isDownloading) handleDownloadMedia(currentMedia.url, 'video')
+                                            }}
+                                            disabled={isDownloading}
+                                            className="p-2.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-white hover:bg-white hover:text-black transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group/btn"
+                                            title="Download Video"
+                                        >
+                                            {isDownloading ? (
+                                                <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+                                            ) : (
+                                                <Download className="w-5 h-5" />
+                                            )}
+                                            {/* Tooltip style feedback */}
+                                            {isDownloading && (
+                                                <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-black text-white text-xs rounded whitespace-nowrap">
+                                                    Downloading...
+                                                </span>
+                                            )}
+                                        </button>
                                     </div>
-                                </>
-                            )}
-
-                            {/* Media Type Badge */}
-                            {currentMedia && (
-                                <div className="absolute top-4 left-4 px-2.5 py-1 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white z-10 flex items-center gap-1.5">
-                                    {currentMedia.type === 'image' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
-                                    {currentMedia.type === 'image' ? 'Image' : 'Video'}
                                 </div>
-                            )}
+                            )
+                        ) : (
+                            <div className="text-zinc-600">No media available</div>
+                        )}
 
-                            {/* Transcribe Button - Only for Video */}
-                            {currentMedia && currentMedia.type === 'video' && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleTranscribe(currentMedia.url)
-                                    }}
-                                    disabled={isTranscribing}
-                                    className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white hover:bg-white hover:text-black hover:scale-105 transition-all flex items-center gap-2 z-20 group disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isTranscribing ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                                    ) : (
-                                        <Sparkles className="w-3.5 h-3.5 text-yellow-400 group-hover:text-yellow-600" />
-                                    )}
-                                    {isTranscribing ? 'Transcribing...' : transcriptionText ? 'View Transcript' : 'Transcribe Audio'}
-                                </button>
-                            )}
-                        </div>
-
-                        {/*Thumbnail Strip - Only show if multiple media */}
+                        {/* Navigation Arrows */}
                         {hasMultipleMedia && (
-                            <div className="flex gap-2 p-4 overflow-x-auto bg-zinc-950 border-t border-zinc-800">
-                                {allMedia.map((media, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentMediaIndex(index)}
-                                        className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${currentMediaIndex === index
-                                            ? 'border-blue-500 ring-2 ring-blue-500/50 scale-105'
-                                            : 'border-zinc-700 hover:border-zinc-600 opacity-60 hover:opacity-100'
-                                            }`}
-                                    >
-                                        {media.type === 'image' ? (
-                                            <img src={media.url} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                                                <Video className="w-6 h-6 text-white" />
-                                            </div>
-                                        )}
-                                    </button>
-                                ))}
+                            <>
+                                <button
+                                    onClick={prevMedia}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 z-10 opacity-0 group-hover/media:opacity-100"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </button>
+                                <button
+                                    onClick={nextMedia}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white hover:bg-white hover:text-black transition-all duration-200 hover:scale-110 z-10 opacity-0 group-hover/media:opacity-100"
+                                >
+                                    <ChevronRight className="w-6 h-6" />
+                                </button>
+                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 backdrop-blur-sm border border-white/10 rounded-full text-xs font-bold text-white z-10">
+                                    {currentMediaIndex + 1} / {allMedia.length}
+                                </div>
+                            </>
+                        )}
+
+                        {/* Media Type Badge */}
+                        {currentMedia && (
+                            <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg text-xs font-bold text-white z-10 flex items-center gap-2">
+                                {currentMedia.type === 'image' ? <ImageIcon className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
+                                {currentMedia.type === 'image' ? 'Image' : 'Video'}
                             </div>
+                        )}
+
+                        {/* Transcribe Button Overlay on Video */}
+                        {currentMedia && currentMedia.type === 'video' && !isTranscribing && !transcriptionText && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleTranscribe(currentMedia.url)
+                                }}
+                                className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 z-20 transition-all hover:scale-105 active:scale-95"
+                            >
+                                <Sparkles className="w-4 h-4 text-yellow-300" />
+                                Transcribe Audio
+                            </button>
                         )}
                     </div>
 
-                    {/* Content Section */}
+                    {/* Thumbnail Strip (Bottom of Left Column) */}
+                    {hasMultipleMedia && (
+                        <div className="h-24 bg-zinc-950 border-t border-zinc-900 flex items-center px-4 gap-2 overflow-x-auto custom-scrollbar">
+                            {allMedia.map((media, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setCurrentMediaIndex(index)}
+                                    className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 relative ${currentMediaIndex === index
+                                        ? 'border-blue-500 ring-2 ring-blue-500/20 opacity-100'
+                                        : 'border-zinc-800 opacity-50 hover:opacity-100 hover:border-zinc-600'
+                                        }`}
+                                >
+                                    {media.type === 'image' ? (
+                                        <img src={media.url} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                                            <Video className="w-5 h-5 text-white/50" />
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* RIGHT COLUMN: Info Stream */}
+                <div className="flex-1 h-[60vh] lg:h-full overflow-y-auto custom-scrollbar bg-zinc-950 flex flex-col">
+
+
                     <div className="p-6 space-y-6">
                         {/* Page Info Header */}
                         <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
@@ -308,51 +394,49 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             </div>
                         )}
 
-                        {/* Ad Body/Description */}
-                        {ad.body && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <FileText className="w-4 h-4 text-cyan-500" />
-                                    <span className="text-xs font-bold text-zinc-500 uppercase">Ad Description</span>
-                                </div>
-                                <div className="prose prose-invert max-w-none">
-                                    <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                                        {ad.body}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
 
-                        {/* Video Transcript */}
-                        {transcriptionText && (
+                        {/* Video Transcript (Moved here) */}
+                        {(transcriptionText || isTranscribing) && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 relative group animate-fade-in">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <FileText className="w-4 h-4 text-purple-400" />
-                                        <span className="text-xs font-bold text-zinc-500 uppercase">Video Transcript</span>
+                                        <span className="text-xs font-bold text-zinc-500 uppercase">
+                                            {isTranscribing ? 'Transcribing Video...' : 'Video Transcript'}
+                                        </span>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={handleCopyTranscript}
-                                            className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
-                                            title="Copy to clipboard"
-                                        >
-                                            {hasCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                                        </button>
-                                        <button
-                                            onClick={handleDownloadTranscript}
-                                            className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
-                                            title="Download as .txt"
-                                        >
-                                            <Download className="w-3.5 h-3.5" />
-                                        </button>
+                                    {!isTranscribing && transcriptionText && (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleCopyTranscript}
+                                                className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                                                title="Copy to clipboard"
+                                            >
+                                                {hasCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                            </button>
+                                            <button
+                                                onClick={handleDownloadTranscript}
+                                                className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                                                title="Download as .txt"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isTranscribing ? (
+                                    <div className="flex flex-col items-center justify-center py-6 gap-3 text-zinc-500">
+                                        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                                        <span className="text-xs font-mono">{loadingMessage}</span>
                                     </div>
-                                </div>
-                                <div className="max-h-60 overflow-y-auto custom-scrollbar bg-black/50 p-3 rounded-lg border border-black/50">
-                                    <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap font-mono">
-                                        {transcriptionText}
-                                    </p>
-                                </div>
+                                ) : (
+                                    <div className="max-h-60 overflow-y-auto custom-scrollbar bg-black/50 p-3 rounded-lg border border-black/50">
+                                        <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap font-mono">
+                                            {transcriptionText}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -369,79 +453,97 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             </div>
                         )}
 
-                        {/* Platforms */}
-                        {ad.platforms.length > 0 && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        {/* Ad Body/Description */}
+                        {ad.body && (
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <Monitor className="w-4 h-4 text-pink-500" />
-                                    <span className="text-xs font-bold text-zinc-500 uppercase">Platforms</span>
+                                    <FileText className="w-4 h-4 text-cyan-500" />
+                                    <span className="text-xs font-bold text-zinc-500 uppercase">Ad Description</span>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {ad.platforms.map((platform, index) => {
-                                        const p = platform.toLowerCase()
-                                        let icon = <Monitor className="w-4 h-4" />
-                                        let style = 'bg-zinc-800 text-zinc-400 border-zinc-700'
-
-                                        if (p.includes('facebook')) {
-                                            icon = <Facebook className="w-4 h-4" />
-                                            style = 'bg-[#1877F2]/10 text-[#1877F2] border-[#1877F2]/20'
-                                        } else if (p.includes('instagram')) {
-                                            icon = <Instagram className="w-4 h-4" />
-                                            style = 'bg-[#E4405F]/10 text-[#E4405F] border-[#E4405F]/20'
-                                        } else if (p.includes('messenger')) {
-                                            icon = <MessageCircle className="w-4 h-4" />
-                                            style = 'bg-[#00B2FF]/10 text-[#00B2FF] border-[#00B2FF]/20'
-                                        } else if (p.includes('threads')) {
-                                            icon = <AtSign className="w-4 h-4" />
-                                            style = 'bg-white/10 text-white border-white/20'
-                                        } else if (p.includes('audience') || p.includes('network')) {
-                                            icon = <Monitor className="w-4 h-4" />
-                                            style = 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                        }
-
-                                        return (
-                                            <span
-                                                key={index}
-                                                className={`px-3 py-1.5 border rounded-lg text-xs font-bold flex items-center gap-2 ${style}`}
-                                            >
-                                                {icon}
-                                                {platform}
-                                            </span>
-                                        )
-                                    })}
+                                <div className="prose prose-invert max-w-none">
+                                    <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                                        {ad.body}
+                                    </p>
                                 </div>
                             </div>
                         )}
 
-                        {/* Links */}
-                        {ad.links.length > 0 && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <LinkIcon className="w-4 h-4 text-green-500" />
-                                    <span className="text-xs font-bold text-zinc-500 uppercase">All Links ({ad.links.length})</span>
-                                </div>
-                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                                    {ad.links.map((link, index) => (
-                                        <a
-                                            key={index}
-                                            href={link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-blue-500/50 rounded-lg text-xs text-blue-400 hover:text-blue-300 font-mono transition-all duration-200 group"
-                                        >
-                                            <span className="flex items-center gap-2">
-                                                <ExternalLink className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                                                <span className="truncate break-all">{link}</span>
-                                            </span>
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
+
+
+
+                    {/* Platforms */}
+                    {ad.platforms.length > 0 && (
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Monitor className="w-4 h-4 text-pink-500" />
+                                <span className="text-xs font-bold text-zinc-500 uppercase">Platforms</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {ad.platforms.map((platform, index) => {
+                                    const p = platform.toLowerCase()
+                                    let icon = <Monitor className="w-4 h-4" />
+                                    let style = 'bg-zinc-800 text-zinc-400 border-zinc-700'
+
+                                    if (p.includes('facebook')) {
+                                        icon = <Facebook className="w-4 h-4" />
+                                        style = 'bg-[#1877F2]/10 text-[#1877F2] border-[#1877F2]/20'
+                                    } else if (p.includes('instagram')) {
+                                        icon = <Instagram className="w-4 h-4" />
+                                        style = 'bg-[#E4405F]/10 text-[#E4405F] border-[#E4405F]/20'
+                                    } else if (p.includes('messenger')) {
+                                        icon = <MessageCircle className="w-4 h-4" />
+                                        style = 'bg-[#00B2FF]/10 text-[#00B2FF] border-[#00B2FF]/20'
+                                    } else if (p.includes('threads')) {
+                                        icon = <AtSign className="w-4 h-4" />
+                                        style = 'bg-white/10 text-white border-white/20'
+                                    } else if (p.includes('audience') || p.includes('network')) {
+                                        icon = <Monitor className="w-4 h-4" />
+                                        style = 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                    }
+
+                                    return (
+                                        <span
+                                            key={index}
+                                            className={`px-3 py-1.5 border rounded-lg text-xs font-bold flex items-center gap-2 ${style}`}
+                                        >
+                                            {icon}
+                                            {platform}
+                                        </span>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Links */}
+                    {ad.links.length > 0 && (
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <LinkIcon className="w-4 h-4 text-green-500" />
+                                <span className="text-xs font-bold text-zinc-500 uppercase">All Links ({ad.links.length})</span>
+                            </div>
+                            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                {ad.links.map((link, index) => (
+                                    <a
+                                        key={index}
+                                        href={link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-blue-500/50 rounded-lg text-xs text-blue-400 hover:text-blue-300 font-mono transition-all duration-200 group"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <ExternalLink className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                            <span className="truncate break-all">{link}</span>
+                                        </span>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
-        </div >,
+        </div>,
         document.body
     )
 }
