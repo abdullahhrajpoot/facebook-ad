@@ -62,7 +62,7 @@ export async function POST(request: Request) {
                 "en"
             ],
             "media_type": "all",
-            "start_date_min": "2020-01-01",
+            "start_date_min": "2026-01-01",
             "start_date_max": new Date().toISOString().split('T')[0]
         };
 
