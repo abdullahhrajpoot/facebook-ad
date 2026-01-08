@@ -36,7 +36,7 @@ export default function SearchAds() {
     const [platform, setPlatform] = useState<string>('ALL')
     const [activeOnly, setActiveOnly] = useState(false)
     const [minDaysActive, setMinDaysActive] = useState<number>(0)
-    const [mustHaveImpressions, setMustHaveImpressions] = useState(false)
+
 
     // Sort State
     const [sortBy, setSortBy] = useState<SortOption>('performance')
@@ -198,10 +198,7 @@ export default function SearchAds() {
             result = result.filter(ad => ad.adActiveDays >= minDaysActive)
         }
 
-        // Must Have Impressions Filter
-        if (mustHaveImpressions) {
-            result = result.filter(ad => (ad.impressionsEstimated || 0) > 0)
-        }
+
 
         // --- SORTING ---
         result.sort((a, b) => {
@@ -518,19 +515,7 @@ export default function SearchAds() {
                                 </button>
                             )}
 
-                            {/* Must Have Impressions */}
-                            <button
-                                onClick={() => setMustHaveImpressions(!mustHaveImpressions)}
-                                className={`
-                                    flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
-                                    ${mustHaveImpressions
-                                        ? 'bg-purple-500/10 border-purple-500/50 text-purple-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
-                                `}
-                            >
-                                <div className={`w-2 h-2 rounded-full ${mustHaveImpressions ? 'bg-purple-500 animate-pulse' : 'bg-zinc-600'}`} />
-                                Must Have Impressions
-                            </button>
+
 
                             {/* Duration */}
                             <div className="relative group">
@@ -647,7 +632,7 @@ export default function SearchAds() {
                                             setActiveOnly(false)
                                             setActiveOnly(false)
                                             setMinDaysActive(0)
-                                            setMustHaveImpressions(false)
+
                                         }}
                                         className="mt-6 text-blue-400 hover:text-blue-300 font-bold text-sm"
                                     >

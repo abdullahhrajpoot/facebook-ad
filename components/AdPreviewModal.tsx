@@ -6,7 +6,7 @@ import { AdData } from '@/utils/adValidation'
 import {
     X, ChevronLeft, ChevronRight, Image as ImageIcon, Video,
     ThumbsUp, Eye, Layers, Calendar, FileText, Monitor, Link as LinkIcon,
-    ExternalLink
+    ExternalLink, Facebook, Instagram, MessageCircle, AtSign
 } from 'lucide-react'
 
 interface AdPreviewModalProps {
@@ -187,7 +187,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         </div>
 
                         {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className={`grid gap-4 ${ad.impressions ? 'grid-cols-3' : 'grid-cols-2'}`}>
                             {/* Page Likes */}
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-1">
@@ -200,15 +200,18 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             </div>
 
                             {/* Impressions */}
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Eye className="w-4 h-4 text-green-500" />
-                                    <span className="text-xs font-bold text-zinc-500 uppercase">Impressions</span>
+                            {/* Impressions */}
+                            {ad.impressions && (
+                                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Eye className="w-4 h-4 text-green-500" />
+                                        <span className="text-xs font-bold text-zinc-500 uppercase">Impressions</span>
+                                    </div>
+                                    <p className="text-xl font-bold text-white">
+                                        {ad.impressions}
+                                    </p>
                                 </div>
-                                <p className="text-xl font-bold text-white">
-                                    {ad.impressions || <span className="text-sm text-zinc-600">No data</span>}
-                                </p>
-                            </div>
+                            )}
 
                             {/* Categories */}
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -275,14 +278,38 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Platforms</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {ad.platforms.map((platform, index) => (
-                                        <span
-                                            key={index}
-                                            className="px-3 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 text-blue-400 text-xs font-bold rounded-lg"
-                                        >
-                                            {platform}
-                                        </span>
-                                    ))}
+                                    {ad.platforms.map((platform, index) => {
+                                        const p = platform.toLowerCase()
+                                        let icon = <Monitor className="w-4 h-4" />
+                                        let style = 'bg-zinc-800 text-zinc-400 border-zinc-700'
+
+                                        if (p.includes('facebook')) {
+                                            icon = <Facebook className="w-4 h-4" />
+                                            style = 'bg-[#1877F2]/10 text-[#1877F2] border-[#1877F2]/20'
+                                        } else if (p.includes('instagram')) {
+                                            icon = <Instagram className="w-4 h-4" />
+                                            style = 'bg-[#E4405F]/10 text-[#E4405F] border-[#E4405F]/20'
+                                        } else if (p.includes('messenger')) {
+                                            icon = <MessageCircle className="w-4 h-4" />
+                                            style = 'bg-[#00B2FF]/10 text-[#00B2FF] border-[#00B2FF]/20'
+                                        } else if (p.includes('threads')) {
+                                            icon = <AtSign className="w-4 h-4" />
+                                            style = 'bg-white/10 text-white border-white/20'
+                                        } else if (p.includes('audience') || p.includes('network')) {
+                                            icon = <Monitor className="w-4 h-4" />
+                                            style = 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                        }
+
+                                        return (
+                                            <span
+                                                key={index}
+                                                className={`px-3 py-1.5 border rounded-lg text-xs font-bold flex items-center gap-2 ${style}`}
+                                            >
+                                                {icon}
+                                                {platform}
+                                            </span>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         )}
