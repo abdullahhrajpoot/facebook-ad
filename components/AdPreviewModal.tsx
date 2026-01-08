@@ -6,7 +6,7 @@ import { AdData } from '@/utils/adValidation'
 import {
     X, ChevronLeft, ChevronRight, Image as ImageIcon, Video,
     ThumbsUp, Eye, Layers, Calendar, FileText, Monitor, Link as LinkIcon,
-    ExternalLink, Facebook, Instagram, MessageCircle, AtSign
+    ExternalLink, Facebook, Instagram, MessageCircle, AtSign, Download, Loader2, Sparkles, Copy, Check
 } from 'lucide-react'
 
 interface AdPreviewModalProps {
@@ -17,6 +17,9 @@ interface AdPreviewModalProps {
 
 export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalProps) {
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0)
+    const [isTranscribing, setIsTranscribing] = useState(false)
+    const [transcriptionText, setTranscriptionText] = useState<string | null>(null)
+    const [hasCopied, setHasCopied] = useState(false)
 
     // Combine images and videos into one media array
     const allMedia = [
@@ -45,6 +48,50 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
     const prevMedia = () => {
         setCurrentMediaIndex((prev) => (prev - 1 + allMedia.length) % allMedia.length)
+    }
+
+    const handleTranscribe = async (videoUrl: string) => {
+        try {
+            setIsTranscribing(true)
+            const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoUrl })
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) throw new Error(data.error || 'Transcription failed')
+
+            setTranscriptionText(data.text)
+        } catch (error) {
+            console.error('Transcription failed:', error)
+            alert('Failed to transcribe video. Please try again.')
+        } finally {
+            setIsTranscribing(false)
+        }
+    }
+
+    const handleCopyTranscript = () => {
+        if (transcriptionText) {
+            navigator.clipboard.writeText(transcriptionText)
+            setHasCopied(true)
+            setTimeout(() => setHasCopied(false), 2000)
+        }
+    }
+
+    const handleDownloadTranscript = () => {
+        if (!transcriptionText) return
+
+        const blob = new Blob([transcriptionText], { type: 'text/plain' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${ad.pageName.replace(/\s+/g, '_')}_ad_transcript.txt`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
     }
 
     if (!isOpen) return null
@@ -124,6 +171,25 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                     {currentMedia.type === 'image' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
                                     {currentMedia.type === 'image' ? 'Image' : 'Video'}
                                 </div>
+                            )}
+
+                            {/* Transcribe Button - Only for Video */}
+                            {currentMedia && currentMedia.type === 'video' && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleTranscribe(currentMedia.url)
+                                    }}
+                                    disabled={isTranscribing}
+                                    className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg text-xs font-bold text-white hover:bg-white hover:text-black hover:scale-105 transition-all flex items-center gap-2 z-20 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isTranscribing ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                                    ) : (
+                                        <Sparkles className="w-3.5 h-3.5 text-yellow-400 group-hover:text-yellow-600" />
+                                    )}
+                                    {isTranscribing ? 'Transcribing...' : transcriptionText ? 'View Transcript' : 'Transcribe Audio'}
+                                </button>
                             )}
                         </div>
 
@@ -257,6 +323,39 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             </div>
                         )}
 
+                        {/* Video Transcript */}
+                        {transcriptionText && (
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 relative group animate-fade-in">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-purple-400" />
+                                        <span className="text-xs font-bold text-zinc-500 uppercase">Video Transcript</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleCopyTranscript}
+                                            className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                                            title="Copy to clipboard"
+                                        >
+                                            {hasCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                        </button>
+                                        <button
+                                            onClick={handleDownloadTranscript}
+                                            className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors"
+                                            title="Download as .txt"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="max-h-60 overflow-y-auto custom-scrollbar bg-black/50 p-3 rounded-lg border border-black/50">
+                                    <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap font-mono">
+                                        {transcriptionText}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Title (if different from body) */}
                         {ad.title && ad.title !== ad.body && (
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -342,7 +441,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                     </div>
                 </div>
             </div>
-        </div>,
+        </div >,
         document.body
     )
 }
