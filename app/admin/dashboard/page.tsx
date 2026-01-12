@@ -11,11 +11,12 @@ import UserProfile from '@/components/UserProfile'
 import SearchHistory from '@/components/SearchHistory'
 
 import SavedAds from '@/components/SavedAds'
+import PageDiscovery from '@/components/PageDiscovery'
 
 export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
-    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'saved' | 'history' | 'profile'>('users')
+    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery'>('users')
 
     // Data State
     const [users, setUsers] = useState<any[]>([])
@@ -137,6 +138,14 @@ export default function AdminDashboard() {
                 )
             case 'profile':
                 return <UserProfile profile={profile} setProfile={setProfile} />
+            case 'pagediscovery':
+                return (
+                    <PageDiscovery
+                        onSearchAds={(query) => {
+                            setActiveTab('ads')
+                        }}
+                    />
+                )
             default:
                 return null
         }
@@ -149,6 +158,7 @@ export default function AdminDashboard() {
             case 'saved': return { title: 'Saved Library', subtitle: 'Curated collection of high-performing ads.' }
             case 'history': return { title: 'Search History', subtitle: 'Review past search queries and activity.' }
             case 'profile': return { title: 'My Profile', subtitle: 'View your administrator account details.' }
+            case 'pagediscovery': return { title: 'Page Discovery', subtitle: 'Find new Facebook pages to analyze.' }
         }
     }
 

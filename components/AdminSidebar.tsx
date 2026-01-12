@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 
 interface AdminSidebarProps {
-    activeTab: 'users' | 'ads' | 'saved' | 'history' | 'profile'
-    setActiveTab: (tab: 'users' | 'ads' | 'saved' | 'history' | 'profile') => void
+    activeTab: 'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery'
+    setActiveTab: (tab: 'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery') => void
     onSignOut: () => void
     sidebarOpen: boolean
     setSidebarOpen: (open: boolean) => void
@@ -39,6 +39,13 @@ export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sideb
             id: 'history', label: 'Search History', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            )
+        },
+        {
+            id: 'pagediscovery', label: 'Page Discovery', icon: (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
             )
         },
