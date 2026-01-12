@@ -14,7 +14,11 @@ import {
 type SortOption = 'performance' | 'recent' | 'oldest' | 'longest' | 'authority' | 'impressions'
 type MediaType = 'ALL' | 'VIDEO' | 'IMAGE' | 'CAROUSEL'
 
-export default function SearchAds() {
+interface SearchAdsProps {
+    initialPageQuery?: string | null;
+}
+
+export default function SearchAds({ initialPageQuery }: SearchAdsProps) {
     // Search State
     const [keyword, setKeyword] = useState('')
     const [country, setCountry] = useState('US')
@@ -47,6 +51,18 @@ export default function SearchAds() {
     const [showDuplicates, setShowDuplicates] = useState(false)
 
     const supabase = createClient()
+
+    // Handle Initial Page Query
+    useEffect(() => {
+        if (initialPageQuery) {
+            setSearchMode('page')
+            setKeyword(initialPageQuery)
+            // Small timeout to ensure state updates
+            setTimeout(() => {
+                executeSearch(initialPageQuery, 'page', 'US', maxResults)
+            }, 100)
+        }
+    }, [initialPageQuery])
 
     // Fetch saved ads & history on mount
     useEffect(() => {

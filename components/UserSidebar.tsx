@@ -2,8 +2,8 @@
 
 interface UserSidebarProps {
     profile: any
-    activeTab: 'discover' | 'history' | 'saved' | 'profile'
-    setActiveTab: (tab: 'discover' | 'history' | 'saved' | 'profile') => void
+    activeTab: 'discover' | 'pages' | 'history' | 'saved' | 'profile'
+    setActiveTab: (tab: 'discover' | 'pages' | 'history' | 'saved' | 'profile') => void
     onSignOut: () => void
     sidebarOpen: boolean
     setSidebarOpen: (open: boolean) => void
@@ -15,6 +15,13 @@ export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOu
             id: 'discover', label: 'Discover Ads', icon: (
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            )
+        },
+        {
+            id: 'pages', label: 'Find Pages', icon: (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
             )
         },

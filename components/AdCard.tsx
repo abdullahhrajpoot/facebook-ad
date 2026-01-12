@@ -123,7 +123,6 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             className="object-cover transform group-hover:scale-105 transition-transform duration-700"
-                            // unoptimized={true}
                             loading="lazy"
                         />
                     ) : (
@@ -151,7 +150,6 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                                     width={40}
                                     height={40}
                                     className="rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
-                                    // unoptimized={true}
                                 />
                             ) : (
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-zinc-800">

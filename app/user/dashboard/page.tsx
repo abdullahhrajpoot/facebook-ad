@@ -8,12 +8,14 @@ import UserSidebar from '@/components/UserSidebar'
 import UserProfile from '@/components/UserProfile'
 import SearchHistory from '@/components/SearchHistory'
 import SavedAds from '@/components/SavedAds'
+import PageDiscovery from '@/components/PageDiscovery'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
-    const [activeTab, setActiveTab] = useState<'discover' | 'history' | 'saved' | 'profile'>('discover')
+    const [activeTab, setActiveTab] = useState<'discover' | 'pages' | 'history' | 'saved' | 'profile'>('discover')
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [initialAdQuery, setInitialAdQuery] = useState<string | null>(null)
 
     const router = useRouter()
     const supabase = createClient()
@@ -65,7 +67,16 @@ export default function UserDashboard() {
     const renderContent = () => {
         switch (activeTab) {
             case 'discover':
-                return <SearchAds />
+                return <SearchAds initialPageQuery={initialAdQuery} />
+            case 'pages':
+                return (
+                    <PageDiscovery
+                        onSearchAds={(url) => {
+                            setInitialAdQuery(url)
+                            setActiveTab('discover')
+                        }}
+                    />
+                )
             case 'history':
                 return (
                     <div className="max-w-4xl mx-auto">
@@ -87,6 +98,7 @@ export default function UserDashboard() {
     const getHeaderTitle = () => {
         switch (activeTab) {
             case 'discover': return { title: 'Ad Intelligence Search', subtitle: 'Search and analyze competitors ads across Facebook and Instagram.' }
+            case 'pages': return { title: 'Page Discovery', subtitle: 'Find specific business pages by industry or location.' }
             case 'history': return { title: 'Search History', subtitle: 'View your recent search activity.' }
             case 'saved': return { title: 'Saved Ads', subtitle: 'Your collected high-performing creatives.' }
             case 'profile': return { title: 'My Profile', subtitle: 'Manage your account settings.' }
