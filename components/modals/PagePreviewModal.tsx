@@ -250,13 +250,8 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                         <div className="xl:col-span-2 space-y-8">
 
                             {/* Key Metrics Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                                <StatCard
-                                    icon={<ThumbsUp className="w-4 h-4 text-blue-400" />}
-                                    label="Likes"
-                                    value={page.likes}
-                                    format
-                                />
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+
                                 <StatCard
                                     icon={<Users className="w-4 h-4 text-purple-400" />}
                                     label="Followers"
@@ -500,9 +495,9 @@ function StatCard({ icon, label, value, subValue, format, limit }: { icon: any, 
     }
 
     return (
-        <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col group min-w-[140px]">
-            <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 min-h-[16px] group-hover:text-zinc-400 transition-colors">
-                {icon} {label}
+        <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors flex flex-col group w-full">
+            <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 min-h-[16px] group-hover:text-zinc-400 transition-colors truncate">
+                {icon} <span className="truncate">{label}</span>
             </div>
             <div className="mt-auto">
                 <div className={`font-bold text-white tracking-tight ${limit ? 'text-xs truncate text-zinc-300' : 'text-xl'}`} title={String(value)}>

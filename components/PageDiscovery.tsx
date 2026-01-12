@@ -74,7 +74,11 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
 
     // Filter & Sort State
     const [filterAdsOnly, setFilterAdsOnly] = useState(false)
-    const [sortBy, setSortBy] = useState<'likes' | 'followers' | 'newest'>('likes')
+    const [filterHasEmail, setFilterHasEmail] = useState(false)
+    const [filterHasWebsite, setFilterHasWebsite] = useState(false)
+    const [filterHasPhone, setFilterHasPhone] = useState(false)
+    const [filterConfirmedOwner, setFilterConfirmedOwner] = useState(false)
+    const [sortBy, setSortBy] = useState<'followers' | 'newest' | 'rating' | 'reviews'>('followers')
 
     // Modal State
     const [selectedPage, setSelectedPage] = useState<FacebookPageLocal | null>(null)
@@ -127,17 +131,34 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
             })
         }
 
+        if (filterHasEmail) {
+            result = result.filter(p => !!p.email)
+        }
+
+        if (filterHasWebsite) {
+            result = result.filter(p => !!p.website || (p.websites && p.websites.length > 0))
+        }
+
+        if (filterHasPhone) {
+            result = result.filter(p => !!p.phone)
+        }
+
+        if (filterConfirmedOwner) {
+            result = result.filter(p => !!p.CONFIRMED_OWNER_LABEL || !!p.confirmed_owner)
+        }
+
         result.sort((a, b) => {
             switch (sortBy) {
-                case 'likes': return (b.likes || 0) - (a.likes || 0)
                 case 'followers': return (b.followers || 0) - (a.followers || 0)
+                case 'rating': return (b.ratingOverall || 0) - (a.ratingOverall || 0)
+                case 'reviews': return (b.ratingCount || 0) - (a.ratingCount || 0)
                 case 'newest': return new Date(b.creation_date || 0).getTime() - new Date(a.creation_date || 0).getTime()
                 default: return 0
             }
         })
 
         return result
-    }, [pages, filterAdsOnly, sortBy])
+    }, [pages, filterAdsOnly, filterHasEmail, filterHasWebsite, filterHasPhone, filterConfirmedOwner, sortBy])
 
     return (
         <div className="space-y-8 animate-fade-in-up pb-20">
@@ -172,7 +193,7 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
                                     type="text"
                                     value={keywords}
                                     onChange={(e) => setKeywords(e.target.value)}
-                                    placeholder="e.g. Real Estate, Affiliate Marketing, Gyms..."
+                                    placeholder="e.g. Gyms, Design, Pub..."
                                     className="w-full pl-11 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-600 focus:ring-4 focus:ring-purple-900/20 transition-all shadow-inner"
                                 />
                             </div>
@@ -238,36 +259,93 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
 
                 {/* Filters */}
                 {pages.length > 0 && (
-                    <div className="mt-8 flex flex-wrap items-center gap-4 animate-fade-in relative z-10">
-                        <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mr-2">
-                            <Filter className="w-3 h-3" />
-                            <span>Filters</span>
-                        </div>
+                    <div className="mt-8 flex flex-col space-y-4 animate-fade-in relative z-10">
+                        {/* Filters Row */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mr-2">
+                                <Filter className="w-3 h-3" />
+                                <span>Filters</span>
+                            </div>
 
-                        <button
-                            onClick={() => setFilterAdsOnly(!filterAdsOnly)}
-                            className={`
+                            <button
+                                onClick={() => setFilterAdsOnly(!filterAdsOnly)}
+                                className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
                                 ${filterAdsOnly
-                                    ? 'bg-green-500/10 border-green-500/50 text-green-400'
-                                    : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                        ? 'bg-green-500/10 border-green-500/50 text-green-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
                             `}
-                        >
-                            <div className={`w-2 h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-                            Has Ads Running
-                        </button>
+                            >
+                                <div className={`w-2 h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                                Has Ads
+                            </button>
 
-                        <div className="flex-1" />
+                            <button
+                                onClick={() => setFilterHasEmail(!filterHasEmail)}
+                                className={`
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                ${filterHasEmail
+                                        ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                            `}
+                            >
+                                <Mail className="w-3 h-3" />
+                                Email
+                            </button>
 
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as any)}
-                            className="appearance-none bg-black border border-zinc-800 text-white text-xs font-bold rounded-xl pl-4 pr-8 py-2.5 hover:border-zinc-600 focus:outline-none cursor-pointer"
-                        >
-                            <option value="likes">Sort: Most Likes</option>
-                            <option value="followers">Sort: Most Followers</option>
-                            <option value="newest">Sort: Newest</option>
-                        </select>
+                            <button
+                                onClick={() => setFilterHasWebsite(!filterHasWebsite)}
+                                className={`
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                ${filterHasWebsite
+                                        ? 'bg-purple-500/10 border-purple-500/50 text-purple-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                            `}
+                            >
+                                <Globe className="w-3 h-3" />
+                                Website
+                            </button>
+
+                            <button
+                                onClick={() => setFilterHasPhone(!filterHasPhone)}
+                                className={`
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                ${filterHasPhone
+                                        ? 'bg-orange-500/10 border-orange-500/50 text-orange-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                            `}
+                            >
+                                <Phone className="w-3 h-3" />
+                                Phone
+                            </button>
+
+                            <button
+                                onClick={() => setFilterConfirmedOwner(!filterConfirmedOwner)}
+                                className={`
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                ${filterConfirmedOwner
+                                        ? 'bg-teal-500/10 border-teal-500/50 text-teal-400'
+                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                            `}
+                            >
+                                <UserCheck className="w-3 h-3" />
+                                Confirmed Owner
+                            </button>
+                        </div>
+
+                        {/* Sort Row */}
+                        <div className="flex items-center justify-end w-full">
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as any)}
+                                className="appearance-none bg-black border border-zinc-800 text-white text-xs font-bold rounded-xl pl-4 pr-8 py-2.5 hover:border-zinc-600 focus:outline-none cursor-pointer w-full md:w-auto"
+                            >
+                                <option value="followers">Sort: Most Followers</option>
+                                <option value="rating">Sort: Best Rated</option>
+                                <option value="reviews">Sort: Most Reviews</option>
+                                <option value="newest">Sort: Newest Created</option>
+                            </select>
+                        </div>
                     </div>
                 )}
             </div>

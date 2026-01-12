@@ -68,8 +68,11 @@ export async function POST(request: Request) {
 
         console.log(`\n========== RAW PAGE RESULTS ==========`);
         console.log(`Total items fetched: ${items.length}`);
+        console.log(`All Items: 
+            ${JSON.stringify(items, null, 2)}`)
+        console.log(`======================================\n`);
         console.log(`Sample item: ${JSON.stringify(items[0], null, 2)}`);
-        
+
         console.log(`======================================\n`);
 
         return NextResponse.json(items);
