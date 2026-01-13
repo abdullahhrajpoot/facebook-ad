@@ -52,8 +52,31 @@ export default function UserDashboard() {
         router.push('/')
     }
 
-    const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
-        setActiveTab('discover')
+    // State for History Navigation
+    const [searchHistoryState, setSearchHistoryState] = useState<any>(null)
+
+    const handleHistorySelect = (item: any) => {
+        const type = item.filters?.type || 'ad_search'
+
+        if (type === 'page_discovery') {
+            setSearchHistoryState({
+                keywords: item.keyword,
+                location: item.filters?.location || '',
+                limit: String(item.filters?.limit || '10')
+            })
+            setActiveTab('pages')
+        } else {
+            // Differentiate between Keyword and Page Ad Search
+            const isPageMode = item.filters?.searchType === 'page'
+
+            setSearchHistoryState({
+                keyword: item.keyword,
+                mode: isPageMode ? 'page' : 'keyword',
+                country: item.filters?.country || 'US',
+                maxResults: String(item.filters?.maxResults || item.filters?.count || '20')
+            })
+            setActiveTab('discover')
+        }
     }
 
     if (loading) {
@@ -67,7 +90,7 @@ export default function UserDashboard() {
     const renderContent = () => {
         switch (activeTab) {
             case 'discover':
-                return <SearchAds initialPageQuery={initialAdQuery} />
+                return <SearchAds initialPageQuery={initialAdQuery} initialSearchState={activeTab === 'discover' ? searchHistoryState : null} />
             case 'pages':
                 return (
                     <PageDiscovery
@@ -75,6 +98,7 @@ export default function UserDashboard() {
                             setInitialAdQuery(url)
                             setActiveTab('discover')
                         }}
+                        initialState={activeTab === 'pages' ? searchHistoryState : null}
                     />
                 )
             case 'history':

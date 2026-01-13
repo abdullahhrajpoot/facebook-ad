@@ -59,9 +59,14 @@ interface FacebookPageLocal {
 
 interface PageDiscoveryProps {
     onSearchAds?: (url: string) => void
+    initialState?: {
+        keywords: string
+        location: string
+        limit: string
+    } | null
 }
 
-export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
+export default function PageDiscovery({ onSearchAds, initialState }: PageDiscoveryProps) {
     // Search State
     const [keywords, setKeywords] = useState('')
     const [location, setLocation] = useState('')
@@ -84,9 +89,23 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
     const [selectedPage, setSelectedPage] = useState<FacebookPageLocal | null>(null)
     const [hasSearched, setHasSearched] = useState(false)
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!keywords.trim()) return
+    // Auto-search on mount if initial state is present
+    React.useEffect(() => {
+        if (initialState) {
+            setKeywords(initialState.keywords)
+            setLocation(initialState.location)
+            setLimit(initialState.limit)
+
+            // Short timeout to allow state to settle, though passing args directly is safer
+            setTimeout(() => {
+                executeSearch(initialState.keywords, initialState.location, initialState.limit)
+            }, 100)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialState])
+
+    const executeSearch = async (searchKeywords: string, searchLocation: string, searchLimit: string) => {
+        if (!searchKeywords.trim()) return
 
         setLoading(true)
         setError(null)
@@ -95,15 +114,15 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
 
         try {
             // Split keywords by comma
-            const keywordList = keywords.split(',').map(k => k.trim()).filter(k => k.length > 0)
+            const keywordList = searchKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0)
 
             const res = await fetch('/api/pages/discovery', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     keywords: keywordList,
-                    location: location.trim(),
-                    limit: Number(limit)
+                    location: searchLocation.trim(),
+                    limit: Number(searchLimit)
                 })
             })
 
@@ -117,6 +136,11 @@ export default function PageDiscovery({ onSearchAds }: PageDiscoveryProps) {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault()
+        executeSearch(keywords, location, limit)
     }
 
     // Filter & Sort Logic

@@ -3,6 +3,39 @@ import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
 import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
 
+// Helper to find page URL if user provided a name
+async function resolvePageUrl(client: ApifyClient, pageName: string): Promise<string | null> {
+    try {
+        console.log(`Resolving URL for page name: "${pageName}"...`);
+        const runInput = {
+            "categories": [pageName],
+            "resultsLimit": 1,
+            "proxyConfiguration": {
+                "useApifyProxy": true,
+                "apifyProxyGroups": ["RESIDENTIAL"]
+            }
+        };
+        // Use the Facebook Search Scraper (same as discovery)
+        const run = await client.actor('Us34x9p7VgjCz99H6').call(runInput, { waitSecs: 60 });
+
+        if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
+            console.warn('Page resolution run failed');
+            return null;
+        }
+
+        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        if (items.length > 0 && items[0].facebookUrl) {
+            console.log(`Resolved "${pageName}" to ${items[0].facebookUrl}`);
+            return items[0].facebookUrl;
+        }
+        console.warn(`No URL found for page name: "${pageName}"`);
+        return null;
+    } catch (e) {
+        console.error("Error resolving page URL:", e);
+        return null;
+    }
+}
+
 export async function POST(request: Request) {
     try {
         // Authenticate User
@@ -42,12 +75,30 @@ export async function POST(request: Request) {
             token: token,
         });
 
-        // Construct the URL
+        // 1. Resolve Target URL
         let targetUrl = pageNameOrUrl.trim();
-        if (!targetUrl.startsWith('http')) {
-            // Assume it's a page name/handle
+        const isUrl = targetUrl.startsWith('http://') || targetUrl.startsWith('https://');
+
+        // Heuristic: If it looks like a simple handle (no spaces), allow it to fall through to FB default
+        // If it has spaces or doesn't look like a URL, try to resolve it first.
+        const hasSpaces = targetUrl.includes(' ');
+
+        if (!isUrl && hasSpaces) {
+            const resolvedUrl = await resolvePageUrl(client, targetUrl);
+            if (resolvedUrl) {
+                targetUrl = resolvedUrl;
+            } else {
+                console.log('could not resolve url, trying default heuristic');
+                // Fallback to heuristic
+                targetUrl = `https://www.facebook.com/${targetUrl}`;
+            }
+        } else if (!isUrl) {
+            // Simple handle, e.g. "nike" -> "https://www.facebook.com/nike"
             targetUrl = `https://www.facebook.com/${targetUrl}`;
         }
+
+        // Final cleaning
+        targetUrl = targetUrl.trim();
 
         // Fetch multiplier based on mode
         // Unique = 3x (User requested), Standard = 1x (Exact count)
@@ -61,24 +112,52 @@ export async function POST(request: Request) {
             ],
             "count": fetchLimit,
             "scrapePageAds.activeStatus": "all",
-            "scrapePageAds.countryCode": "ALL"
+            "scrapePageAds.countryCode": "ALL",
+            "proxyConfiguration": {
+                "useApifyProxy": true,
+                "apifyProxyGroups": ["RESIDENTIAL"]
+            }
         };
 
         console.log('Starting Apify Actor run with URL:', targetUrl);
 
-        const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
-            waitSecs: 120,
-        });
+        // 2. Retry Logic
+        let items: any[] = [];
+        let attempts = 0;
+        const maxAttempts = 2; // Try twice
+        let success = false;
 
-        if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
-            console.error('Apify run failed:', run);
-            return NextResponse.json(
-                { error: 'Scraper run failed or was aborted' },
-                { status: 502 }
-            );
+        while (attempts < maxAttempts && !success) {
+            attempts++;
+            console.log(`Attempt ${attempts} of ${maxAttempts}...`);
+
+            try {
+                // Increased timeout to 300s
+                const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
+                    waitSecs: 300,
+                });
+
+                if (run && run.status === 'SUCCEEDED') {
+                    const dataset = await client.dataset(run.defaultDatasetId).listItems();
+                    items = dataset.items;
+
+                    if (items.length > 0) {
+                        success = true;
+                    } else {
+                        console.log('Run succeeded but returned 0 items.');
+                    }
+                } else {
+                    console.error('Apify run failed or aborted:', run);
+                }
+            } catch (err) {
+                console.error(`Attempt ${attempts} error:`, err);
+            }
         }
 
-        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        if (items.length === 0) {
+            console.log(`\n========== EMPTY RESULTS ==========`);
+            console.log('Scraper returned 0 ads after retries.');
+        }
 
         console.log(`\n========== RAW API RESPONSE ==========`);
         console.log(`Total items fetched: ${items.length}`);
@@ -125,7 +204,6 @@ export async function POST(request: Request) {
 
         const topAds = validatedAds.slice(0, cutoffIndex);
 
-        // Save to Supabase Search History (Fire and Forget)
         // Save to Supabase Search History
         try {
             const supabase = await createClient();

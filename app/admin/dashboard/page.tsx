@@ -92,8 +92,33 @@ export default function AdminDashboard() {
         setSelectedUser(null)
     }
 
-    const handleHistorySelect = (keyword: string, country: string, maxResults: number) => {
-        setActiveTab('ads')
+    // State for History Navigation
+    const [searchHistoryState, setSearchHistoryState] = useState<any>(null)
+
+    // ... (existing code)
+
+    const handleHistorySelect = (item: any) => {
+        const type = item.filters?.type || 'ad_search'
+
+        if (type === 'page_discovery') {
+            setSearchHistoryState({
+                keywords: item.keyword,
+                location: item.filters?.location || '',
+                limit: String(item.filters?.limit || '10')
+            })
+            setActiveTab('pagediscovery')
+        } else {
+            // Differentiate between Keyword and Page Ad Search
+            const isPageMode = item.filters?.searchType === 'page'
+
+            setSearchHistoryState({
+                keyword: item.keyword,
+                mode: isPageMode ? 'page' : 'keyword',
+                country: item.filters?.country || 'US',
+                maxResults: String(item.filters?.maxResults || item.filters?.count || '20')
+            })
+            setActiveTab('ads')
+        }
     }
 
     if (loading) {
@@ -124,7 +149,7 @@ export default function AdminDashboard() {
                     />
                 )
             case 'ads':
-                return <SearchAds />
+                return <SearchAds initialSearchState={activeTab === 'ads' ? searchHistoryState : null} />
             case 'saved':
                 return <SavedAds />
             case 'history':
@@ -144,6 +169,7 @@ export default function AdminDashboard() {
                         onSearchAds={(query) => {
                             setActiveTab('ads')
                         }}
+                        initialState={activeTab === 'pagediscovery' ? searchHistoryState : null}
                     />
                 )
             default:

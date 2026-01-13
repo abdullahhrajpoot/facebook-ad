@@ -39,43 +39,113 @@ export async function POST(request: Request) {
         const categories = Array.isArray(keywords) ? keywords : [keywords];
         const locations = location ? [location] : [];
 
+        // STRATEGY: Over-fetch by 2x to ensure we have enough valid results to meet the requested limit
+        const requestedLimit = Number(limit);
+        const fetchLimit = Math.max(requestedLimit * 2, 20); // Always fetch at least 20
+
         const runInput = {
             "categories": categories,
             "locations": locations,
-            "resultsLimit": Number(limit)
+            "resultsLimit": fetchLimit,
+            "proxyConfiguration": {
+                "useApifyProxy": true,
+                "apifyProxyGroups": ["RESIDENTIAL"]
+            }
         };
 
         console.log(`\n========== PAGE DISCOVERY REQUEST ==========`);
         console.log(`Keywords: "${categories.join(', ')}"`);
         console.log(`Location: "${locations.join(', ')}"`);
-        console.log(`Limit: ${limit}`);
+        console.log(`Requested Limit: ${requestedLimit} (Fetching ${fetchLimit})`);
         console.log(`============================================\n`);
 
-        // Start Actor Run (Facebook Search Scraper - Us34x9p7VgjCz99H6)
-        const run = await client.actor('Us34x9p7VgjCz99H6').call(runInput, {
-            waitSecs: 120, // Wait up to 2 mins
-        });
+        // Retry Logic
+        let items: any[] = [];
+        let attempts = 0;
+        const maxAttempts = 2; // Try twice
+        let success = false;
 
-        if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
-            console.error('Apify Page Discovery run failed:', run);
-            return NextResponse.json(
-                { error: 'Page Discovery run failed or was aborted' },
-                { status: 502 }
-            );
+        while (attempts < maxAttempts && !success) {
+            attempts++;
+            console.log(`Attempt ${attempts} of ${maxAttempts}...`);
+
+            try {
+                // Start Actor Run (Facebook Search Scraper - Us34x9p7VgjCz99H6)
+                // Increased wait time to 300s
+                const run = await client.actor('Us34x9p7VgjCz99H6').call(runInput, {
+                    waitSecs: 300,
+                });
+
+                if (run && run.status === 'SUCCEEDED') {
+                    const dataset = await client.dataset(run.defaultDatasetId).listItems();
+                    items = dataset.items;
+
+                    // Simple check: did we get anything?
+                    if (items.length > 0) {
+                        success = true;
+
+                        // Save History asynchronously
+                        (async () => {
+                            try {
+                                await supabase.from('search_history').insert({
+                                    user_id: user.id,
+                                    keyword: Array.isArray(keywords) ? keywords.join(', ') : keywords,
+                                    filters: {
+                                        type: 'page_discovery',
+                                        location: location,
+                                        limit: limit,
+                                        resultsCount: items.length
+                                    }
+                                });
+                            } catch (hErr) {
+                                console.error('Failed to save history:', hErr);
+                            }
+                        })();
+
+                    } else {
+                        console.log('Run succeeded but returned 0 page results.');
+                    }
+                } else {
+                    console.error('Apify Page Discovery run failed or was aborted:', run);
+                }
+            } catch (err) {
+                console.error(`Page Discovery Attempt ${attempts} error:`, err);
+            }
         }
 
-        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        if (items.length === 0) {
+            console.log(`\n========== EMPTY RESULTS ==========`);
+            console.log('Page Discovery returned 0 items after retries.');
+        }
 
         console.log(`\n========== RAW PAGE RESULTS ==========`);
         console.log(`Total items fetched: ${items.length}`);
-        console.log(`All Items: 
-            ${JSON.stringify(items, null, 2)}`)
-        console.log(`======================================\n`);
-        console.log(`Sample item: ${JSON.stringify(items[0], null, 2)}`);
 
+        // SORTING: Prioritize "Best" pages (Having Ads -> Most Followers)
+        items.sort((a: any, b: any) => {
+            // 1. Check for Active Ads
+            const aHasAds = (a.pageAdLibrary?.is_business_page_active === true) ||
+                (a.ad_status && typeof a.ad_status === 'string' && a.ad_status.toLowerCase().includes('running ads') && !a.ad_status.toLowerCase().includes('not'));
+
+            const bHasAds = (b.pageAdLibrary?.is_business_page_active === true) ||
+                (b.ad_status && typeof b.ad_status === 'string' && b.ad_status.toLowerCase().includes('running ads') && !b.ad_status.toLowerCase().includes('not'));
+
+            if (aHasAds && !bHasAds) return -1;
+            if (!aHasAds && bHasAds) return 1;
+
+            // 2. Tie-Breaker: Followers
+            const followersA = a.followers || 0;
+            const followersB = b.followers || 0;
+            return followersB - followersA;
+        });
+
+        // Slice to the exact requested limit
+        const finalItems = items.slice(0, requestedLimit);
+
+        console.log(`Returning ${finalItems.length} items (Requested: ${requestedLimit})`);
         console.log(`======================================\n`);
 
-        return NextResponse.json(items);
+        return NextResponse.json(finalItems);
 
     } catch (error: any) {
         console.error('Apify Page Discovery Error:', error);

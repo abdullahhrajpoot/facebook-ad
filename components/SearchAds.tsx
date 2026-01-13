@@ -16,9 +16,15 @@ type MediaType = 'ALL' | 'VIDEO' | 'IMAGE' | 'CAROUSEL'
 
 interface SearchAdsProps {
     initialPageQuery?: string | null;
+    initialSearchState?: {
+        keyword: string
+        mode: 'keyword' | 'page'
+        country: string
+        maxResults: string
+    } | null;
 }
 
-export default function SearchAds({ initialPageQuery }: SearchAdsProps) {
+export default function SearchAds({ initialPageQuery, initialSearchState }: SearchAdsProps) {
     // Search State
     const [keyword, setKeyword] = useState('')
     const [country, setCountry] = useState('US')
@@ -52,7 +58,7 @@ export default function SearchAds({ initialPageQuery }: SearchAdsProps) {
 
     const supabase = createClient()
 
-    // Handle Initial Page Query
+    // Handle Initial Page Query & History Selection
     useEffect(() => {
         if (initialPageQuery) {
             setSearchMode('page')
@@ -61,8 +67,22 @@ export default function SearchAds({ initialPageQuery }: SearchAdsProps) {
             setTimeout(() => {
                 executeSearch(initialPageQuery, 'page', 'US', maxResults)
             }, 100)
+        } else if (initialSearchState) {
+            setSearchMode(initialSearchState.mode)
+            setKeyword(initialSearchState.keyword)
+            setCountry(initialSearchState.country)
+            setMaxResults(initialSearchState.maxResults)
+
+            setTimeout(() => {
+                executeSearch(
+                    initialSearchState.keyword,
+                    initialSearchState.mode,
+                    initialSearchState.country,
+                    initialSearchState.maxResults
+                )
+            }, 100)
         }
-    }, [initialPageQuery])
+    }, [initialPageQuery, initialSearchState])
 
     // Fetch saved ads & history on mount
     useEffect(() => {
@@ -91,6 +111,7 @@ export default function SearchAds({ initialPageQuery }: SearchAdsProps) {
             if (history) {
                 const unique = new Map()
                 history.forEach(item => {
+                    if (item.filters?.type === 'page_discovery') return // Skip page discovery
                     if (!unique.has(item.keyword) && unique.size < 5) {
                         unique.set(item.keyword, item)
                     }
