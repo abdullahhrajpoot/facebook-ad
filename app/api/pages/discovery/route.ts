@@ -4,9 +4,35 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function POST(request: Request) {
     try {
-        // Authenticate User
+        // Authenticate User with Retry for Robustness
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        let user = null;
+        let authError = null;
+
+        for (let i = 0; i < 3; i++) {
+            const result = await supabase.auth.getUser();
+            user = result.data.user;
+            authError = result.error;
+
+            if (!authError) break;
+
+            const isNetwork = authError.message && (
+                authError.message.toLowerCase().includes('fetch failed') ||
+                authError.message.toLowerCase().includes('timeout') ||
+                authError.message.toLowerCase().includes('network') ||
+                authError.message.toLowerCase().includes('connection')
+            );
+
+            if (!isNetwork) break;
+
+            console.warn(`Auth attempt ${i + 1} in discovery timed out. Retrying...`);
+            if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        if (authError && (authError.message?.toLowerCase().includes('fetch') || authError.message?.toLowerCase().includes('timeout'))) {
+            console.error('Supabase Auth verification failed due to network timeout:', authError);
+            return NextResponse.json({ error: 'Service temporarily unavailable, please try again' }, { status: 503 });
+        }
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

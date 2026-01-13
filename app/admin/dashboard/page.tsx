@@ -167,6 +167,12 @@ export default function AdminDashboard() {
                 return (
                     <PageDiscovery
                         onSearchAds={(query) => {
+                            setSearchHistoryState({
+                                keyword: query,
+                                mode: 'page',
+                                country: 'US',
+                                maxResults: '20'
+                            })
                             setActiveTab('ads')
                         }}
                         initialState={activeTab === 'pagediscovery' ? searchHistoryState : null}

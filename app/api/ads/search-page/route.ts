@@ -11,46 +11,38 @@ async function resolvePageDetails(client: ApifyClient, query: string): Promise<{
         const isUrl = query.startsWith('http://') || query.startsWith('https://');
         const hasSpaces = query.includes(' ');
 
-        // STRATEGY 1: Direct Page Scrape (Best for URLs or Handles)
-        // If it looks like a specific page (URL or no spaces), try to scrape it directly.
-        if (isUrl || !hasSpaces) {
-            console.log('Strategy: Direct Page Scrape (mpBGBrrGdLyyoUs5R)');
+        // Strategy 1 (Direct Scrape) removed as actor mpBGBrrGdLyyoUs5R is deprecated.
+        // Falling through to Strategy 2 (Search Scraper) which is more reliable.
 
-            let targetUrl = query;
-            if (!isUrl) {
-                targetUrl = `https://www.facebook.com/${query}`;
-            }
+        // Prepare query for search scraper
+        let method2Query = query;
+        if (isUrl) {
+            try {
+                const urlObj = new URL(query);
+                // Simple extraction: take the last segment of the path
+                const parts = urlObj.pathname.split('/').filter(p => p && p !== 'pages' && p !== 'profile.php' && p !== 'home.php');
+                if (parts.length > 0) {
+                    // Start with the last part
+                    let candidate = parts[parts.length - 1];
+                    // If it's numeric (like an ID), maybe take the one before it? 
+                    // But for now, let's just clean it up.
+                    // Remove numeric suffixes often found in slugs like 'name-123456'
+                    candidate = candidate.replace(/-\d+$/, '').replace(/-/g, ' ');
 
-            const runInput = {
-                "startUrls": [{ "url": targetUrl }],
-                "proxyConfiguration": {
-                    "useApifyProxy": true,
-                    "apifyProxyGroups": ["RESIDENTIAL"]
+                    if (candidate.length > 2) {
+                        method2Query = candidate;
+                        console.log(`Extracted search term from URL: "${method2Query}"`);
+                    }
                 }
-            };
-
-            // Use Facebook Pages Scraper (mpBGBrrGdLyyoUs5R) for direct access
-            const run = await client.actor('mpBGBrrGdLyyoUs5R').call(runInput, { waitSecs: 120 });
-
-            if (run && run.status === 'SUCCEEDED') {
-                const { items } = await client.dataset(run.defaultDatasetId).listItems();
-                if (items.length > 0) {
-                    const item = items[0];
-                    console.log(`Direct scrape successful for ${query}`);
-                    return {
-                        url: (item.url as string) || (item.facebookUrl as string) || targetUrl,
-                        pageId: (item.id as string) || (item.pageId as string) || undefined
-                    };
-                }
-            } else {
-                console.warn('Direct page scrape failed or returned no items, falling back to search...');
+            } catch (e) {
+                console.warn('Failed to parse URL for fallback search query', e);
             }
         }
 
         // STRATEGY 2: Search Scrape (Fallback for names with spaces or failed direct scrape)
-        console.log('Strategy: Search Scraper (Us34x9p7VgjCz99H6)');
+        console.log(`Strategy: Search Scraper (Us34x9p7VgjCz99H6) using query: "${method2Query}"`);
         const runInput = {
-            "categories": [query],
+            "categories": [method2Query],
             "resultsLimit": 1,
             "proxyConfiguration": {
                 "useApifyProxy": true,
@@ -86,9 +78,38 @@ async function resolvePageDetails(client: ApifyClient, query: string): Promise<{
 
 export async function POST(request: Request) {
     try {
-        // Authenticate User
+        // Authenticate User with Retry for Robustness
         const supabase = await createClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        let user = null;
+        let authError = null;
+
+        // Retry auth check up to 3 times if network issues occur
+        for (let i = 0; i < 3; i++) {
+            const result = await supabase.auth.getUser();
+            user = result.data.user;
+            authError = result.error;
+
+            if (!authError) break;
+
+            // Check if it's a network/timeout error
+            const isNetwork = authError.message && (
+                authError.message.toLowerCase().includes('fetch failed') ||
+                authError.message.toLowerCase().includes('timeout') ||
+                authError.message.toLowerCase().includes('network') ||
+                authError.message.toLowerCase().includes('connection')
+            );
+
+            if (!isNetwork) break; // Real auth error (e.g. invalid token), don't retry
+
+            console.warn(`Auth attempt ${i + 1} timed out or failed. Retrying...`);
+            if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        // If we still have a network error after retries, return 503 instead of 401
+        if (authError && (authError.message?.toLowerCase().includes('fetch') || authError.message?.toLowerCase().includes('timeout'))) {
+            console.error('Supabase Auth verification failed due to network timeout:', authError);
+            return NextResponse.json({ error: 'Service temporarily unavailable, please try again' }, { status: 503 });
+        }
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -205,6 +226,11 @@ export async function POST(request: Request) {
                 }
             } catch (err) {
                 console.error(`Primary actor attempt ${attempts} error:`, err);
+            }
+
+            if (!success && attempts < maxAttempts) {
+                console.log('Waiting 2 seconds before retry...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
         }
 
