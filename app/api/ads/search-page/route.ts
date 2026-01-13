@@ -3,35 +3,83 @@ import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
 import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
 
-// Helper to find page URL if user provided a name
-async function resolvePageUrl(client: ApifyClient, pageName: string): Promise<string | null> {
+// Helper to find page URL and ID if needed
+async function resolvePageDetails(client: ApifyClient, query: string): Promise<{ url?: string; pageId?: string } | null> {
     try {
-        console.log(`Resolving URL for page name: "${pageName}"...`);
+        console.log(`Resolving details for query: "${query}"...`);
+
+        const isUrl = query.startsWith('http://') || query.startsWith('https://');
+        const hasSpaces = query.includes(' ');
+
+        // STRATEGY 1: Direct Page Scrape (Best for URLs or Handles)
+        // If it looks like a specific page (URL or no spaces), try to scrape it directly.
+        if (isUrl || !hasSpaces) {
+            console.log('Strategy: Direct Page Scrape (mpBGBrrGdLyyoUs5R)');
+
+            let targetUrl = query;
+            if (!isUrl) {
+                targetUrl = `https://www.facebook.com/${query}`;
+            }
+
+            const runInput = {
+                "startUrls": [{ "url": targetUrl }],
+                "proxyConfiguration": {
+                    "useApifyProxy": true,
+                    "apifyProxyGroups": ["RESIDENTIAL"]
+                }
+            };
+
+            // Use Facebook Pages Scraper (mpBGBrrGdLyyoUs5R) for direct access
+            const run = await client.actor('mpBGBrrGdLyyoUs5R').call(runInput, { waitSecs: 120 });
+
+            if (run && run.status === 'SUCCEEDED') {
+                const { items } = await client.dataset(run.defaultDatasetId).listItems();
+                if (items.length > 0) {
+                    const item = items[0];
+                    console.log(`Direct scrape successful for ${query}`);
+                    return {
+                        url: (item.url as string) || (item.facebookUrl as string) || targetUrl,
+                        pageId: (item.id as string) || (item.pageId as string) || undefined
+                    };
+                }
+            } else {
+                console.warn('Direct page scrape failed or returned no items, falling back to search...');
+            }
+        }
+
+        // STRATEGY 2: Search Scrape (Fallback for names with spaces or failed direct scrape)
+        console.log('Strategy: Search Scraper (Us34x9p7VgjCz99H6)');
         const runInput = {
-            "categories": [pageName],
+            "categories": [query],
             "resultsLimit": 1,
             "proxyConfiguration": {
                 "useApifyProxy": true,
                 "apifyProxyGroups": ["RESIDENTIAL"]
             }
         };
-        // Use the Facebook Search Scraper (same as discovery)
+        // Use the Facebook Search Scraper
         const run = await client.actor('Us34x9p7VgjCz99H6').call(runInput, { waitSecs: 60 });
 
         if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
-            console.warn('Page resolution run failed');
+            console.warn('Page resolution (search) run failed');
             return null;
         }
 
         const { items } = await client.dataset(run.defaultDatasetId).listItems();
-        if (items.length > 0 && items[0].facebookUrl) {
-            console.log(`Resolved "${pageName}" to ${items[0].facebookUrl}`);
-            return items[0].facebookUrl;
+        if (items.length > 0) {
+            const item = items[0];
+            const result = {
+                url: (item.facebookUrl as string) || undefined,
+                pageId: (item.id as string) || (item.pageId as string) || undefined
+            };
+            console.log(`Resolved "${query}" to`, result);
+            return result;
         }
-        console.warn(`No URL found for page name: "${pageName}"`);
+        console.warn(`No details found for query: "${query}"`);
         return null;
+
     } catch (e) {
-        console.error("Error resolving page URL:", e);
+        console.error("Error resolving page details:", e);
         return null;
     }
 }
@@ -75,8 +123,10 @@ export async function POST(request: Request) {
             token: token,
         });
 
-        // 1. Resolve Target URL
+        // 1. Resolve Target URL & ID
         let targetUrl = pageNameOrUrl.trim();
+        let targetPageId: string | undefined;
+
         const isUrl = targetUrl.startsWith('http://') || targetUrl.startsWith('https://');
 
         // Heuristic: If it looks like a simple handle (no spaces), allow it to fall through to FB default
@@ -84,11 +134,12 @@ export async function POST(request: Request) {
         const hasSpaces = targetUrl.includes(' ');
 
         if (!isUrl && hasSpaces) {
-            const resolvedUrl = await resolvePageUrl(client, targetUrl);
-            if (resolvedUrl) {
-                targetUrl = resolvedUrl;
+            const details = await resolvePageDetails(client, targetUrl);
+            if (details) {
+                if (details.url) targetUrl = details.url;
+                if (details.pageId) targetPageId = details.pageId;
             } else {
-                console.log('could not resolve url, trying default heuristic');
+                console.log('could not resolve details, trying default heuristic');
                 // Fallback to heuristic
                 targetUrl = `https://www.facebook.com/${targetUrl}`;
             }
@@ -124,12 +175,14 @@ export async function POST(request: Request) {
         // 2. Retry Logic
         let items: any[] = [];
         let attempts = 0;
-        const maxAttempts = 2; // Try twice
+        const maxAttempts = 3; // Increased to 3
         let success = false;
+        let usedFallback = false;
 
+        // Primary Actor Run
         while (attempts < maxAttempts && !success) {
             attempts++;
-            console.log(`Attempt ${attempts} of ${maxAttempts}...`);
+            console.log(`Attempt ${attempts} of ${maxAttempts} (Primary Actor)...`);
 
             try {
                 // Increased timeout to 300s
@@ -143,24 +196,133 @@ export async function POST(request: Request) {
 
                     if (items.length > 0) {
                         success = true;
+                        console.log(`Primary actor succeeded with ${items.length} items.`);
                     } else {
-                        console.log('Run succeeded but returned 0 items.');
+                        console.log('Primary actor run succeeded but returned 0 items.');
                     }
                 } else {
-                    console.error('Apify run failed or aborted:', run);
+                    console.error('Primary Apify run failed or aborted:', run);
                 }
             } catch (err) {
-                console.error(`Attempt ${attempts} error:`, err);
+                console.error(`Primary actor attempt ${attempts} error:`, err);
+            }
+        }
+
+        // Validate Primary Results: If we got "items" but they aren't valid ads, we should still try fallback
+        if (success && items.length > 0) {
+            const validCount = items.filter(item => validateAd(item)).length;
+            if (validCount === 0) {
+                console.log(`Primary actor returned ${items.length} items, but 0 were valid ads. Forcing fallback.`);
+
+                // Attempt to extract page_id from invalid items before discarding them
+                // This helps the fallback actor run without needing a separate resolvePageDetails call
+                const firstItem = items[0];
+                const extractedId = firstItem.pageId || firstItem.page_id || firstItem.publisher_platform_id;
+                if (!targetPageId && extractedId) {
+                    targetPageId = extractedId;
+                    console.log(`Extracted Page ID from invalid primary items: ${targetPageId}`);
+                }
+
+                success = false;
+                items = [];
+            }
+        }
+
+        // 3. Fallback Actor Logic (Last Resort)
+        // Explicitly check for !success OR empty items to ensure fallback runs on 0 results from Primary
+        if (!success || items.length === 0) {
+            console.log(`Primary condition failed (Success: ${success}, Items: ${items.length}). Attempting fallback actor (yhoz5tLd6h8XSuUP7)...`);
+
+            try {
+                // We need a page_id for the fallback actor.
+                if (!targetPageId) {
+                    console.log('Page ID not known explicitly. Attempting to resolve Page ID...');
+
+                    // Derive a search query. 
+                    // If original input was a name, use it. 
+                    // If it was a URL, try to extract the name part.
+                    let searchQuery = pageNameOrUrl;
+                    if (isUrl) {
+                        try {
+                            const urlObj = new URL(pageNameOrUrl);
+                            // Remove trailing slash and get last segment
+                            const pathParts = urlObj.pathname.split('/').filter(Boolean);
+                            if (pathParts.length > 0) {
+                                searchQuery = pathParts[pathParts.length - 1];
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse URL for query derivation:', e);
+                        }
+                    }
+
+                    const details = await resolvePageDetails(client, searchQuery);
+                    if (details?.pageId) {
+                        targetPageId = details.pageId;
+                    }
+                }
+
+                if (targetPageId) {
+                    console.log(`Using Page ID for fallback: ${targetPageId}`);
+
+                    const fallbackInput = {
+                        "page_id": targetPageId,
+                        "size": fetchLimit
+                    };
+
+                    const run = await client.actor('yhoz5tLd6h8XSuUP7').call(fallbackInput, {
+                        waitSecs: 300,
+                    });
+
+                    if (run && run.status === 'SUCCEEDED') {
+                        const dataset = await client.dataset(run.defaultDatasetId).listItems();
+                        const rawItems = dataset.items;
+
+                        if (rawItems.length > 0) {
+                            console.log(`Fallback actor succeeded with ${rawItems.length} items.`);
+
+                            // Map fallback items to match normalizeAdData expectation
+                            items = rawItems.map((item: any) => ({
+                                ...item,
+                                // Map flat structure to snapshot structure expected by normalizeAdData
+                                snapshot: {
+                                    body: { text: item.body },
+                                    images: item.images?.map((url: string) => ({ original_image_url: url })) || [],
+                                    videos: item.videos?.map((url: string) => ({ video_hd_url: url })) || [],
+                                    link_url: item.links?.[0]?.url,
+                                    extra_links: item.links?.map((l: any) => l.url) || [],
+                                    title: item.title || item.page_name,
+                                    page_id: item.page_id,
+                                    page_name: item.page_name,
+                                    page_profile_picture_url: item.page_profile_picture_url,
+                                    page_like_count: item.page_like_count
+                                }
+                            }));
+
+                            success = true;
+                            usedFallback = true;
+                        } else {
+                            console.log('Fallback actor run succeeded but returned 0 items.');
+                        }
+                    } else {
+                        console.error('Fallback Apify run failed or aborted:', run);
+                    }
+                } else {
+                    console.error('Could not determine Page ID for fallback actor. Skipping.');
+                }
+
+            } catch (err) {
+                console.error('Fallback actor error:', err);
             }
         }
 
         if (items.length === 0) {
             console.log(`\n========== EMPTY RESULTS ==========`);
-            console.log('Scraper returned 0 ads after retries.');
+            console.log('Scraper returned 0 ads after retries and fallback.');
         }
 
         console.log(`\n========== RAW API RESPONSE ==========`);
         console.log(`Total items fetched: ${items.length}`);
+        console.log(`Used Fallback: ${usedFallback}`);
         console.log(`======================================\n`);
 
         // Simple Validation & Normalization
