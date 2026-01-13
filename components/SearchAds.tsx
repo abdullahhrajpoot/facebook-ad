@@ -230,7 +230,6 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
         }
 
         // Duration Filter
-        // Duration Filter
         if (minDaysActive > 0) {
             result = result.filter(ad => ad.adActiveDays >= minDaysActive)
         }

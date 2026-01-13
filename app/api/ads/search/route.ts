@@ -90,7 +90,7 @@ export async function POST(request: Request) {
                 "en"
             ],
             "media_type": "all",
-            "start_date_min": "2026-01-01",
+            "start_date_min": "2025-01-01",
             "start_date_max": new Date().toISOString().split('T')[0]
         };
 
@@ -118,6 +118,19 @@ export async function POST(request: Request) {
         const validatedAds: AdData[] = items
             .filter(item => validateAd(item))
             .map(item => normalizeAdData(item));
+
+        if (items.length > 0 && validatedAds.length === 0) {
+            console.warn('⚠️ WARNING: Items were fetched but ALL failed validation.');
+            console.log('First 3 invalid items for debugging:');
+            items.slice(0, 3).forEach((item, idx) => {
+                const snapshot: any = item.snapshot || {};
+                console.log(`\n❌ Invalid Item ${idx + 1}:`);
+                console.log(`   ID: ${item.ad_archive_id || item.id}`);
+                console.log(`   Has Image: ${!!((snapshot.images?.length) || (snapshot.cards?.length) || (snapshot.videos?.length))}`);
+                console.log(`   Has Text: ${!!(snapshot.body?.text || snapshot.title || item.adCreativeBody)}`);
+                console.log(`   Has Link: ${!!(snapshot.link_url || item.adCreativeLinkUrl)}`);
+            });
+        }
 
         console.log(`\n========== RESULTS SUMMARY ==========`);
         console.log(`Total Valid Ads: ${validatedAds.length}`);

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import {
     Search, MapPin, Globe, Users, Phone, Mail, ExternalLink,
-    Filter, Play, AlertCircle, CheckCircle, Navigation, Star, Target, UserCheck
+    Filter, Play, AlertCircle, CheckCircle, Navigation, Star, Target, UserCheck, Sparkles
 } from 'lucide-react'
 import PagePreviewModal from './modals/PagePreviewModal'
 // Redefine locally to ensure self-contained type safety and avoid import issues
@@ -187,26 +187,27 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
     return (
         <div className="space-y-8 animate-fade-in-up pb-20">
             {/* Main Search Panel */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl relative group">
-                <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-                    <div className="absolute top-0 right-0 p-32 bg-purple-600/10 blur-[100px] rounded-full group-hover:bg-purple-600/20 transition-all duration-1000"></div>
-                </div>
+            <div className="bg-black/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl relative group overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-transparent to-blue-900/5 pointer-events-none" />
+                <div className="absolute -top-[200px] -right-[200px] w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full group-hover:bg-purple-600/20 transition-all duration-1000 pointer-events-none"></div>
 
-                <div className="relative z-10 mb-6">
-                    <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-                        <Globe className="w-5 h-5 text-purple-500" />
+                <div className="relative z-10 mb-8">
+                    <h2 className="text-2xl font-black text-white mb-2 flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                            <Globe className="w-6 h-6" />
+                        </div>
                         Find Business Pages
                     </h2>
-                    <p className="text-zinc-400 text-sm">
+                    <p className="text-zinc-400 text-sm font-medium ml-1">
                         Discover public Facebook pages by industry, niche, or topic.
                     </p>
                 </div>
 
-                <form onSubmit={handleSearch} className="space-y-4 relative z-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSearch} className="space-y-6 relative z-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Keyword Input */}
                         <div className="relative group/input">
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block ml-1">
+                            <label className="text-xs font-extrabold text-zinc-500 uppercase tracking-widest mb-2.5 block ml-1">
                                 Industry Keywords
                             </label>
                             <div className="relative">
@@ -218,14 +219,14 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                                     value={keywords}
                                     onChange={(e) => setKeywords(e.target.value)}
                                     placeholder="e.g. Gyms, Design, Pub..."
-                                    className="w-full pl-11 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-600 focus:ring-4 focus:ring-purple-900/20 transition-all shadow-inner"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-white/5 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all shadow-inner backdrop-blur-md"
                                 />
                             </div>
                         </div>
 
                         {/* Location Input */}
                         <div className="relative group/input">
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block ml-1">
+                            <label className="text-xs font-extrabold text-zinc-500 uppercase tracking-widest mb-2.5 block ml-1">
                                 Location (Optional)
                             </label>
                             <div className="relative">
@@ -237,34 +238,34 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                     placeholder="e.g. New York, London, Canada..."
-                                    className="w-full pl-11 pr-4 py-3 bg-black border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-600 focus:ring-4 focus:ring-purple-900/20 transition-all shadow-inner"
+                                    className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-white/5 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all shadow-inner backdrop-blur-md"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-end justify-between gap-4 pt-2">
-                        <div className="relative group/input w-40">
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block ml-1">
+                    <div className="flex items-end justify-between gap-6 pt-2">
+                        <div className="relative group/input w-48">
+                            <label className="text-xs font-extrabold text-zinc-500 uppercase tracking-widest mb-2.5 block ml-1">
                                 Max Results
                             </label>
                             <select
                                 value={limit}
                                 onChange={(e) => setLimit(e.target.value)}
-                                className="w-full appearance-none bg-black border border-zinc-800 text-white py-3 px-4 rounded-xl focus:outline-none focus:border-purple-600 cursor-pointer font-medium hover:bg-zinc-900/50 transition-colors shadow-sm"
+                                className="w-full appearance-none bg-black/40 border border-white/5 text-white py-3.5 px-4 rounded-xl focus:outline-none focus:border-purple-500/50 cursor-pointer font-medium hover:bg-white/5 transition-colors shadow-sm backdrop-blur-md"
                             >
-                                <option value="10">10 Pages</option>
-                                <option value="20">20 Pages</option>
-                                <option value="50">50 Pages</option>
-                                <option value="100">100 Pages</option>
-                                <option value="1000">1000 Pages (Max)</option>
+                                <option value="10" className="bg-black">10 Pages</option>
+                                <option value="20" className="bg-black">20 Pages</option>
+                                <option value="50" className="bg-black">50 Pages</option>
+                                <option value="100" className="bg-black">100 Pages</option>
+                                <option value="1000" className="bg-black">1000 Pages (Max)</option>
                             </select>
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading || !keywords}
-                            className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-600/20 active:scale-95 flex items-center justify-center gap-2 h-[50px]"
+                            className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-600/20 active:scale-95 flex items-center justify-center gap-2 h-[52px] group"
                         >
                             {loading ? (
                                 <>
@@ -273,7 +274,7 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                                 </>
                             ) : (
                                 <>
-                                    <Search className="w-4 h-4" />
+                                    <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                     <span>Discover Pages</span>
                                 </>
                             )}
@@ -283,10 +284,10 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
 
                 {/* Filters */}
                 {pages.length > 0 && (
-                    <div className="mt-8 flex flex-col space-y-4 animate-fade-in relative z-10">
+                    <div className="mt-10 flex flex-col space-y-4 animate-fade-in relative z-10 border-t border-white/5 pt-6">
                         {/* Filters Row */}
                         <div className="flex flex-wrap items-center gap-3">
-                            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mr-2">
+                            <div className="flex items-center gap-2 text-xs font-extrabold text-zinc-500 uppercase tracking-widest mr-2">
                                 <Filter className="w-3 h-3" />
                                 <span>Filters</span>
                             </div>
@@ -294,10 +295,10 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                             <button
                                 onClick={() => setFilterAdsOnly(!filterAdsOnly)}
                                 className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backgrop-blur-md
                                 ${filterAdsOnly
-                                        ? 'bg-green-500/10 border-green-500/50 text-green-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                        ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                             >
                                 <div className={`w-2 h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
@@ -307,10 +308,10 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                             <button
                                 onClick={() => setFilterHasEmail(!filterHasEmail)}
                                 className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasEmail
-                                        ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                             >
                                 <Mail className="w-3 h-3" />
@@ -320,10 +321,10 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                             <button
                                 onClick={() => setFilterHasWebsite(!filterHasWebsite)}
                                 className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasWebsite
-                                        ? 'bg-purple-500/10 border-purple-500/50 text-purple-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                        ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                             >
                                 <Globe className="w-3 h-3" />
@@ -333,10 +334,10 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                             <button
                                 onClick={() => setFilterHasPhone(!filterHasPhone)}
                                 className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasPhone
-                                        ? 'bg-orange-500/10 border-orange-500/50 text-orange-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                        ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                             >
                                 <Phone className="w-3 h-3" />
@@ -346,10 +347,10 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                             <button
                                 onClick={() => setFilterConfirmedOwner(!filterConfirmedOwner)}
                                 className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterConfirmedOwner
-                                        ? 'bg-teal-500/10 border-teal-500/50 text-teal-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
+                                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                             >
                                 <UserCheck className="w-3 h-3" />
@@ -362,12 +363,12 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as any)}
-                                className="appearance-none bg-black border border-zinc-800 text-white text-xs font-bold rounded-xl pl-4 pr-8 py-2.5 hover:border-zinc-600 focus:outline-none cursor-pointer w-full md:w-auto"
+                                className="appearance-none bg-black/40 border border-white/5 text-white text-xs font-bold rounded-xl pl-4 pr-8 py-2.5 hover:bg-white/5 focus:outline-none cursor-pointer w-full md:w-auto backdrop-blur-md"
                             >
-                                <option value="followers">Sort: Most Followers</option>
-                                <option value="rating">Sort: Best Rated</option>
-                                <option value="reviews">Sort: Most Reviews</option>
-                                <option value="newest">Sort: Newest Created</option>
+                                <option value="followers" className="bg-black">Sort: Most Followers</option>
+                                <option value="rating" className="bg-black">Sort: Best Rated</option>
+                                <option value="reviews" className="bg-black">Sort: Most Reviews</option>
+                                <option value="newest" className="bg-black">Sort: Newest Created</option>
                             </select>
                         </div>
                     </div>
@@ -379,11 +380,12 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                 (hasSearched || loading) && (
                     <div className="space-y-6">
                         <div className="flex items-center justify-between px-2">
-                            <h2 className="text-2xl font-bold text-white tracking-tight">
-                                {loading ? 'Discovering Pages...' : 'Discovery Results'}
+                            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                                <span>{loading ? 'Discovering Pages' : 'Discovery Results'}</span>
+                                {loading && <span className="flex h-2 w-2 relative"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span></span>}
                             </h2>
                             {!loading && (
-                                <span className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-zinc-400 border border-zinc-700">
+                                <span className="px-3 py-1 bg-white/5 rounded-full text-xs font-bold text-zinc-400 border border-white/5">
                                     {filteredPages.length} Pages Found
                                 </span>
                             )}
@@ -411,15 +413,16 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                         ) : (
                             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                                 {error ? (
-                                    <div className="max-w-md bg-red-500/10 border border-red-500/20 rounded-3xl p-8">
+                                    <div className="max-w-md bg-red-500/10 border border-red-500/20 rounded-3xl p-8 backdrop-blur-md">
                                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
                                         <h3 className="text-xl font-bold text-white mb-2">Discovery Failed</h3>
                                         <p className="text-zinc-400">{error}</p>
                                     </div>
                                 ) : (
                                     <div className="max-w-md">
-                                        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-800 shadow-xl">
-                                            <Search className="w-10 h-10 text-zinc-600" />
+                                        <div className="w-24 h-24 bg-zinc-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5 shadow-2xl relative group">
+                                            <Search className="w-10 h-10 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                                            <div className="absolute inset-0 border border-white/10 rounded-full animate-pulse-slow" />
                                         </div>
                                         <h3 className="text-2xl font-bold text-white mb-3">No Pages Found</h3>
                                         <p className="text-zinc-400">
@@ -459,10 +462,10 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
     const introText = page.intro || (page.info && page.info.length > 0 ? page.info[0] : null)
 
     return (
-        <div className="bg-zinc-950 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all flex flex-col group relative">
+        <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden hover:border-purple-500/30 hover:bg-zinc-900/40 transition-all flex flex-col group relative shadow-lg hover:shadow-purple-900/10">
             {/* Header / Cover */}
             <div
-                className="h-32 bg-zinc-900 relative overflow-hidden cursor-pointer group/header"
+                className="h-36 bg-zinc-900 relative overflow-hidden cursor-pointer group/header"
                 onClick={onView}
             >
                 {/* Real Cover Image */}
@@ -471,7 +474,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                     <img
                         src={coverImgSrc}
                         alt="Cover"
-                        className={`w-full h-full object-cover transition-transform duration-700 group-hover/header:scale-105 ${!page.coverPhotoUrl && !page.coverUrl ? 'blur-xl opacity-40 scale-110' : ''}`}
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover/header:rotate-1 group-hover/header:scale-105 ${!page.coverPhotoUrl && !page.coverUrl ? 'blur-2xl opacity-40 scale-125' : ''}`}
                         onError={(e) => {
                             if (!page.coverPhotoUrl && !page.coverUrl) {
                                 e.currentTarget.style.display = 'none';
@@ -480,12 +483,12 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                     />
                 </div>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
 
                 {/* Top Right Badges */}
                 <div className="absolute top-3 right-3 flex flex-col gap-2 items-end z-20">
                     {isAdsRunning && (
-                        <span className="px-2 py-1 bg-green-500/20 backdrop-blur-sm rounded-lg text-xs font-bold text-green-400 border border-green-500/20 flex items-center gap-1 shadow-lg">
+                        <span className="px-2.5 py-1 bg-green-500/20 backdrop-blur-sm rounded-lg text-xs font-bold text-green-400 border border-green-500/20 flex items-center gap-1 shadow-lg animate-fade-in-up">
                             <CheckCircle className="w-3 h-3" />
                             <span>Ads Active</span>
                         </span>
@@ -495,7 +498,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                 {/* Top Left Badges (Verified/Owner) */}
                 {ownerLabel && (
                     <div className="absolute top-3 left-3 z-20">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-200 text-[10px] font-bold backdrop-blur-md">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/20 border border-blue-500/30 text-blue-200 text-[10px] font-bold backdrop-blur-md shadow-lg">
                             <UserCheck className="w-3 h-3" />
                             Confirmed Owner
                         </span>
@@ -505,10 +508,10 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
 
             <div className="px-6 pb-6 flex-1 flex flex-col relative">
                 {/* Profile Pic Placeholder & Title */}
-                <div className="relative -mt-12 mb-4 flex items-end justify-between pointer-events-none z-10">
-                    <div className="w-20 h-20 rounded-2xl bg-zinc-900 border-4 border-zinc-950 shadow-xl flex items-center justify-center overflow-hidden relative group cursor-pointer pointer-events-auto" onClick={onView}>
+                <div className="relative -mt-10 mb-3 flex items-end justify-between pointer-events-none z-10">
+                    <div className="w-20 h-20 rounded-2xl bg-zinc-900 border-4 border-black shadow-xl flex items-center justify-center overflow-hidden relative group cursor-pointer pointer-events-auto ring-1 ring-white/10" onClick={onView}>
                         {/* Placeholder Background (Rendered First) */}
-                        <div className="text-2xl font-bold text-zinc-700 absolute inset-0 flex items-center justify-center bg-zinc-900 z-0 select-none">
+                        <div className="text-2xl font-black text-zinc-700 absolute inset-0 flex items-center justify-center bg-zinc-900 z-0 select-none">
                             {page.title ? page.title.charAt(0).toUpperCase() : (page.pageName ? page.pageName.charAt(0).toUpperCase() : 'P')}
                         </div>
 
@@ -531,8 +534,8 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
 
                     {/* Tiny Rating Badge if exists */}
                     {(page.ratingOverall || (page.rating && parseFloat(page.rating) > 0)) && (
-                        <div className="mb-1 pointer-events-auto">
-                            <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 rounded-lg text-yellow-500 text-xs font-bold">
+                        <div className="mb-2 pointer-events-auto">
+                            <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-2.5 py-1 rounded-lg text-yellow-500 text-xs font-bold shadow-lg shadow-yellow-500/10">
                                 <Star className="w-3 h-3 fill-yellow-500" />
                                 {page.ratingOverall ? page.ratingOverall.toFixed(1) : parseFloat(page.rating || '0').toFixed(1)}
                             </div>
@@ -541,7 +544,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                 </div>
 
                 <div className="mb-4">
-                    <h3 onClick={onView} className="text-lg font-bold text-white leading-tight mb-2 group-hover:text-purple-400 transition-colors line-clamp-2 cursor-pointer">
+                    <h3 onClick={onView} className="text-lg font-black text-white leading-tight mb-2 group-hover:text-purple-400 transition-colors line-clamp-2 cursor-pointer">
                         {page.title || page.pageName}
                     </h3>
                     <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
@@ -550,7 +553,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                             .filter(c => c !== 'Page')
                             .slice(0, 2)
                             .map((cat, i) => (
-                                <span key={i} className="bg-zinc-900 px-2 py-0.5 rounded text-zinc-400 border border-zinc-800 break-words max-w-full">
+                                <span key={i} className="bg-white/5 px-2 py-0.5 rounded text-zinc-400 border border-white/5 break-words max-w-full font-medium">
                                     {cat}
                                 </span>
                             ))}
@@ -558,20 +561,20 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-2 gap-2 mb-4 py-3 border-y border-zinc-900">
+                <div className="grid grid-cols-2 gap-2 mb-4 py-3 border-y border-white/5 bg-white/[0.02] -mx-6 px-6">
                     <div className="flex flex-col">
-                        <div className="text-[10px] uppercase text-zinc-500 font-bold flex items-center gap-1">
+                        <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
                             <Target className="w-3 h-3" /> Following
                         </div>
-                        <div className="text-sm font-bold text-zinc-300">
+                        <div className="text-sm font-bold text-zinc-200">
                             {page.followings ? page.followings.toLocaleString() : 'N/A'}
                         </div>
                     </div>
-                    <div className="flex flex-col">
-                        <div className="text-[10px] uppercase text-zinc-500 font-bold flex items-center gap-1">
+                    <div className="flex flex-col border-l border-white/5 pl-4">
+                        <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
                             <Users className="w-3 h-3" /> Followers
                         </div>
-                        <div className="text-sm font-bold text-zinc-300">
+                        <div className="text-sm font-bold text-zinc-200">
                             {page.followers ? page.followers.toLocaleString() : 'N/A'}
                         </div>
                     </div>
@@ -579,14 +582,14 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
 
                 {/* Info Text / Intro */}
                 {introText && (
-                    <div className="mb-4 p-3 rounded-lg bg-zinc-900/50 border border-zinc-900 text-xs text-zinc-500 line-clamp-3 italic">
+                    <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/5 text-xs text-zinc-400 line-clamp-3 italic">
                         "{introText}"
                     </div>
                 )}
                 {!introText && page.address && (
                     <div className="mb-4 text-xs text-zinc-500 flex items-start gap-2">
                         <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                        <span className="line-clamp-2">{page.address.replace(/http[^\s]+/, '')}</span>
+                        <span className="line-clamp-2 font-medium">{page.address.replace(/http[^\s]+/, '')}</span>
                     </div>
                 )}
 
@@ -596,18 +599,18 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                         href={page.facebookUrl || page.pageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 text-zinc-300 font-bold text-xs hover:bg-zinc-800 hover:text-white transition-all border border-zinc-800 hover:border-zinc-700"
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-zinc-300 font-bold text-xs hover:bg-white/10 hover:text-white transition-all border border-white/5 hover:border-white/10 group/btn"
                     >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
                         Visit
                     </a>
 
                     {/* Analyze Ads Button */}
                     <button
                         onClick={() => onSearchAds && onSearchAds(page.facebookUrl || page.title || '')}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-xs hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-900/20 active:scale-95"
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-xs hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-900/20 active:scale-95 group/btn border border-white/10"
                     >
-                        <Play className="w-3.5 h-3.5 fill-white" />
+                        <Play className="w-3.5 h-3.5 fill-white group-hover/btn:scale-110 transition-transform" />
                         See Ads
                     </button>
                 </div>

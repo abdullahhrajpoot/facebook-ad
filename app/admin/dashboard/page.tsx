@@ -197,7 +197,7 @@ export default function AdminDashboard() {
     const header = getHeaderTitle()
 
     return (
-        <div className="min-h-screen bg-black text-white flex">
+        <div className="min-h-screen bg-transparent text-white flex overflow-hidden">
             {/* Sidebar */}
             <AdminSidebar
                 activeTab={activeTab}
@@ -211,15 +211,18 @@ export default function AdminDashboard() {
             />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+            <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+                {/* Background Glow Effects */}
+                <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-red-900/10 to-transparent pointer-events-none" />
+
                 {/* Mobile Header */}
-                <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
+                <header className="md:hidden flex items-center justify-between p-4 border-b border-white/5 bg-black/40 backdrop-blur-md relative z-20">
                     <h1 className="text-lg font-black italic tracking-tighter">
                         <span className="text-white">IKONIC</span> <span className="text-red-500">MARKETERS</span>
                     </h1>
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 text-zinc-400 hover:text-white"
+                        className="p-2 text-zinc-400 hover:text-white transition-colors"
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -227,17 +230,29 @@ export default function AdminDashboard() {
                     </button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto bg-black p-4 md:p-8 custom-scrollbar">
-                    <div className="max-w-7xl mx-auto">
-                        <header className="mb-8 hidden md:block">
-                            <h2 className="text-2xl font-bold text-white">
-                                {header?.title}
-                            </h2>
-                            <p className="text-gray-500 text-sm mt-1">
-                                {header?.subtitle}
-                            </p>
-                        </header>
+                <main className="flex-1 overflow-y-auto custom-scrollbar p-0 relative z-10">
+                    {/* Header Section */}
+                    <div className="sticky top-0 z-30 bg-black/40 backdrop-blur-xl border-b border-white/5 px-8 py-6 mb-8">
+                        <div className="max-w-7xl mx-auto flex justify-between items-end">
+                            <div className="animate-slide-in-right" key={activeTab}>
+                                <h2 className="text-3xl font-black text-white tracking-tight">
+                                    {header?.title}
+                                </h2>
+                                <p className="text-zinc-400 text-sm mt-1 font-medium">
+                                    {header?.subtitle}
+                                </p>
+                            </div>
 
+                            {/* Profile Snippet / Quick Actions could go here */}
+                            <div className="hidden md:flex items-center gap-4">
+                                <div className="px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold tracking-wider uppercase animate-pulse-slow">
+                                    System Active
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 md:px-8 pb-12">
                         {/* Content */}
                         <div className="animate-fade-in-up">
                             {renderContent()}

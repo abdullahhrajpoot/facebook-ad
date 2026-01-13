@@ -1,5 +1,7 @@
 'use client'
 
+import { Search, Globe, Clock, Bookmark, User, LogOut } from 'lucide-react'
+
 interface UserSidebarProps {
     profile: any
     activeTab: 'discover' | 'pages' | 'history' | 'saved' | 'profile'
@@ -11,41 +13,11 @@ interface UserSidebarProps {
 
 export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOut, sidebarOpen, setSidebarOpen }: UserSidebarProps) {
     const menuItems = [
-        {
-            id: 'discover', label: 'Discover Ads', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            )
-        },
-        {
-            id: 'pages', label: 'Find Pages', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-            )
-        },
-        {
-            id: 'history', label: 'Search History', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            )
-        },
-        {
-            id: 'saved', label: 'Saved Ads', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-            )
-        },
-        {
-            id: 'profile', label: 'My Profile', icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-            )
-        },
+        { id: 'discover', label: 'Discover Ads', icon: Search },
+        { id: 'pages', label: 'Find Pages', icon: Globe },
+        { id: 'history', label: 'Search History', icon: Clock },
+        { id: 'saved', label: 'Saved Ads', icon: Bookmark },
+        { id: 'profile', label: 'My Profile', icon: User },
     ]
 
     return (
@@ -53,79 +25,91 @@ export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOu
             {/* Mobile Overlay */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-md z-40 md:hidden animate-fade-in"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
             <aside className={`
-                fixed top-0 left-0 z-50 h-screen w-72 bg-zinc-950 border-r border-zinc-900 shadow-2xl transition-transform duration-300 ease-in-out
+                fixed top-0 left-0 z-50 h-screen w-72 bg-black/60 backdrop-blur-xl border-r border-white/5 shadow-2xl transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 md:relative md:translate-x-0 flex flex-col
             `}>
                 {/* Logo Area */}
-                <div className="p-8 border-b border-zinc-900/50">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <div className="p-8 pb-6 border-b border-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none" />
+
+                    <div className="flex items-center gap-3 mb-2 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
                             <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                         </div>
                         <h1 className="text-xl font-black italic tracking-tighter leading-none">
-                            <span className="block text-white">IKONIC</span>
-                            <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">MARKETERS</span>
+                            <span className="block text-white drop-shadow-md">IKONIC</span>
+                            <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent filter drop-shadow-sm">MARKETERS</span>
                         </h1>
                     </div>
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] ml-1">Ad Intelligence</div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
-                    <div className="text-xs font-semibold text-zinc-600 uppercase tracking-wider mb-4 px-4">Menu</div>
+                <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto custom-scrollbar">
+                    <div className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-4 px-4">Menu</div>
 
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => {
-                                setActiveTab(item.id as any)
-                                setSidebarOpen(false)
-                            }}
-                            className={`
-                                w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group
-                                ${activeTab === item.id
-                                    ? 'bg-gradient-to-r from-blue-600/10 to-transparent text-blue-500 border border-blue-500/10'
-                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}
-                            `}
-                        >
-                            <span className={`p-2 rounded-lg transition-colors ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-zinc-900 group-hover:bg-zinc-800'}`}>
-                                {item.icon}
-                            </span>
-                            <span className="font-medium text-sm">{item.label}</span>
+                    {menuItems.map((item) => {
+                        const Icon = item.icon
+                        const isActive = activeTab === item.id
 
-                            {activeTab === item.id && (
-                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                            )}
-                        </button>
-                    ))}
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => {
+                                    setActiveTab(item.id as any)
+                                    setSidebarOpen(false)
+                                }}
+                                className={`
+                                    w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden
+                                    ${isActive
+                                        ? 'text-white'
+                                        : 'text-zinc-500 hover:text-white hover:bg-white/5'}
+                                `}
+                            >
+                                {isActive && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent border-l-2 border-blue-500 opacity-100" />
+                                )}
+
+                                <span className={`relative z-10 p-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-white/5 group-hover:scale-110 group-hover:bg-white/10'}`}>
+                                    <Icon className="w-4 h-4" />
+                                </span>
+
+                                <span className="relative z-10 font-bold text-sm tracking-tight">{item.label}</span>
+
+                                {isActive && (
+                                    <div className="absolute right-4 w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)] animate-pulse" />
+                                )}
+                            </button>
+                        )
+                    })}
                 </nav>
 
                 {/* Footer User Info */}
-                <div className="p-4 border-t border-zinc-900 space-y-4">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shrink-0">
-                            {profile?.full_name?.[0]?.toUpperCase() || 'U'}
+                <div className="p-4 border-t border-white/5 space-y-4 bg-black/20 backdrop-blur-md">
+                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold shrink-0 ring-1 ring-white/10 group-hover:scale-105 transition-transform">
+                            {profile?.full_name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                         </div>
                         <div className="overflow-hidden">
-                            <div className="text-sm font-bold text-white truncate">{profile?.full_name || 'User'}</div>
-                            <div className="text-xs text-zinc-500 truncate">{profile?.email}</div>
+                            <div className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{profile?.full_name || 'User'}</div>
+                            <div className="text-[10px] text-zinc-500 font-medium truncate tracking-wide">{profile?.email}</div>
                         </div>
                     </div>
 
                     <button
                         onClick={onSignOut}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-all text-xs font-bold uppercase tracking-wide shadow-lg shadow-red-600/20"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest border border-red-600/20 hover:border-red-500 hover:shadow-lg hover:shadow-red-600/20 active:scale-95 group"
                     >
+                        <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         Sign Out
                     </button>
                 </div>
