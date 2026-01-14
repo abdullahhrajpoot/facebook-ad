@@ -132,15 +132,9 @@ export async function POST(request: Request) {
 
             const fallbackInput = {
                 "count": Number(maxResults) * fetchMultiplier,
-                "start_date_min": "2024-01-01",
                 "urls": [
                     { "url": fallbackUrl }
-                ],
-                "proxyConfiguration": {
-                    "useApifyProxy": true,
-                    "apifyProxyGroups": ["RESIDENTIAL"],
-                    "countryCode": countryCode
-                }
+                ]
             };
 
             try {
