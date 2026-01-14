@@ -94,24 +94,82 @@ export async function POST(request: Request) {
             "start_date_max": new Date().toISOString().split('T')[0]
         };
 
+        let items: any[] = [];
+        let usedFallback = false;
+        let fallbackAttempted = false;
+
+        console.log('Starting Primary Actor (uMnsf6khYz0VsDGlg)...');
         const run = await client.actor('uMnsf6khYz0VsDGlg').call(runInput, {
             waitSecs: 60,
         });
 
-        if (!run || run.status === 'FAILED' || run.status === 'ABORTED') {
-            console.error('Apify run failed:', run);
-            return NextResponse.json(
-                { error: 'Scraper run failed or was aborted' },
-                { status: 502 }
-            );
+        if (run && run.status === 'SUCCEEDED') {
+            const dataset = await client.dataset(run.defaultDatasetId).listItems();
+            items = dataset.items;
+        } else {
+            console.warn('Primary actor run failed or was aborted:', run);
         }
 
-        console.log(run)
+        console.log(`Primary Actor Results: ${items.length} items`);
 
-        const { items } = await client.dataset(run.defaultDatasetId).listItems();
+        // --- FALLBACK ACTOR STRATEGY ---
+        if (items.length === 0) {
+            fallbackAttempted = true;
+            console.log('Primary actor returned 0 items. Initiating Fallback Actor (XtaWFhbtfxyzqrFmd)...');
+
+            const params = new URLSearchParams({
+                active_status: "active",
+                ad_type: "all",
+                country: "ALL",
+                is_targeted_country: "false",
+                media_type: "all",
+                q: keyword,
+                search_type: "keyword_exact_phrase"
+            });
+
+            const fallbackUrl = `https://www.facebook.com/ads/library/?${params.toString()}`;
+            console.log(`Fallback URL: ${fallbackUrl}`);
+
+            const fallbackInput = {
+                "count": Number(maxResults) * fetchMultiplier,
+                "urls": [
+                    { "url": fallbackUrl }
+                ],
+                "proxyConfiguration": {
+                    "useApifyProxy": true,
+                    "apifyProxyGroups": ["RESIDENTIAL"]
+                }
+            };
+
+            try {
+                const fallbackRun = await client.actor('XtaWFhbtfxyzqrFmd').call(fallbackInput, {
+                    waitSecs: 300,
+                });
+
+                if (fallbackRun && (fallbackRun.status === 'SUCCEEDED' || fallbackRun.status === 'RUNNING')) {
+                    if (fallbackRun.status === 'RUNNING') {
+                        console.log('Fallback Actor is still running (timeout reached). Checking for partial results...');
+                    }
+                    const dataset = await client.dataset(fallbackRun.defaultDatasetId).listItems();
+                    if (dataset.items.length > 0) {
+                        items = dataset.items;
+                        usedFallback = true;
+                        console.log(`Fallback Actor succeeded/partial with ${items.length} items`);
+                    } else {
+                        console.log('Fallback Actor returned 0 items so far.');
+                    }
+                } else {
+                    console.warn('Fallback Actor run failed (Status: ' + fallbackRun?.status + ')');
+                }
+            } catch (fbError) {
+                console.error('Fallback Actor triggered an error:', fbError);
+            }
+        }
 
         console.log(`\n========== RAW API RESPONSE ==========`);
         console.log(`Total items fetched: ${items.length}`);
+        console.log(`Fallback Attempted: ${fallbackAttempted}`);
+        console.log(`Used Fallback Results: ${usedFallback}`);
         console.log(`======================================\n`);
 
         // Simple Validation & Normalization
