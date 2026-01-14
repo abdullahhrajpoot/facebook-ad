@@ -6,10 +6,10 @@ import SkeletonAdCard from './SkeletonAdCard'
 import { validateAd, AdData } from '@/utils/adValidation'
 import { createClient } from '@/utils/supabase/client'
 import {
-    Search, Filter, Calendar, Play, Image as ImageIcon,
-    Monitor, Trophy, TrendingUp, Clock, Globe,
-    ChevronDown, X, Layers, Activity, Copy, Fingerprint
+    Search, Filter, Play, Image as ImageIcon,
+    Clock, Globe, ChevronDown, X, Layers, Copy, Fingerprint, Sparkles, LayoutGrid, Zap, SortAsc, MapPin, List
 } from 'lucide-react'
+import MaterialDropdown from '@/components/ui/MaterialDropdown'
 
 type SortOption = 'performance' | 'recent' | 'oldest' | 'longest' | 'authority' | 'impressions'
 type MediaType = 'ALL' | 'VIDEO' | 'IMAGE' | 'CAROUSEL'
@@ -57,6 +57,37 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
     const [showDuplicates, setShowDuplicates] = useState(false)
 
     const supabase = createClient()
+
+    // Dynamic Theme Colors
+    const theme = useMemo(() => {
+        if (searchMode === 'keyword') {
+            return {
+                mode: 'keyword',
+                primary: 'blue',
+                bg: 'bg-blue-600',
+                bgSoft: 'bg-blue-600/10',
+                text: 'text-blue-400',
+                border: 'border-blue-500/50',
+                shadow: 'shadow-blue-900/20',
+                ring: 'focus:ring-blue-900/20',
+                gradient: 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500',
+                icon: Search
+            }
+        } else {
+            return {
+                mode: 'page',
+                primary: 'emerald',
+                bg: 'bg-emerald-600',
+                bgSoft: 'bg-emerald-600/10',
+                text: 'text-emerald-400',
+                border: 'border-emerald-500/50',
+                shadow: 'shadow-emerald-900/20',
+                ring: 'focus:ring-emerald-900/20',
+                gradient: 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500',
+                icon: Globe
+            }
+        }
+    }, [searchMode])
 
     // Handle Initial Page Query & History Selection
     useEffect(() => {
@@ -133,6 +164,22 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
         { code: 'IN', name: 'India' },
         { code: 'ALL', name: 'Global' },
     ]
+
+    const countryOptions = useMemo(() => countries.map(c => ({ value: c.code, label: c.code, icon: c.code === 'ALL' ? Globe : undefined })), [countries])
+    const limitOptions = useMemo(() => [
+        { value: '10', label: '10 Ads' },
+        { value: '20', label: '20 Ads' },
+        { value: '50', label: '50 Ads' },
+        { value: '100', label: '100 Ads' }
+    ], [])
+    const sortOptions = useMemo(() => [
+        { value: 'performance', label: 'Best Performance', icon: Zap },
+        { value: 'recent', label: 'Newest First', icon: Clock },
+        { value: 'oldest', label: 'Oldest First', icon: Clock },
+        { value: 'longest', label: 'Longest Running', icon: Clock },
+        { value: 'impressions', label: 'Most Views', icon: Sparkles }
+    ], [])
+
 
     const executeSearch = async (searchKeyword: string, mode: 'keyword' | 'page', searchCountry: string, count: string) => {
         if (!searchKeyword.trim()) return
@@ -290,324 +337,293 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
         setSelectedCategories(newSet)
     }
 
+
+
     return (
-        <div className="space-y-8 animate-fade-in-up pb-20">
-            {/* Main Search Panel */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl relative group">
-                <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-                    <div className="absolute top-0 right-0 p-32 bg-blue-600/10 blur-[100px] rounded-full group-hover:bg-blue-600/20 transition-all duration-1000"></div>
+        <div className="space-y-12 animate-fade-in-up pb-32">
+            {/* Hero Search Section */}
+            <div className="relative z-30 flex flex-col items-center justify-center pt-10 pb-6 w-full max-w-5xl mx-auto">
+
+                {/* Global Ambient Glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] z-0 pointer-events-none">
+                    <div className={`absolute top-0 right-0 w-[600px] h-[600px] blur-[120px] rounded-full mix-blend-screen transition-colors duration-1000 ${theme.mode === 'keyword' ? 'bg-blue-600/20' : 'bg-emerald-600/10'} opacity-40 animate-pulse-slow`}></div>
+                    <div className={`absolute bottom-0 left-0 w-[500px] h-[500px] blur-[100px] rounded-full mix-blend-screen transition-colors duration-1000 ${theme.mode === 'keyword' ? 'bg-purple-600/20' : 'bg-teal-600/10'} opacity-30 animate-pulse-slower`}></div>
                 </div>
 
-                {/* Search Mode Tabs */}
-                <div className="flex items-center gap-1 bg-black/50 p-1.5 rounded-2xl border border-zinc-800 w-fit mb-6 backdrop-blur-sm relative z-10">
-                    <button
-                        onClick={() => setSearchMode('keyword')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${searchMode === 'keyword' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-                    >
-                        <Search className="w-4 h-4" />
-                        Keyword
-                    </button>
-                    <button
-                        onClick={() => setSearchMode('page')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${searchMode === 'page' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-                    >
-                        <Globe className="w-4 h-4" />
-                        Page
-                    </button>
-
-                    <div className="w-px h-6 bg-zinc-700 mx-2" />
-
-                    <button
-                        onClick={() => setEnsureUnique(!ensureUnique)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${ensureUnique ? 'bg-blue-600/20 text-blue-400 border border-blue-500/50' : 'text-zinc-500 hover:text-zinc-300'}`}
-                        title="Fetch extra ads to ensure unique results"
-                    >
-                        <Fingerprint className="w-4 h-4" />
-                        {ensureUnique ? 'Unique On' : 'Unique Off'}
-                    </button>
+                {/* Main Heading Text */}
+                <div className="text-center mb-10 relative z-10">
+                    <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 tracking-tighter mb-4 drop-shadow-2xl">
+                        Ad Intelligence<span className={`${theme.text}`}>.</span>
+                    </h1>
+                    <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                        Uncover high-performing ads with precision. Analyze trends, creatives, and copy across the Meta ecosystem.
+                    </p>
                 </div>
 
-                <form onSubmit={handleSearch} className="flex flex-col xl:flex-row gap-4 relative z-50">
-                    <div className="flex-1 relative group/input">
-                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                            <Search className="w-5 h-5 text-zinc-500 group-focus-within/input:text-blue-500 transition-colors" />
-                        </div>
-                        <input
-                            type="text"
-                            value={keyword}
-                            onChange={(e) => setKeyword(e.target.value)}
-                            onFocus={() => setShowHistory(true)}
-                            onBlur={() => setTimeout(() => setShowHistory(false), 200)} // Delay to allow click
-                            placeholder={searchMode === 'keyword' ? "Search for brands, products, or keywords (e.g. 'Nike', 'SaaS')..." : "Enter Facebook Page Name or URL..."}
-                            className="w-full pl-12 pr-4 py-4 bg-black border border-zinc-800 rounded-2xl text-white placeholder-zinc-600 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-900/20 transition-all shadow-inner text-lg"
-                        />
+                {/* Central Glass Search Module */}
+                <div className="w-full relative z-20 group">
+                    <div className={`
+                        absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r ${theme.gradient} opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500 pointer-events-none
+                    `}></div>
 
-                        {/* Recent Searches Dropdown */}
-                        {showHistory && recentSearches.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-3 bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                                <div className="px-5 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                                    <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                                        <Clock className="w-3 h-3" />
-                                        Recent Searches
-                                    </span>
-                                </div>
-                                <div className="max-h-[300px] overflow-y-auto">
-                                    {recentSearches.map((item, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault() // Prevent input blur
-                                                const term = item.keyword
-                                                const mode = item.filters?.searchType === 'page' ? 'page' : 'keyword'
-                                                const filterCountry = item.filters?.country || 'US'
-                                                // Default to current maxResults if not in history, ensuring we handle string conversion
-                                                const historyMaxResults = item.filters?.maxResults ? String(item.filters.maxResults) : maxResults
+                    <div className="relative z-50 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-2 shadow-2xl flex flex-col md:flex-row items-center gap-2 overflow-visible ring-1 ring-white/5">
 
-                                                setKeyword(term)
-                                                setSearchMode(mode)
-                                                if (mode === 'keyword') setCountry(filterCountry)
-                                                setMaxResults(historyMaxResults)
-
-                                                setShowHistory(false)
-
-                                                // Immediate search with correct parameters
-                                                executeSearch(term, mode, filterCountry, historyMaxResults)
-                                            }}
-                                            className="w-full text-left px-5 py-4 hover:bg-white/5 border-b border-white/5 last:border-0 flex items-center gap-4 text-sm text-zinc-300 transition-all group active:scale-[0.99]"
-                                        >
-                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-colors">
-                                                {item.filters?.searchType === 'page' ? <Globe className="w-4 h-4" /> : <Search className="w-4 h-4" />}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-bold text-zinc-200 truncate group-hover:text-white transition-colors">{item.keyword}</div>
-                                                <div className="text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
-                                                    <span>{item.filters?.searchType === 'page' ? 'Page Search' : 'Keyword Search'}</span>
-                                                    {item.filters?.country && (
-                                                        <>
-                                                            <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                                                            <span>{countries.find(c => c.code === item.filters.country)?.name || item.filters.country}</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 transform duration-200">
-                                                <div className="p-1.5 rounded-lg bg-blue-600/20 text-blue-400">
-                                                    <Search className="w-3.5 h-3.5" />
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                        {searchMode === 'keyword' && (
-                            <div className="relative min-w-[160px] flex-1 xl:flex-none group">
-                                <select
-                                    value={country}
-                                    onChange={(e) => setCountry(e.target.value)}
-                                    className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-5 pr-10 rounded-2xl focus:outline-none focus:border-blue-600 cursor-pointer font-medium hover:bg-zinc-900/50 transition-colors shadow-sm"
-                                >
-                                    {countries.map((c) => (
-                                        <option key={c.code} value={c.code}>{c.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
-                            </div>
-                        )}
-
-                        <div className="relative min-w-[120px] flex-1 xl:flex-none group">
-                            <select
-                                value={maxResults}
-                                onChange={(e) => setMaxResults(e.target.value)}
-                                className="w-full appearance-none bg-black border border-zinc-800 text-white py-4 px-5 pr-10 rounded-2xl focus:outline-none focus:border-blue-600 cursor-pointer font-medium hover:bg-zinc-900/50 transition-colors shadow-sm"
+                        {/* Mode Switcher (Integrated) */}
+                        <div className="flex p-1.5 bg-zinc-900/50 rounded-[1.5rem] border border-white/5 self-stretch md:self-auto shrink-0 relative overflow-hidden">
+                            {/* Animated Background Slider would go here, doing simple toggle for now */}
+                            <button
+                                onClick={() => setSearchMode('keyword')}
+                                className={`
+                                    relative px-6 py-3 rounded-[1.2rem] text-sm font-bold transition-all duration-300 z-10 flex items-center gap-2
+                                    ${searchMode === 'keyword' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}
+                                `}
                             >
-                                <option value="10">10 Ads</option>
-                                <option value="20">20 Ads</option>
-                                <option value="30">30 Ads</option>
-                                <option value="50">50 Ads</option>
-                                <option value="100">100 Ads</option>
-                            </select>
-                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
+                                <Search className="w-4 h-4" />
+                                Keyword
+                            </button>
+                            <button
+                                onClick={() => setSearchMode('page')}
+                                className={`
+                                    relative px-6 py-3 rounded-[1.2rem] text-sm font-bold transition-all duration-300 z-10 flex items-center gap-2
+                                    ${searchMode === 'page' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}
+                                `}
+                            >
+                                <Globe className="w-4 h-4" />
+                                Page URL
+                            </button>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading || !keyword}
-                            className="flex-1 xl:flex-none bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Searching...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Search className="w-4 h-4" />
-                                    <span>Find Ads</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
+                        {/* Search Input Area */}
+                        <div className="flex-1 w-full relative h-[64px] flex items-center">
+                            <form onSubmit={handleSearch} className="w-full h-full flex items-center">
+                                <div className="relative w-full h-full flex items-center px-4 group/input">
+                                    <theme.icon className={`w-6 h-6 text-zinc-600 group-focus-within/input:${theme.text} transition-colors duration-300 mr-4`} />
+                                    <input
+                                        type="text"
+                                        value={keyword}
+                                        onChange={(e) => setKeyword(e.target.value)}
+                                        onFocus={() => setShowHistory(true)}
+                                        onBlur={() => setTimeout(() => setShowHistory(false), 200)}
+                                        placeholder={searchMode === 'keyword' ? "Search brands, products (e.g. 'Nike')..." : "Paste Facebook Page URL..."}
+                                        className="w-full bg-transparent border-none text-xl md:text-2xl font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full tracking-tight"
+                                        autoComplete="off"
+                                    />
 
-                {/* Filters Section */}
-                {ads.length > 0 && (
-                    <div className="mt-8 space-y-6 animate-fade-in relative z-10">
-                        {/* Dynamic Categories */}
-                        {availableCategories.length > 0 && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                                    <Layers className="w-3 h-3" />
-                                    <span>Categories</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableCategories.slice(0, 15).map(cat => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => toggleCategory(cat)}
-                                            className={`
-                                                px-3 py-1.5 rounded-lg text-xs font-bold transition-all border
-                                                ${selectedCategories.has(cat)
-                                                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20'
-                                                    : 'bg-black/40 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-white'}
-                                            `}
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
-                                    {availableCategories.length > 15 && (
-                                        <span className="px-2 py-1 text-xs text-zinc-600 flex items-center">
-                                            +{availableCategories.length - 15} more
-                                        </span>
+                                    {/* Recent Searches Overlay - Material Design Style */}
+                                    {showHistory && recentSearches.length > 0 && (
+                                        <div className="absolute top-[80px] left-0 md:left-4 right-0 md:right-4 bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-300 ring-1 ring-white/5">
+                                            <div className="px-5 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                                                <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                                    <Clock className="w-3 h-3" />
+                                                    Recent Searches
+                                                </span>
+                                            </div>
+                                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1.5">
+                                                {recentSearches.map((item, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault()
+                                                            const term = item.keyword
+                                                            const mode = item.filters?.searchType === 'page' ? 'page' : 'keyword'
+                                                            const filterCountry = item.filters?.country || 'US'
+                                                            const historyMaxResults = item.filters?.maxResults ? String(item.filters.maxResults) : maxResults
+                                                            setKeyword(term)
+                                                            setSearchMode(mode)
+                                                            if (mode === 'keyword') setCountry(filterCountry)
+                                                            setMaxResults(historyMaxResults)
+                                                            setShowHistory(false)
+                                                            executeSearch(term, mode, filterCountry, historyMaxResults)
+                                                        }}
+                                                        className="w-full text-left px-4 py-3 hover:bg-white/10 rounded-xl flex items-center gap-3 transition-all group active:scale-[0.99]"
+                                                    >
+                                                        <div className={`p-2 rounded-lg ${item.filters?.searchType === 'page' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                            {item.filters?.searchType === 'page' ? <Globe className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+                                                        </div>
+                                                        <span className="font-bold text-sm text-zinc-300 group-hover:text-white flex-1 truncate">{item.keyword}</span>
+                                                        <span className="text-[10px] text-zinc-600 font-mono border border-zinc-800 rounded px-1.5 py-0.5">
+                                                            {new Date(item.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        )}
+                            </form>
+                        </div>
 
-                        <div className="h-px bg-zinc-800" />
+                        {/* Action Buttons Group */}
+                        <div className="flex items-center gap-2 pr-2 shrink-0 self-stretch md:self-auto">
+                            {/* Settings / Limit / Country Popover Triggers (Simplified for now to match high-end sparse look) */}
+                            {searchMode === 'keyword' && (
+                                <div className="relative z-50 h-full w-[150px]">
+                                    <MaterialDropdown
+                                        value={country}
+                                        onChange={setCountry}
+                                        options={countryOptions}
+                                        label="Region"
+                                        icon={Globe}
+                                        width="w-full"
+                                    />
+                                </div>
+                            )}
 
-                        {/* Advanced Filters Toolbar */}
-                        <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mr-2">
-                                <Filter className="w-3 h-3" />
-                                <span>Filters</span>
-                            </div>
+                            <button
+                                onClick={handleSearch}
+                                disabled={loading || !keyword}
+                                className={`
+                                    h-[56px] px-8 rounded-[1.5rem] font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                                    bg-gradient-to-r ${theme.gradient} flex items-center gap-2 group/searchBtn
+                                `}
+                            >
+                                {loading ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <span>Search</span>
+                                        <Zap className="w-4 h-4 fill-white group-hover/searchBtn:scale-110 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
 
-                            {/* Media Type */}
-                            <div className="flex bg-black border border-zinc-800 rounded-xl p-1">
-                                {[
-                                    { id: 'ALL', label: 'All', icon: Layers },
-                                    { id: 'VIDEO', label: 'Video', icon: Play },
-                                    { id: 'IMAGE', label: 'Image', icon: ImageIcon },
-                                    { id: 'CAROUSEL', label: 'Carousel', icon: Layers },
-                                ].map((type) => (
+                    {/* Secondary Filters Bar (Minimal) */}
+                    <div className="flex flex-wrap items-center justify-center gap-4 mt-6 text-zinc-500 relative z-20">
+                        {/* Results Limit */}
+                        <div className="w-[160px] relative z-30">
+                            <MaterialDropdown
+                                value={maxResults}
+                                onChange={setMaxResults}
+                                options={limitOptions}
+                                label="Limit"
+                                icon={Layers}
+                                width="w-full"
+                            />
+                        </div>
+
+                        {/* Unique Filter */}
+                        <button
+                            onClick={() => setEnsureUnique(!ensureUnique)}
+                            className={`
+                                flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold transition-all
+                                ${ensureUnique ? `${theme.bgSoft} ${theme.text} ${theme.border}` : 'bg-zinc-900/30 border-white/5 text-zinc-500 hover:text-zinc-300'}
+                            `}
+                        >
+                            <Fingerprint className="w-3.5 h-3.5" />
+                            {ensureUnique ? 'Unique Only' : 'Allow Duplicates'}
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* Results Filters & Content */}
+            {ads.length > 0 && (
+                <div className="animate-fade-in-up md:px-4">
+                    <div className="flex flex-col gap-6 p-6 rounded-3xl bg-zinc-900/20 border border-white/5 backdrop-blur-sm">
+                        {/* Top Categories Chips */}
+                        {availableCategories.length > 0 && (
+                            <div className="flex flex-wrap gap-2 justify-center">
+                                {availableCategories.slice(0, 10).map(cat => (
                                     <button
-                                        key={type.id}
-                                        onClick={() => setMediaType(type.id as MediaType)}
+                                        key={cat}
+                                        onClick={() => toggleCategory(cat)}
                                         className={`
-                                            flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all
-                                            ${mediaType === type.id
-                                                ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/5'
-                                                : 'text-zinc-500 hover:text-zinc-300'}
+                                            px-4 py-2 rounded-full text-xs font-bold transition-all border
+                                            ${selectedCategories.has(cat)
+                                                ? `${theme.bg} text-white border-transparent shadow-lg`
+                                                : 'bg-zinc-950/50 text-zinc-400 border-white/5 hover:border-white/20 hover:text-white'}
                                         `}
                                     >
-                                        <type.icon className="w-3 h-3" />
-                                        {type.label}
+                                        {cat}
                                     </button>
                                 ))}
                             </div>
+                        )}
 
-                            {/* Status */}
-                            <button
-                                onClick={() => setActiveOnly(!activeOnly)}
-                                className={`
-                                    flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
-                                    ${activeOnly
-                                        ? 'bg-green-500/10 border-green-500/50 text-green-400'
-                                        : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
-                                `}
-                            >
-                                <div className={`w-2 h-2 rounded-full ${activeOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-                                Active Only
-                            </button>
-
-                            {/* Show Duplicates (Only if search was unique) */}
-                            {wasUniqueSearch && (
-                                <button
-                                    onClick={() => setShowDuplicates(!showDuplicates)}
-                                    className={`
-                                        flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
-                                        ${showDuplicates
-                                            ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                                            : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-700'}
-                                    `}
-                                >
-                                    <Copy className="w-3 h-3" />
-                                    {showDuplicates ? 'Hide Duplicates' : 'Show Duplicates'}
-                                </button>
-                            )}
-
-
-
-                            {/* Duration */}
-                            <div className="relative group">
-                                <select
-                                    value={minDaysActive}
-                                    onChange={(e) => setMinDaysActive(Number(e.target.value))}
-                                    className="appearance-none bg-black border border-zinc-800 text-zinc-300 text-xs font-bold rounded-xl pl-9 pr-8 py-2 hover:border-zinc-600 focus:outline-none cursor-pointer"
-                                >
-                                    <option value={0}>Any Duration</option>
-                                    <option value={3}>3+ Days</option>
-                                    <option value={7}>7+ Days</option>
-                                    <option value={30}>30+ Days</option>
-                                </select>
-                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500 pointer-events-none" />
+                        {/* Refine Toolbar */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-6">
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest hidden md:block">Media:</span>
+                                <div className="flex p-1 bg-black/40 rounded-xl border border-white/5">
+                                    {[
+                                        { id: 'ALL', label: 'All', icon: LayoutGrid },
+                                        { id: 'VIDEO', label: 'Video', icon: Play },
+                                        { id: 'IMAGE', label: 'Image', icon: ImageIcon },
+                                    ].map((type) => (
+                                        <button
+                                            key={type.id}
+                                            onClick={() => setMediaType(type.id as MediaType)}
+                                            className={`
+                                                px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2
+                                                ${mediaType === type.id ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}
+                                            `}
+                                        >
+                                            <type.icon className="w-3 h-3" />
+                                            {type.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="flex-1" />
-
-                            {/* Sort Dropdown */}
-                            {/* Sort Dropdown */}
-                            <div className="relative group">
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                                    className="appearance-none bg-black border border-zinc-800 text-white text-xs font-bold rounded-xl pl-4 pr-10 py-2.5 hover:border-zinc-600 focus:outline-none cursor-pointer min-w-[160px]"
+                            <div className="flex items-center gap-3 ml-auto">
+                                <button
+                                    onClick={() => setActiveOnly(!activeOnly)}
+                                    className={`
+                                        flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                        ${activeOnly
+                                            ? 'bg-green-500/10 border-green-500/50 text-green-400'
+                                            : 'bg-black/40 border-white/5 text-zinc-400 hover:bg-zinc-800'}
+                                    `}
                                 >
-                                    <option value="performance">🔥 Best Performance</option>
-                                    <option value="recent">✨ Newest First</option>
-                                    <option value="oldest">📅 Oldest First</option>
-                                    <option value="longest">⏳ Longest Running</option>
-                                    <option value="authority">🏆 Page Authority</option>
-                                    <option value="impressions">👁️ Most Impressions</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors pointer-events-none" />
+                                    <div className={`w-1.5 h-1.5 rounded-full ${activeOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                                    Active Only
+                                </button>
+
+                                {/* Sort */}
+                                <div className="w-[200px] relative z-20">
+                                    <MaterialDropdown
+                                        value={sortBy}
+                                        onChange={setSortBy}
+                                        options={sortOptions}
+                                        icon={SortAsc}
+                                        placeholder="Sort By"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
-
+                </div>
+            )}
             {/* Results Header & Grid */}
             {(hasSearched || loading) && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-3">
-                            <h2 className="text-2xl font-bold text-white tracking-tight">
-                                {loading ? 'Scanning Ads Library...' : 'Search Results'}
+                            <h2 className={`text-2xl font-black text-white tracking-tight flex items-center gap-3`}>
+                                {loading ? (
+                                    <>
+                                        <span>Scanning Ads Library</span>
+                                        <span className="flex h-3 w-3 relative"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${theme.bg} opacity-75`}></span><span className={`relative inline-flex rounded-full h-3 w-3 ${theme.bg}`}></span></span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className={`w-6 h-6 ${theme.text}`} />
+                                        <span>Results Found</span>
+                                        {wasUniqueSearch && <span className={`text-[10px] uppercase font-bold py-1 px-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 tracking-wider`}>Unique Mode Active</span>}
+                                    </>
+                                )}
                             </h2>
                             {!loading && (
                                 <div className="flex items-center gap-2">
-                                    <span className="px-3 py-1 bg-zinc-800 rounded-full text-xs font-bold text-zinc-400 border border-zinc-700">
+                                    <span className={`px-3 py-1 bg-zinc-900/80 rounded-full text-xs font-bold text-zinc-300 border border-white/10 ${theme.shadow}`}>
                                         {filteredAds.length} {showDuplicates ? 'Total' : 'Unique'} Ads
                                     </span>
                                     {hiddenDuplicateCount > 0 && !showDuplicates && (
-                                        <span className="px-3 py-1 bg-blue-900/30 rounded-full text-xs font-bold text-blue-400 border border-blue-800/50">
+                                        <span className="px-3 py-1 bg-blue-900/20 rounded-full text-xs font-bold text-blue-400 border border-blue-500/20">
                                             +{hiddenDuplicateCount} Duplicates Hidden
                                         </span>
                                     )}
@@ -630,6 +646,7 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                     key={ad.adArchiveID || i}
                                     ad={ad}
                                     initialIsSaved={savedAdIds.has(ad.adArchiveID)}
+                                    variant={theme.primary as any}
                                     onToggleSave={(isSaved) => {
                                         const newSet = new Set(savedAdIds)
                                         if (isSaved) {
@@ -643,9 +660,9 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                        <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
                             {error ? (
-                                <div className="max-w-md bg-red-500/10 border border-red-500/20 rounded-3xl p-8">
+                                <div className="max-w-md bg-red-500/10 border border-red-500/20 rounded-3xl p-8 backdrop-blur-md">
                                     <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                                         <X className="w-8 h-8 text-red-500" />
                                     </div>
@@ -653,13 +670,14 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                     <p className="text-zinc-400">{error}</p>
                                 </div>
                             ) : (
-                                <div className="max-w-md">
-                                    <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-800 shadow-xl">
-                                        <Search className="w-10 h-10 text-zinc-600" />
+                                <div className="max-w-xl relative">
+                                    <div className={`absolute inset-0 ${theme.bg}/20 blur-[80px] rounded-full pointer-events-none`} />
+                                    <div className="relative z-10 w-24 h-24 bg-zinc-900/80 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-2xl backdrop-blur-md rotate-3 hover:rotate-6 transition-transform group">
+                                        <Search className="w-10 h-10 text-zinc-500 group-hover:text-white transition-colors" />
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white mb-3">No Ads Found</h3>
-                                    <p className="text-zinc-400 leading-relaxed">
-                                        We couldn't find any ads matching your criteria. Try adjusting your filters or using broader keywords.
+                                    <h3 className="text-3xl font-black text-white mb-3">No Ads Found</h3>
+                                    <p className="text-zinc-400 leading-relaxed font-medium">
+                                        We couldn't find any ads matching your criteria. Try adjusting your timeframe or using broader keywords.
                                     </p>
                                     <button
                                         onClick={() => {
@@ -668,19 +686,19 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                             setActiveOnly(false)
                                             setActiveOnly(false)
                                             setMinDaysActive(0)
-
                                         }}
-                                        className="mt-6 text-blue-400 hover:text-blue-300 font-bold text-sm"
+                                        className={`mt-8 ${theme.text} hover:opacity-80 font-bold text-sm tracking-wide uppercase border-b border-transparent hover:border-current transition-all pb-0.5`}
                                     >
-                                        Clear all filters
+                                        Clear and Reset Filters
                                     </button>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }
 

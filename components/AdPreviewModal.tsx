@@ -154,7 +154,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
             <div className="absolute inset-0 bg-black/90 backdrop-blur-md animate-fade-in" aria-hidden="true" />
 
             <div
-                className="relative w-full max-w-6xl h-[90vh] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden animate-scale-in z-10 flex flex-col lg:flex-row"
+                className="relative w-full max-w-6xl h-[90vh] bg-black/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in z-10 flex flex-col lg:flex-row ring-1 ring-white/5"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close Button Mobile/Corner */}
@@ -341,7 +341,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         {/* Stats Row */}
                         <div className={`grid gap-4 ${ad.impressions ? 'grid-cols-3' : 'grid-cols-2'}`}>
                             {/* Page Likes */}
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-2 mb-1">
                                     <ThumbsUp className="w-4 h-4 text-blue-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Page Likes</span>
@@ -354,7 +354,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             {/* Impressions */}
                             {/* Impressions */}
                             {ad.impressions && (
-                                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                                <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Eye className="w-4 h-4 text-green-500" />
                                         <span className="text-xs font-bold text-zinc-500 uppercase">Impressions</span>
@@ -366,7 +366,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                             )}
 
                             {/* Categories */}
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-2 mb-1">
                                     <Layers className="w-4 h-4 text-purple-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Category</span>
@@ -379,7 +379,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                         {/* Dates */}
                         {(ad.startDate || ad.endDate) && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Calendar className="w-4 h-4 text-orange-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Active Period</span>
@@ -397,7 +397,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                         {/* Video Transcript (Moved here) */}
                         {(transcriptionText || isTranscribing) && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 relative group animate-fade-in">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-5 relative group animate-fade-in hover:bg-white/10 transition-colors">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <FileText className="w-4 h-4 text-purple-400" />
@@ -442,7 +442,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                         {/* Title (if different from body) */}
                         {ad.title && ad.title !== ad.body && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-2 mb-2">
                                     <FileText className="w-4 h-4 text-yellow-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Headline</span>
@@ -455,7 +455,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                         {/* Ad Body/Description */}
                         {ad.body && (
-                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-5 hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-2 mb-3">
                                     <FileText className="w-4 h-4 text-cyan-500" />
                                     <span className="text-xs font-bold text-zinc-500 uppercase">Ad Description</span>
@@ -474,7 +474,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                     {/* Platforms */}
                     {ad.platforms.length > 0 && (
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                             <div className="flex items-center gap-2 mb-3">
                                 <Monitor className="w-4 h-4 text-pink-500" />
                                 <span className="text-xs font-bold text-zinc-500 uppercase">Platforms</span>
@@ -518,7 +518,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                     {/* Links */}
                     {ad.links.length > 0 && (
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                        <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
                             <div className="flex items-center gap-2 mb-3">
                                 <LinkIcon className="w-4 h-4 text-green-500" />
                                 <span className="text-xs font-bold text-zinc-500 uppercase">All Links ({ad.links.length})</span>

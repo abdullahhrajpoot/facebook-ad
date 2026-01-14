@@ -3,9 +3,10 @@
 import React, { useState } from 'react'
 import {
     Search, MapPin, Globe, Users, Phone, Mail, ExternalLink,
-    Filter, Play, AlertCircle, CheckCircle, Navigation, Star, Target, UserCheck, Sparkles
+    Filter, Play, AlertCircle, CheckCircle, Navigation, Star, Target, UserCheck, Sparkles, Layers, List
 } from 'lucide-react'
 import PagePreviewModal from './modals/PagePreviewModal'
+import MaterialDropdown from '@/components/ui/MaterialDropdown'
 // Redefine locally to ensure self-contained type safety and avoid import issues
 interface FacebookPageLocal {
     facebookUrl?: string
@@ -101,8 +102,23 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                 executeSearch(initialState.keywords, initialState.location, initialState.limit)
             }, 100)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialState])
+
+    const limitOptions = React.useMemo(() => [
+        { value: '10', label: '10 Pages' },
+        { value: '20', label: '20 Pages' },
+        { value: '50', label: '50 Pages' },
+        { value: '100', label: '100 Pages' },
+        { value: '1000', label: '1000 Pages' }
+    ], [])
+
+    const sortOptions = React.useMemo(() => [
+        { value: 'followers', label: 'Most Followers', icon: Users },
+        { value: 'rating', label: 'Best Rated', icon: Star },
+        { value: 'reviews', label: 'Most Reviews', icon: Star },
+        { value: 'newest', label: 'Newest Created', icon: Sparkles }
+    ], [])
+
 
     const executeSearch = async (searchKeywords: string, searchLocation: string, searchLimit: string) => {
         if (!searchKeywords.trim()) return
@@ -185,195 +201,194 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
     }, [pages, filterAdsOnly, filterHasEmail, filterHasWebsite, filterHasPhone, filterConfirmedOwner, sortBy])
 
     return (
-        <div className="space-y-8 animate-fade-in-up pb-20">
-            {/* Main Search Panel */}
-            <div className="bg-black/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-2xl relative group overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-transparent to-blue-900/5 pointer-events-none" />
-                <div className="absolute -top-[200px] -right-[200px] w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full group-hover:bg-purple-600/20 transition-all duration-1000 pointer-events-none"></div>
+        <div className="space-y-12 animate-fade-in-up pb-32">
+            {/* Hero Search Section */}
+            <div className="relative z-30 flex flex-col items-center justify-center pt-10 pb-6 w-full max-w-5xl mx-auto">
 
-                <div className="relative z-10 mb-8">
-                    <h2 className="text-2xl font-black text-white mb-2 flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
-                            <Globe className="w-6 h-6" />
-                        </div>
-                        Find Business Pages
-                    </h2>
-                    <p className="text-zinc-400 text-sm font-medium ml-1">
-                        Discover public Facebook pages by industry, niche, or topic.
+                {/* Global Ambient Glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] z-0 pointer-events-none">
+                    <div className="absolute top-0 right-0 w-[600px] h-[600px] blur-[120px] rounded-full mix-blend-screen transition-colors duration-1000 bg-purple-600/20 opacity-40 animate-pulse-slow"></div>
+                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[100px] rounded-full mix-blend-screen transition-colors duration-1000 bg-indigo-600/10 opacity-30 animate-pulse-slower"></div>
+                </div>
+
+                {/* Main Heading Text */}
+                <div className="text-center mb-10 relative z-10">
+                    <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 tracking-tighter mb-4 drop-shadow-2xl">
+                        Page Discovery<span className="text-purple-500">.</span>
+                    </h1>
+                    <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                        Discover public Facebook pages by industry, niche, or topic. Analyze their performance and ads.
                     </p>
                 </div>
 
-                <form onSubmit={handleSearch} className="space-y-6 relative z-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Keyword Input */}
-                        <div className="relative group/input">
-                            <label className="text-xs font-extrabold text-zinc-500 uppercase tracking-widest mb-2.5 block ml-1">
-                                Industry Keywords
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Search className="w-5 h-5 text-zinc-500 group-focus-within/input:text-purple-500 transition-colors" />
-                                </div>
-                                <input
-                                    type="text"
-                                    value={keywords}
-                                    onChange={(e) => setKeywords(e.target.value)}
-                                    placeholder="e.g. Gyms, Design, Pub..."
-                                    className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-white/5 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all shadow-inner backdrop-blur-md"
-                                />
-                            </div>
-                        </div>
+                {/* Central Glass Search Module */}
+                <div className="w-full relative z-20 group">
+                    <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-purple-600 to-indigo-600 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
 
-                        {/* Location Input */}
-                        <div className="relative group/input">
-                            <label className="text-xs font-extrabold text-zinc-500 uppercase tracking-widest mb-2.5 block ml-1">
-                                Location (Optional)
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <MapPin className="w-5 h-5 text-zinc-500 group-focus-within/input:text-purple-500 transition-colors" />
+                    <div className="relative z-50 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-2 shadow-2xl flex flex-col items-center gap-4 overflow-visible ring-1 ring-white/5">
+                        <form onSubmit={handleSearch} className="w-full">
+                            <div className="flex flex-col md:flex-row gap-2 w-full">
+                                {/* Keyword Input */}
+                                <div className="flex-1 relative group/input h-[64px]">
+                                    <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                        <Search className="w-6 h-6 text-zinc-600 group-focus-within/input:text-purple-400 transition-colors duration-300" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={keywords}
+                                        onChange={(e) => setKeywords(e.target.value)}
+                                        placeholder="Industry keywords (e.g. Gyms, Design)..."
+                                        className="w-full bg-zinc-900/30 md:bg-transparent rounded-[1.5rem] md:rounded-l-[1.5rem] border-none text-xl font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full pl-16 pr-4 tracking-tight"
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    value={location}
-                                    onChange={(e) => setLocation(e.target.value)}
-                                    placeholder="e.g. New York, London, Canada..."
-                                    className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-white/5 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500/50 focus:ring-4 focus:ring-purple-500/10 transition-all shadow-inner backdrop-blur-md"
-                                />
+
+                                {/* Divider for desktop */}
+                                <div className="hidden md:block w-px bg-white/10 my-3 self-stretch" />
+
+                                {/* Location Input */}
+                                <div className="flex-1 md:flex-[0.6] relative group/input h-[64px]">
+                                    <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                        <MapPin className="w-5 h-5 text-zinc-600 group-focus-within/input:text-purple-400 transition-colors duration-300" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
+                                        placeholder="Location (Optional)..."
+                                        className="w-full bg-zinc-900/30 md:bg-transparent rounded-[1.5rem] md:rounded-none border-none text-lg font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full pl-14 pr-4 tracking-tight"
+                                    />
+                                </div>
+
+                                {/* Search Button */}
+                                <button
+                                    type="submit"
+                                    disabled={loading || !keywords}
+                                    className={`
+                                        h-[64px] px-10 rounded-[1.5rem] font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                                        bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 flex items-center gap-2 group/searchBtn shrink-0
+                                    `}
+                                >
+                                    {loading ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <span>Discover</span>
+                                            <Sparkles className="w-5 h-5 fill-white/20 group-hover/searchBtn:scale-110 transition-transform" />
+                                        </>
+                                    )}
+                                </button>
                             </div>
+                        </form>
+                    </div>
+
+                    {/* Minimal Filters Below */}
+                    <div className="flex items-center justify-center gap-4 mt-6 text-zinc-500 relative z-20">
+                        <div className="w-[180px]">
+                            <MaterialDropdown
+                                value={limit}
+                                onChange={setLimit}
+                                options={limitOptions}
+                                label="Results Limit"
+                                icon={Layers}
+                                width="w-full"
+                            />
                         </div>
                     </div>
 
-                    <div className="flex items-end justify-between gap-6 pt-2">
-                        <div className="relative group/input w-48">
-                            <label className="text-xs font-extrabold text-zinc-500 uppercase tracking-widest mb-2.5 block ml-1">
-                                Max Results
-                            </label>
-                            <select
-                                value={limit}
-                                onChange={(e) => setLimit(e.target.value)}
-                                className="w-full appearance-none bg-black/40 border border-white/5 text-white py-3.5 px-4 rounded-xl focus:outline-none focus:border-purple-500/50 cursor-pointer font-medium hover:bg-white/5 transition-colors shadow-sm backdrop-blur-md"
-                            >
-                                <option value="10" className="bg-black">10 Pages</option>
-                                <option value="20" className="bg-black">20 Pages</option>
-                                <option value="50" className="bg-black">50 Pages</option>
-                                <option value="100" className="bg-black">100 Pages</option>
-                                <option value="1000" className="bg-black">1000 Pages (Max)</option>
-                            </select>
+                </div>
+            </div>
+
+            {/* Filters */}
+            {pages.length > 0 && (
+                <div className="mt-10 flex flex-col space-y-4 animate-fade-in relative z-10 border-t border-white/5 pt-6">
+                    {/* Filters Row */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 text-xs font-extrabold text-zinc-500 uppercase tracking-widest mr-2">
+                            <Filter className="w-3 h-3" />
+                            <span>Filters</span>
                         </div>
 
                         <button
-                            type="submit"
-                            disabled={loading || !keywords}
-                            className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-600/20 active:scale-95 flex items-center justify-center gap-2 h-[52px] group"
-                        >
-                            {loading ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Scanning Facebook...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                    <span>Discover Pages</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
-
-                {/* Filters */}
-                {pages.length > 0 && (
-                    <div className="mt-10 flex flex-col space-y-4 animate-fade-in relative z-10 border-t border-white/5 pt-6">
-                        {/* Filters Row */}
-                        <div className="flex flex-wrap items-center gap-3">
-                            <div className="flex items-center gap-2 text-xs font-extrabold text-zinc-500 uppercase tracking-widest mr-2">
-                                <Filter className="w-3 h-3" />
-                                <span>Filters</span>
-                            </div>
-
-                            <button
-                                onClick={() => setFilterAdsOnly(!filterAdsOnly)}
-                                className={`
+                            onClick={() => setFilterAdsOnly(!filterAdsOnly)}
+                            className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backgrop-blur-md
                                 ${filterAdsOnly
-                                        ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
+                                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                                    : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
-                            >
-                                <div className={`w-2 h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-                                Has Ads
-                            </button>
+                        >
+                            <div className={`w-2 h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                            Has Ads
+                        </button>
 
-                            <button
-                                onClick={() => setFilterHasEmail(!filterHasEmail)}
-                                className={`
+                        <button
+                            onClick={() => setFilterHasEmail(!filterHasEmail)}
+                            className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasEmail
-                                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
+                                    ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                                    : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
-                            >
-                                <Mail className="w-3 h-3" />
-                                Email
-                            </button>
+                        >
+                            <Mail className="w-3 h-3" />
+                            Email
+                        </button>
 
-                            <button
-                                onClick={() => setFilterHasWebsite(!filterHasWebsite)}
-                                className={`
+                        <button
+                            onClick={() => setFilterHasWebsite(!filterHasWebsite)}
+                            className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasWebsite
-                                        ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
+                                    ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                                    : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
-                            >
-                                <Globe className="w-3 h-3" />
-                                Website
-                            </button>
+                        >
+                            <Globe className="w-3 h-3" />
+                            Website
+                        </button>
 
-                            <button
-                                onClick={() => setFilterHasPhone(!filterHasPhone)}
-                                className={`
+                        <button
+                            onClick={() => setFilterHasPhone(!filterHasPhone)}
+                            className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasPhone
-                                        ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
-                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
+                                    ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                                    : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
-                            >
-                                <Phone className="w-3 h-3" />
-                                Phone
-                            </button>
+                        >
+                            <Phone className="w-3 h-3" />
+                            Phone
+                        </button>
 
-                            <button
-                                onClick={() => setFilterConfirmedOwner(!filterConfirmedOwner)}
-                                className={`
+                        <button
+                            onClick={() => setFilterConfirmedOwner(!filterConfirmedOwner)}
+                            className={`
                                 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterConfirmedOwner
-                                        ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
-                                        : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
+                                    ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
+                                    : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
-                            >
-                                <UserCheck className="w-3 h-3" />
-                                Confirmed Owner
-                            </button>
-                        </div>
+                        >
+                            <UserCheck className="w-3 h-3" />
+                            Confirmed Owner
+                        </button>
+                    </div>
 
-                        {/* Sort Row */}
-                        <div className="flex items-center justify-end w-full">
-                            <select
+                    {/* Sort Row */}
+                    <div className="flex items-center justify-end w-full relative z-20">
+                        <div className="w-[220px]">
+                            <MaterialDropdown
                                 value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as any)}
-                                className="appearance-none bg-black/40 border border-white/5 text-white text-xs font-bold rounded-xl pl-4 pr-8 py-2.5 hover:bg-white/5 focus:outline-none cursor-pointer w-full md:w-auto backdrop-blur-md"
-                            >
-                                <option value="followers" className="bg-black">Sort: Most Followers</option>
-                                <option value="rating" className="bg-black">Sort: Best Rated</option>
-                                <option value="reviews" className="bg-black">Sort: Most Reviews</option>
-                                <option value="newest" className="bg-black">Sort: Newest Created</option>
-                            </select>
+                                onChange={setSortBy}
+                                options={sortOptions}
+                                placeholder="Sort Pages"
+                                icon={List}
+                            />
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
 
             {/* Results Grid */}
             {
@@ -462,7 +477,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
     const introText = page.intro || (page.info && page.info.length > 0 ? page.info[0] : null)
 
     return (
-        <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden hover:border-purple-500/30 hover:bg-zinc-900/40 transition-all flex flex-col group relative shadow-lg hover:shadow-purple-900/10">
+        <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-[2rem] overflow-hidden hover:border-purple-500/30 hover:bg-zinc-900/40 transition-all flex flex-col group relative shadow-lg hover:shadow-purple-900/10 hover:-translate-y-1 ring-1 ring-white/10">
             {/* Header / Cover */}
             <div
                 className="h-36 bg-zinc-900 relative overflow-hidden cursor-pointer group/header"

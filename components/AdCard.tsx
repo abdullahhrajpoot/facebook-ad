@@ -11,9 +11,10 @@ interface AdCardProps {
     ad: any
     initialIsSaved?: boolean
     onToggleSave?: (newState: boolean) => void
+    variant?: 'blue' | 'emerald' | 'purple'
 }
 
-export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave }: AdCardProps) {
+export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave, variant = 'blue' }: AdCardProps) {
     const [showPreview, setShowPreview] = useState(false)
     const [isSaved, setIsSaved] = useState(initialIsSaved)
     const [isSaving, setIsSaving] = useState(false)
@@ -28,6 +29,40 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
     const primaryImage = ad.images[0] || ''
     const primaryLink = ad.links[0] || '#'
     const primaryCategory = ad.pageCategories[0] || 'Ad'
+
+    // Theme Config based on variant
+    const theme = {
+        blue: {
+            borderHover: 'hover:border-blue-500/50',
+            shadowHover: 'hover:shadow-blue-900/20',
+            iconColor: 'text-blue-400',
+            badgeBg: 'bg-blue-500',
+            ctaBorder: 'hover:border-blue-500/50',
+            ctaBg: 'hover:bg-blue-600/10',
+            ctaText: 'hover:text-blue-400',
+            placeholderGradient: 'from-blue-600 to-indigo-600'
+        },
+        emerald: {
+            borderHover: 'hover:border-emerald-500/50',
+            shadowHover: 'hover:shadow-emerald-900/20',
+            iconColor: 'text-emerald-400',
+            badgeBg: 'bg-emerald-500',
+            ctaBorder: 'hover:border-emerald-500/50',
+            ctaBg: 'hover:bg-emerald-600/10',
+            ctaText: 'hover:text-emerald-400',
+            placeholderGradient: 'from-emerald-600 to-teal-600'
+        },
+        purple: {
+            borderHover: 'hover:border-purple-500/50',
+            shadowHover: 'hover:shadow-purple-900/20',
+            iconColor: 'text-purple-400',
+            badgeBg: 'bg-purple-500',
+            ctaBorder: 'hover:border-purple-500/50',
+            ctaBg: 'hover:bg-purple-600/10',
+            ctaText: 'hover:text-purple-400',
+            placeholderGradient: 'from-purple-600 to-fuchsia-600'
+        }
+    }[variant]
 
     const handleSaveToggle = async (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -76,7 +111,11 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
     return (
         <>
             <div
-                className="group relative bg-gradient-to-br from-zinc-900 to-black border border-zinc-800 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/20 flex flex-col h-full cursor-pointer"
+                className={`
+                    group relative bg-black/40 backdrop-blur-xl border border-white/5 
+                    rounded-[2rem] overflow-hidden transition-all duration-500 hover:shadow-2xl flex flex-col h-full cursor-pointer
+                    hover:-translate-y-1 ring-1 ring-white/10 ${theme.borderHover} ${theme.shadowHover}
+                `}
                 onClick={() => setShowPreview(true)}
             >
                 {/* Top Bar: Ad ID + Category + Status */}
@@ -84,7 +123,7 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                     {/* Ad ID & Category */}
                     <div className="flex items-center gap-2 pointer-events-auto">
                         <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
-                            <Layers className="w-3 h-3 text-blue-400" />
+                            <Layers className={`w-3 h-3 ${theme.iconColor}`} />
                             <span className="text-[10px] font-mono text-zinc-300 font-bold tracking-tight uppercase truncate max-w-[80px]">
                                 {primaryCategory}
                             </span>
@@ -152,14 +191,14 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                                     className="rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
                                 />
                             ) : (
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm border-2 border-zinc-800">
+                                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${theme.placeholderGradient} flex items-center justify-center text-white font-bold text-sm border-2 border-zinc-800`}>
                                     {ad.pageName[0]?.toUpperCase()}
                                 </div>
                             )}
                             {/* Platform Badge (Small) */}
                             {ad.platforms[0] && (
                                 <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                    <div className={`w-2 h-2 rounded-full ${theme.badgeBg}`} />
                                 </div>
                             )}
                         </div>
@@ -183,7 +222,11 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 hover:bg-blue-600/10 text-zinc-300 hover:text-blue-400 text-xs font-bold rounded-xl transition-all duration-200 group/cta"
+                        className={`
+                            flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-zinc-900 border border-zinc-800 
+                            text-zinc-300 text-xs font-bold rounded-xl transition-all duration-200 group/cta
+                            ${theme.ctaBorder} ${theme.ctaBg} ${theme.ctaText}
+                        `}
                     >
                         <span>View Details</span>
                         <ExternalLink className="w-3 h-3 transition-transform group-hover/cta:translate-x-0.5" />
