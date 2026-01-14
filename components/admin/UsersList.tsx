@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, UserPlus, Filter, MoreHorizontal, Shield, Mail, Calendar, User } from 'lucide-react'
+import React, { useState } from 'react'
+import { Search, UserPlus, Filter, MoreHorizontal, Shield, Mail, Calendar, User, ChevronRight, Activity } from 'lucide-react'
 import UserActionModal from '../modals/UserActionModal'
 
 interface UsersListProps {
@@ -49,40 +49,49 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
     }
 
     return (
-        <div className="space-y-8 animate-fade-in-up">
-            {/* Toolbar */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-end">
-                <div className="relative w-full md:w-96 group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-zinc-500 group-focus-within:text-white transition-colors" />
+        <div className="space-y-6 animate-fade-in-up">
+            {/* Control Bar */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-end bg-[#050505] p-2 rounded-2xl border border-white/5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-white/5 skew-x-12 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none"></div>
+
+                <div className="relative w-full md:w-96">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-zinc-500" />
                     </div>
                     <input
                         type="text"
-                        className="block w-full pl-11 pr-4 py-4 border border-white/5 rounded-2xl leading-5 bg-black/40 backdrop-blur-md text-white placeholder-zinc-500 focus:outline-none focus:bg-zinc-900/60 focus:border-red-500/50 focus:ring-4 focus:ring-red-900/10 transition-all shadow-xl"
+                        className="block w-full pl-10 pr-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20 transition-all font-medium text-sm"
                         placeholder="Search users..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    <div className="absolute right-3 top-3.5 flex gap-1">
+                        <span className="w-1 h-1 bg-red-500 rounded-full animate-pulse"></span>
+                    </div>
                 </div>
+
                 <button
                     onClick={onAddUser}
-                    className="w-full md:w-auto bg-gradient-to-br from-white to-zinc-200 hover:from-white hover:to-white text-black px-6 py-4 rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl hover:shadow-white/10 flex items-center justify-center gap-2 active:scale-95"
+                    className="w-full md:w-auto px-6 py-3 bg-white text-black rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_-3px_rgba(255,255,255,0.4)]"
                 >
-                    <UserPlus className="w-5 h-5" />
+                    <UserPlus className="w-4 h-4" />
                     <span>Create User</span>
                 </button>
             </div>
 
-            {/* Table Card */}
-            <div className="bg-zinc-900/30 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-xl shadow-2xl">
-                <div className="overflow-x-auto min-h-[400px]">
+            {/* Data Grid */}
+            <div className="bg-[#050505] border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative min-h-[500px]">
+                {/* Decorative Grid BG */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+
+                <div className="overflow-x-auto relative z-10">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-white/5 bg-white/5">
-                                <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">User Profile</th>
-                                <th className="px-6 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Role Access</th>
-                                <th className="px-6 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Date Joined</th>
-                                <th className="px-6 py-5 text-right text-xs font-bold text-zinc-400 uppercase tracking-widest">Actions</th>
+                            <tr className="border-b border-white/5 bg-white/[0.02]">
+                                <th className="px-6 py-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-[0.2em] font-mono">User Profile</th>
+                                <th className="px-6 py-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-[0.2em] font-mono">Role</th>
+                                <th className="px-6 py-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-[0.2em] font-mono">Date Joined</th>
+                                <th className="px-6 py-4 text-right text-[10px] font-extrabold text-zinc-500 uppercase tracking-[0.2em] font-mono">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -91,69 +100,72 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
                                     <tr
                                         key={user.id}
                                         onClick={() => onSelectUser(user)}
-                                        className="hover:bg-white/5 transition-colors group cursor-pointer"
+                                        className="hover:bg-white/[0.03] transition-colors group cursor-pointer"
                                     >
-                                        <td className="px-8 py-5">
+                                        <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
                                                 <div className={`
-                                                    w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl shadow-lg ring-1 ring-white/10
+                                                    w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg shadow-lg ring-1 ring-white/10
                                                     ${user.role === 'admin'
-                                                        ? 'bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-red-500/20'
-                                                        : 'bg-zinc-800 text-zinc-400 group-hover:bg-zinc-700 group-hover:text-white transition-all'}
+                                                        ? 'bg-gradient-to-br from-red-600 to-orange-600 text-white shadow-red-500/10'
+                                                        : 'bg-[#111] text-zinc-500 group-hover:bg-zinc-800 group-hover:text-zinc-300 transition-all'}
                                                 `}>
-                                                    {user.full_name?.[0]?.toUpperCase() || <User className="w-6 h-6" />}
+                                                    {user.full_name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                                                 </div>
                                                 <div>
-                                                    <div className="text-white font-bold text-base group-hover:text-red-400 transition-colors">
+                                                    <div className="text-white font-bold text-sm group-hover:text-red-400 transition-colors flex items-center gap-2">
                                                         {user.full_name || 'Anonymous User'}
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-0.5">
+                                                    <div className="flex items-center gap-1.5 text-xs text-zinc-600 font-mono mt-0.5">
                                                         <Mail className="w-3 h-3" />
                                                         {user.email}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
+                                        <td className="px-6 py-4">
                                             <span className={`
-                                                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors
+                                                inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border
                                                 ${user.role === 'admin'
-                                                    ? 'bg-red-500/10 text-red-400 border-red-500/20'
-                                                    : 'bg-zinc-800 text-zinc-300 border-zinc-700'}
+                                                    ? 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_-4px_rgba(239,68,68,0.5)]'
+                                                    : 'bg-zinc-800/30 text-zinc-400 border-zinc-700/30'}
                                             `}>
                                                 <Shield className="w-3 h-3" />
-                                                {user.role}
+                                                {user.role === 'admin' ? 'Admin' : 'User'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center gap-2 text-sm text-zinc-400 font-medium">
-                                                <Calendar className="w-4 h-4 text-zinc-600" />
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                                                <Calendar className="w-3 h-3 text-zinc-700" />
                                                 {new Date(user.created_at).toLocaleDateString(undefined, {
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                    year: 'numeric'
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit'
                                                 })}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 text-right">
+                                        <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={(e) => handleActionClick(e, user)}
-                                                className="p-2 text-zinc-500 hover:text-white hover:bg-white/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 outline-none focus:opacity-100 focus:translate-x-0"
+                                                className="p-2 text-zinc-600 hover:text-white hover:bg-white/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0"
                                             >
-                                                <MoreHorizontal className="w-5 h-5" />
+                                                <MoreHorizontal className="w-4 h-4" />
                                             </button>
+                                            <div className="inline-flex opacity-0 group-hover:opacity-100 items-center justify-end transition-opacity duration-300 transform translate-x-2 group-hover:translate-x-0 ml-2">
+                                                <ChevronRight className="w-4 h-4 text-zinc-700 group-hover:text-red-500" />
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-24 text-center">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mb-4 border border-zinc-800">
-                                                <Search className="w-8 h-8 text-zinc-600" />
+                                    <td colSpan={4} className="px-6 py-32 text-center">
+                                        <div className="flex flex-col items-center justify-center opacity-50">
+                                            <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800 rotate-0">
+                                                <Search className="w-6 h-6 text-zinc-600" />
                                             </div>
-                                            <p className="text-lg font-bold text-white">No users found</p>
-                                            <p className="text-sm text-zinc-500 mt-1">Try adjusting your search terms.</p>
+                                            <p className="text-sm font-bold text-white uppercase tracking-widest">No matching records</p>
+                                            <p className="text-xs text-zinc-500 mt-2 font-mono">Try adjusting your search terms</p>
                                         </div>
                                     </td>
                                 </tr>

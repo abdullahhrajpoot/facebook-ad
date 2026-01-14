@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { createClient } from '../../utils/supabase/client'
-import { ArrowLeft, Trash2, Save, User, Mail, Shield, Lock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Trash2, Save, User, Mail, Shield, Lock, Activity, CheckCircle2 } from 'lucide-react'
 
 interface AdminUserProfileProps {
     user: any | null // null means creating a new user
@@ -74,176 +74,186 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
             <div className="flex items-center gap-4">
                 <button
                     onClick={onBack}
-                    className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all group"
+                    className="group flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 text-zinc-400 hover:text-white transition-all text-sm font-bold"
                 >
-                    <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                    <span>Back to List</span>
                 </button>
-                <div>
-                    <h2 className="text-3xl font-black text-white tracking-tight">
-                        {user ? 'Edit Profile' : 'New User Account'}
-                    </h2>
-                    <p className="text-zinc-400 text-sm font-medium">
-                        {user ? `Managing access and details for ${user.email}` : 'Configure credentials for a new system user.'}
-                    </p>
-                </div>
             </div>
 
-            {/* Profile Card */}
-            <div className="bg-zinc-900/30 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-xl shadow-2xl">
-                {/* User Banner / Avatar Area */}
-                <div className="h-48 bg-gradient-to-r from-red-900/20 via-zinc-900/40 to-blue-900/20 relative">
-                    <div className="absolute inset-x-8 -bottom-12 flex items-end justify-between">
+            {/* Main Card */}
+            <div className="bg-[#050505] border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
+                {/* Decorative Grid */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+
+                {/* Top Banner */}
+                <div className="h-40 bg-gradient-to-r from-red-900/10 via-black to-blue-900/10 relative border-b border-white/5">
+                    <div className="absolute top-4 right-4 animate-pulse">
+                        <Activity className="text-white/10 w-32 h-32 opacity-20" />
+                    </div>
+                </div>
+
+                <div className="px-8 pb-12">
+                    {/* Floating Avatar Header */}
+                    <div className="relative -mt-16 mb-12 flex items-end justify-between">
                         <div className="flex items-end gap-6">
-                            <div className="w-24 h-24 rounded-3xl bg-black p-1.5 shadow-2xl ring-4 ring-black">
-                                <div className={`
-                                    w-full h-full rounded-2xl flex items-center justify-center text-4xl font-black text-white shadow-inner
-                                    ${formData.role === 'admin'
-                                        ? 'bg-gradient-to-br from-red-600 to-orange-600'
-                                        : 'bg-gradient-to-br from-white to-zinc-400 text-black'}
-                                `}>
-                                    {formData.full_name?.[0]?.toUpperCase() || <User className="w-10 h-10" />}
+                            <div className="relative">
+                                <div className="w-32 h-32 rounded-3xl bg-[#0A0A0A] p-2 shadow-2xl ring-1 ring-white/10">
+                                    <div className={`
+                                        w-full h-full rounded-2xl flex items-center justify-center text-4xl font-black text-white
+                                        ${formData.role === 'admin'
+                                            ? 'bg-gradient-to-br from-red-600 to-orange-600 shadow-[inset_0_0_20px_rgba(0,0,0,0.4)]'
+                                            : 'bg-gradient-to-br from-zinc-700 to-zinc-800 shadow-[inset_0_0_20px_rgba(0,0,0,0.4)]'}
+                                    `}>
+                                        {formData.full_name?.[0]?.toUpperCase() || <User className="w-12 h-12" />}
+                                    </div>
+                                </div>
+                                <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-4 border-[#050505] flex items-center justify-center ${formData.role === 'admin' ? 'bg-red-500' : 'bg-blue-500'}`}>
+                                    {formData.role === 'admin' ? <Shield className="w-3 h-3 text-white" fill="currentColor" /> : <CheckCircle2 className="w-3 h-3 text-white" />}
                                 </div>
                             </div>
-                            <div className="pb-2">
-                                <h1 className="text-2xl font-bold text-white mb-0.5">
-                                    {formData.full_name || 'Unnamed User'}
+
+                            <div className="pb-2 space-y-1">
+                                <h1 className="text-3xl font-black text-white tracking-tight">
+                                    {formData.full_name || 'New User'}
                                 </h1>
-                                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${formData.role === 'admin'
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-mono text-zinc-500 uppercase tracking-widest">
+                                        ID: {user?.id?.slice(0, 8) || 'GENERATING...'}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${formData.role === 'admin'
                                         ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                        : 'bg-white/10 text-white border-white/10'
-                                    }`}>
-                                    <Shield className="w-3 h-3" />
-                                    {formData.role === 'admin' ? 'Administrator' : 'Standard User'}
+                                        : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                        }`}>
+                                        {formData.role === 'admin' ? 'Admin' : 'User'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="pt-20 pb-12 px-8">
-                    <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
-                        {/* Basic Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                        {/* Left Col: Main Info */}
+                        <div className="lg:col-span-2 space-y-8">
                             <div className="space-y-6">
-                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest border-b border-white/5 pb-2">
-                                    <User className="w-4 h-4" /> Account Details
-                                </div>
+                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-white/5">
+                                    <User className="w-4 h-4" /> Personal Information
+                                </h3>
 
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-400 mb-2 ml-1">Email Address</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-400 ml-1">Full Name</label>
                                         <div className="relative group">
-                                            <Mail className="absolute left-4 top-3.5 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
-                                            <input
-                                                type="email"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 transition-all placeholder-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                placeholder="user@example.com"
-                                                required
-                                                disabled={!!user}
-                                            />
-                                        </div>
-                                        {user && <p className="text-[10px] text-zinc-500 mt-1.5 ml-1 flex items-center gap-1"><Lock className="w-3 h-3" /> Identity Locked</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-400 mb-2 ml-1">Full Name</label>
-                                        <div className="relative group">
-                                            <User className="absolute left-4 top-3.5 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors" />
                                             <input
                                                 type="text"
                                                 value={formData.full_name}
                                                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                                                className="w-full bg-black/40 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 transition-all placeholder-zinc-700"
-                                                placeholder="John Doe"
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-4 pr-4 py-3 text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all placeholder-zinc-700 font-medium"
+                                                placeholder="Enter full name"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-400 ml-1">Email Address</label>
+                                        <div className="relative group">
+                                            <Mail className="absolute right-4 top-3.5 w-4 h-4 text-zinc-600 group-focus-within:text-white transition-colors pointer-events-none" />
+                                            <input
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl pl-4 pr-10 py-3 text-white focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all placeholder-zinc-700 font-mono text-sm disabled:opacity-50"
+                                                placeholder="user@ikonic.com"
+                                                required
+                                                disabled={!!user}
                                             />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-widest border-b border-white/5 pb-2">
-                                    <Shield className="w-4 h-4" /> Security & Access
-                                </div>
+                            <div className="space-y-6 pt-4">
+                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-white/5">
+                                    <Lock className="w-4 h-4" /> Security Configuration
+                                </h3>
 
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-zinc-400 mb-2 ml-1">Role Permission</label>
-                                        <div className="relative">
-                                            <select
-                                                value={formData.role}
-                                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                                className="w-full appearance-none bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 transition-all cursor-pointer hover:bg-white/5"
-                                            >
-                                                <option value="user">Standard User</option>
-                                                <option value="admin">Administrator (Full Access)</option>
-                                            </select>
-                                            <div className="absolute right-4 top-3.5 pointer-events-none text-zinc-500 text-xs">▼</div>
+                                <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-white/5 space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                                        <div>
+                                            <label className="block text-sm font-bold text-white mb-1">Role</label>
+                                            <p className="text-xs text-zinc-500 mb-4">Determine system privileges for this account.</p>
+
+                                            <div className="flex gap-2 p-1 bg-black rounded-lg border border-white/10">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, role: 'user' })}
+                                                    className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${formData.role === 'user' ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                                                >
+                                                    User
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, role: 'admin' })}
+                                                    className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${formData.role === 'admin' ? 'bg-red-600 text-white shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+                                                >
+                                                    Admin
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Conditionally Render Password Input ONLY for New Users */}
-                                    {isNew && (
-                                        <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 space-y-3">
-                                            <label className="block text-xs font-bold text-red-400 ml-1">
-                                                Set Initial Password
-                                            </label>
-                                            <div className="relative group">
-                                                <Lock className="absolute left-4 top-3.5 w-4 h-4 text-red-500/50 group-focus-within:text-red-500 transition-colors" />
+                                        {isNew && (
+                                            <div className="bg-red-900/10 border border-red-500/20 rounded-xl p-4">
+                                                <label className="block text-xs font-bold text-red-400 mb-2">Set Password</label>
                                                 <input
                                                     type="password"
                                                     value={formData.password}
                                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                    className="w-full bg-black/40 border border-red-500/20 rounded-xl pl-11 pr-4 py-3 text-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all placeholder-red-900/30"
+                                                    className="w-full bg-black/50 border border-red-500/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500 transition-all placeholder-red-900/50 font-mono"
                                                     placeholder="••••••••"
                                                     required
                                                     minLength={6}
                                                 />
                                             </div>
-                                            <p className="text-[10px] text-red-400/60 font-medium">
-                                                Must be at least 6 characters.
-                                            </p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="pt-8 border-t border-white/5 flex items-center justify-between gap-4">
-                            {user ? (
-                                <button
-                                    type="button"
-                                    onClick={handleDelete}
-                                    className="px-5 py-3 rounded-xl bg-red-500/5 text-red-500 border border-red-500/10 hover:bg-red-500 hover:text-white transition-all font-bold text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-red-900/20"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    Delete Account
-                                </button>
-                            ) : <div />}
+                        {/* Right Col: Actions */}
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 sticky top-24">
+                                <h3 className="text-white font-bold mb-6">Actions</h3>
 
-                            <div className="flex gap-3 ml-auto">
-                                <button
-                                    type="button"
-                                    onClick={onBack}
-                                    className="px-6 py-3 rounded-xl border border-white/10 text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-bold text-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold transition-all shadow-lg shadow-red-600/20 disabled:opacity-50 flex items-center gap-2 active:scale-95"
-                                >
-                                    {loading ? (
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <Save className="w-4 h-4" />
+                                <div className="space-y-3">
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full py-4 rounded-xl bg-white text-black font-black hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] disabled:opacity-50"
+                                    >
+                                        {loading ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
+                                        <span>{isNew ? 'Create User' : 'Save Changes'}</span>
+                                    </button>
+
+                                    {user && (
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            className="w-full py-4 rounded-xl border border-red-900/30 text-red-500 hover:bg-red-900/10 hover:border-red-500/50 transition-all font-bold flex items-center justify-center gap-2 group"
+                                        >
+                                            <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                            <span>Delete User</span>
+                                        </button>
                                     )}
-                                    <span>{isNew ? 'Create Account' : 'Save Changes'}</span>
-                                </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={onBack}
+                                        className="w-full py-3 rounded-xl hover:bg-white/5 text-zinc-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </form>
