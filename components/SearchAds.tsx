@@ -247,7 +247,7 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
     }, [ads])
 
     // 2. Comprehensive Filtering & Sorting (Memoized)
-    const { filteredAds, hiddenDuplicateCount } = useMemo(() => {
+    const { filteredAds, duplicateCount } = useMemo(() => {
         let result = [...ads]
 
         // --- FILTERS ---
@@ -321,10 +321,10 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
 
         if (showDuplicates || !wasUniqueSearch) {
             // Show all (sorted)
-            return { filteredAds: result, hiddenDuplicateCount: 0 }
+            return { filteredAds: result, duplicateCount: duplicates.length }
         } else {
             // Show unique only
-            return { filteredAds: unique, hiddenDuplicateCount: duplicates.length }
+            return { filteredAds: unique, duplicateCount: duplicates.length }
         }
 
     }, [ads, selectedCategories, mediaType, platform, activeOnly, minDaysActive, sortBy, showDuplicates, wasUniqueSearch])
@@ -622,10 +622,19 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                     <span className={`px-3 py-1 bg-zinc-900/80 rounded-full text-xs font-bold text-zinc-300 border border-white/10 ${theme.shadow}`}>
                                         {filteredAds.length} {showDuplicates ? 'Total' : 'Unique'} Ads
                                     </span>
-                                    {hiddenDuplicateCount > 0 && !showDuplicates && (
-                                        <span className="px-3 py-1 bg-blue-900/20 rounded-full text-xs font-bold text-blue-400 border border-blue-500/20">
-                                            +{hiddenDuplicateCount} Duplicates Hidden
-                                        </span>
+                                    {wasUniqueSearch && duplicateCount > 0 && (
+                                        <button
+                                            onClick={() => setShowDuplicates(!showDuplicates)}
+                                            className={`
+                                                px-3 py-1 rounded-full text-xs font-bold border transition-all flex items-center gap-1
+                                                ${showDuplicates
+                                                    ? 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'
+                                                    : 'bg-blue-900/20 text-blue-400 border-blue-500/20 hover:bg-blue-900/40'}
+                                            `}
+                                        >
+                                            <Layers className="w-3 h-3" />
+                                            {showDuplicates ? 'Hide Duplicates' : `+${duplicateCount} Duplicates`}
+                                        </button>
                                     )}
                                 </div>
                             )}
