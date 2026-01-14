@@ -120,7 +120,7 @@ export async function POST(request: Request) {
             const params = new URLSearchParams({
                 active_status: "active",
                 ad_type: "all",
-                country: "ALL",
+                country: countryCode,
                 is_targeted_country: "false",
                 media_type: "all",
                 q: keyword,
@@ -132,12 +132,14 @@ export async function POST(request: Request) {
 
             const fallbackInput = {
                 "count": Number(maxResults) * fetchMultiplier,
+                "start_date_min": "2024-01-01",
                 "urls": [
                     { "url": fallbackUrl }
                 ],
                 "proxyConfiguration": {
                     "useApifyProxy": true,
-                    "apifyProxyGroups": ["RESIDENTIAL"]
+                    "apifyProxyGroups": ["RESIDENTIAL"],
+                    "countryCode": countryCode
                 }
             };
 
