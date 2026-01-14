@@ -62,7 +62,14 @@ export const validateAd = (ad: any): boolean => {
         (snapshot.images && snapshot.images.length > 0) ||
         (snapshot.cards && snapshot.cards.length > 0) ||
         (snapshot.videos && snapshot.videos.length > 0) ||
-        (snapshot.extra_images && snapshot.extra_images.length > 0)
+        (snapshot.extra_images && snapshot.extra_images.length > 0) ||
+        // Check root-level fallbacks
+        (Array.isArray(ad.images) && ad.images.length > 0) ||
+        (Array.isArray(ad.videos) && ad.videos.length > 0) ||
+        (Array.isArray(ad.cards) && ad.cards.length > 0) ||
+        !!ad.imageUrl ||
+        !!ad.videoUrl ||
+        !!ad.thumbnailUrl
 
     if (!hasImage) return false
 
@@ -72,7 +79,10 @@ export const validateAd = (ad: any): boolean => {
         snapshot.title ||
         snapshot.link_description ||
         ad.adCreativeBody ||
-        ad.adCreativeLinkTitle
+        ad.adCreativeLinkTitle ||
+        ad.message ||
+        ad.caption ||
+        ad.body
 
     if (!hasText) return false
 
@@ -80,7 +90,10 @@ export const validateAd = (ad: any): boolean => {
     const hasLink =
         snapshot.link_url ||
         ad.adCreativeLinkUrl ||
-        (snapshot.extra_links && snapshot.extra_links.length > 0)
+        (snapshot.extra_links && snapshot.extra_links.length > 0) ||
+        ad.link ||
+        ad.url ||
+        ad.ad_library_url // Worst case, link to the ad itself is enough to be "valid"
 
     if (!hasLink) return false
 

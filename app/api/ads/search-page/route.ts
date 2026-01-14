@@ -185,6 +185,8 @@ export async function POST(request: Request) {
             "count": fetchLimit,
             "scrapePageAds.activeStatus": "all",
             "scrapePageAds.countryCode": "ALL",
+            "start_date_min": "2020-01-01",
+            "start_date_max": new Date().toISOString().split('T')[0],
             "proxyConfiguration": {
                 "useApifyProxy": true,
                 "apifyProxyGroups": ["RESIDENTIAL"]
@@ -292,7 +294,8 @@ export async function POST(request: Request) {
 
                     const fallbackInput = {
                         "page_id": targetPageId,
-                        "size": fetchLimit
+                        "size": fetchLimit,
+                        "start_date_min": "2020-01-01"
                     };
 
                     const run = await client.actor('yhoz5tLd6h8XSuUP7').call(fallbackInput, {
@@ -353,8 +356,30 @@ export async function POST(request: Request) {
 
         // Simple Validation & Normalization
         const validatedAds: AdData[] = items
-            .filter(item => validateAd(item))
-            .map(item => normalizeAdData(item));
+            .filter((item, index) => {
+                const isValid = validateAd(item);
+                if (!isValid && index < 10) { // Log first 10 failures
+                    // Only log if we have a massive failure rate (e.g. valid count is low)
+                    // But we don't know the final valid count yet.
+                    // We'll log locally here.
+                    // console.log(`Invalid Item ${index}:`, JSON.stringify(item).substring(0, 200));
+                }
+                return isValid;
+            })
+            .map(item => normalizeAdData(item))
+            .sort((a, b) => {
+                const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+                const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+                return dateB - dateA; // Descending (Newest first)
+            });
+
+        if (items.length > 0 && validatedAds.length === 0) {
+            console.log('ALL ITEMS FAILED VALIDATION. Dumping first item:', JSON.stringify(items[0], null, 2));
+        } else if (items.length > validatedAds.length) {
+            console.log(`Validation dropped ${items.length - validatedAds.length} items. First dropped item sample:`);
+            const firstInvalid = items.find(i => !validateAd(i));
+            if (firstInvalid) console.log(JSON.stringify(firstInvalid, null, 2).substring(0, 500));
+        }
 
         console.log(`\n========== RESULTS SUMMARY ==========`);
         console.log(`Total Valid Ads: ${validatedAds.length}`);
