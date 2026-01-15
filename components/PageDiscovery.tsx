@@ -90,19 +90,88 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
     const [selectedPage, setSelectedPage] = useState<FacebookPageLocal | null>(null)
     const [hasSearched, setHasSearched] = useState(false)
 
+    // Persistence Key
+    const STORAGE_KEY = 'FACEBOOK_PAGE_DISCOVERY_STATE'
+
     // Auto-search on mount if initial state is present
     React.useEffect(() => {
-        if (initialState) {
-            setKeywords(initialState.keywords)
-            setLocation(initialState.location)
-            setLimit(initialState.limit)
+        const initializeState = async () => {
+            // Priority 1: Props
+            if (initialState) {
+                setKeywords(initialState.keywords)
+                setLocation(initialState.location)
+                setLimit(initialState.limit)
 
-            // Short timeout to allow state to settle, though passing args directly is safer
-            setTimeout(() => {
-                executeSearch(initialState.keywords, initialState.location, initialState.limit)
-            }, 100)
+                // Short timeout
+                setTimeout(() => {
+                    executeSearch(initialState.keywords, initialState.location, initialState.limit)
+                }, 100)
+                return
+            }
+
+            // Priority 2: Local Storage
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY)
+                if (saved) {
+                    const parsed = JSON.parse(saved)
+                    // Only restore if less than 24 hours old
+                    const isRecent = (Date.now() - (parsed.timestamp || 0)) < 1000 * 60 * 60 * 24
+
+                    if (isRecent) {
+                        setKeywords(parsed.keywords || '')
+                        setLocation(parsed.location || '')
+                        setLimit(parsed.limit || '10')
+                        setPages(parsed.pages || [])
+                        setHasSearched(parsed.hasSearched || false)
+                        setFilterAdsOnly(parsed.filterAdsOnly || false)
+                        setFilterHasEmail(parsed.filterHasEmail || false)
+                        setFilterHasWebsite(parsed.filterHasWebsite || false)
+                        setFilterHasPhone(parsed.filterHasPhone || false)
+                        setFilterConfirmedOwner(parsed.filterConfirmedOwner || false)
+                        setSortBy(parsed.sortBy || 'followers')
+
+                        if (parsed.loading) {
+                            setTimeout(() => {
+                                executeSearch(
+                                    parsed.keywords || '',
+                                    parsed.location || '',
+                                    parsed.limit || '10'
+                                )
+                            }, 500)
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to restore page discovery state", e)
+            }
         }
+        initializeState()
     }, [initialState])
+
+    // Save state to Local Storage
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            if (hasSearched || keywords) {
+                const stateToSave = {
+                    keywords,
+                    location,
+                    limit,
+                    pages,
+                    hasSearched: hasSearched && !loading, // Don't persist hasSearched=true if strictly stuck in loading, wait for done. OR keep it true if we re-trigger.
+                    loading,
+                    filterAdsOnly,
+                    filterHasEmail,
+                    filterHasWebsite,
+                    filterHasPhone,
+                    filterConfirmedOwner,
+                    sortBy,
+                    timestamp: Date.now()
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
+            }
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [keywords, location, limit, pages, hasSearched, loading, filterAdsOnly, filterHasEmail, filterHasWebsite, filterHasPhone, filterConfirmedOwner, sortBy])
 
     const limitOptions = React.useMemo(() => [
         { value: '10', label: '10 Pages' },

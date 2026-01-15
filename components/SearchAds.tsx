@@ -89,35 +89,74 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
         }
     }, [searchMode])
 
-    // Handle Initial Page Query & History Selection
-    useEffect(() => {
-        if (initialPageQuery) {
-            setSearchMode('page')
-            setKeyword(initialPageQuery)
-            // Small timeout to ensure state updates
-            setTimeout(() => {
-                executeSearch(initialPageQuery, 'page', 'US', maxResults)
-            }, 100)
-        } else if (initialSearchState) {
-            setSearchMode(initialSearchState.mode)
-            setKeyword(initialSearchState.keyword)
-            setCountry(initialSearchState.country)
-            setMaxResults(initialSearchState.maxResults)
-
-            setTimeout(() => {
-                executeSearch(
-                    initialSearchState.keyword,
-                    initialSearchState.mode,
-                    initialSearchState.country,
-                    initialSearchState.maxResults
-                )
-            }, 100)
-        }
-    }, [initialPageQuery, initialSearchState])
+    // Persistence Key
+    const STORAGE_KEY = 'FACEBOOK_ADS_SEARCH_STATE'
 
     // Fetch saved ads & history on mount
     useEffect(() => {
-        const fetchInitialData = async () => {
+        const initializeState = async () => {
+            // Priority 1: Props (if navigating from another specific flow)
+            if (initialPageQuery) {
+                setSearchMode('page')
+                setKeyword(initialPageQuery)
+                // Small timeout to ensure state updates
+                setTimeout(() => {
+                    executeSearch(initialPageQuery, 'page', 'US', maxResults)
+                }, 100)
+                return
+            } else if (initialSearchState) {
+                setSearchMode(initialSearchState.mode)
+                setKeyword(initialSearchState.keyword)
+                setCountry(initialSearchState.country)
+                setMaxResults(initialSearchState.maxResults)
+
+                setTimeout(() => {
+                    executeSearch(
+                        initialSearchState.keyword,
+                        initialSearchState.mode,
+                        initialSearchState.country,
+                        initialSearchState.maxResults
+                    )
+                }, 100)
+                return
+            }
+
+            // Priority 2: Local Storage (Restore previous session)
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY)
+                if (saved) {
+                    const parsed = JSON.parse(saved)
+                    // Only restore if less than 24 hours old
+                    const isRecent = (Date.now() - (parsed.timestamp || 0)) < 1000 * 60 * 60 * 24
+
+                    if (isRecent) {
+                        setKeyword(parsed.keyword || '')
+                        setCountry(parsed.country || 'US')
+                        setMaxResults(parsed.maxResults || '20')
+                        setSearchMode(parsed.searchMode || 'keyword')
+                        setAds(parsed.ads || [])
+                        setHasSearched(parsed.hasSearched || false)
+                        setEnsureUnique(parsed.ensureUnique || false)
+                        setWasUniqueSearch(parsed.wasUniqueSearch || false)
+
+                        if (parsed.loading) {
+                            // Resume interrupted search
+                            setTimeout(() => {
+                                executeSearch(
+                                    parsed.keyword,
+                                    parsed.searchMode || 'keyword',
+                                    parsed.country || 'US',
+                                    parsed.maxResults || '20'
+                                )
+                            }, 500)
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to restore search state", e)
+            }
+
+            // Load Supabase Data (History/Saved)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
@@ -150,8 +189,30 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                 setRecentSearches(Array.from(unique.values()))
             }
         }
-        fetchInitialData()
-    }, [])
+        initializeState()
+    }, [initialPageQuery, initialSearchState])
+
+    // Save state to Local Storage on change
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (hasSearched || keyword) {
+                const stateToSave = {
+                    keyword,
+                    country,
+                    maxResults,
+                    searchMode,
+                    ads,
+                    hasSearched: hasSearched && !loading, // Only save hasSearched=true if we are done loading, otherwise we rely on 'loading' flag
+                    loading,
+                    ensureUnique,
+                    wasUniqueSearch,
+                    timestamp: Date.now()
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
+            }
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [keyword, country, maxResults, searchMode, ads, hasSearched, ensureUnique, wasUniqueSearch, loading])
 
     const countries = [
         { code: 'US', name: 'United States' },

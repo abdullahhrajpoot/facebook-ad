@@ -3,18 +3,44 @@ import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
 
 export async function POST(request: Request) {
+    const requestId = `REQ_DISCO_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const log = (step: string, details?: any) => {
+        console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            requestId,
+            step,
+            details
+        }, null, 2));
+    };
+
+    const errorLog = (step: string, error: any) => {
+        console.error(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            requestId,
+            step,
+            error: error.message || error,
+            fullError: error
+        }, null, 2));
+    };
+
     try {
+        log('START_REQUEST', { method: request.method, url: request.url });
+
         // Authenticate User with Retry for Robustness
         const supabase = await createClient();
         let user = null;
         let authError = null;
 
+        log('AUTH_START');
         for (let i = 0; i < 3; i++) {
             const result = await supabase.auth.getUser();
             user = result.data.user;
             authError = result.error;
 
-            if (!authError) break;
+            if (!authError) {
+                log('AUTH_SUCCESS', { attempt: i + 1 });
+                break;
+            }
 
             const isNetwork = authError.message && (
                 authError.message.toLowerCase().includes('fetch failed') ||
@@ -23,25 +49,30 @@ export async function POST(request: Request) {
                 authError.message.toLowerCase().includes('connection')
             );
 
+            log('AUTH_ATTEMPT_FAILED', { attempt: i + 1, error: authError.message, isNetwork });
+
             if (!isNetwork) break;
 
-            console.warn(`Auth attempt ${i + 1} in discovery timed out. Retrying...`);
             if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         if (authError && (authError.message?.toLowerCase().includes('fetch') || authError.message?.toLowerCase().includes('timeout'))) {
-            console.error('Supabase Auth verification failed due to network timeout:', authError);
+            errorLog('AUTH_NETWORK_ERROR', authError);
             return NextResponse.json({ error: 'Service temporarily unavailable, please try again' }, { status: 503 });
         }
 
         if (authError || !user) {
+            errorLog('AUTH_FAILED_FINAL', authError);
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await request.json();
         const { keywords, location, limit = 10 } = body;
 
+        log('PARSE_BODY', { keywords, location, limit });
+
         if (!keywords || (Array.isArray(keywords) && keywords.length === 0)) {
+            log('VALIDATION_ERROR', { field: 'keywords', message: 'Required' });
             return NextResponse.json(
                 { error: 'At least one keyword/category is required' },
                 { status: 400 }
@@ -50,24 +81,22 @@ export async function POST(request: Request) {
 
         const token = process.env.APIFY_API_TOKEN;
         if (!token) {
-            console.error('APIFY_API_TOKEN is not configured');
+            errorLog('CONFIG_ERROR', 'APIFY_API_TOKEN missing');
             return NextResponse.json(
                 { error: 'Server configuration error: APIFY_API_TOKEN missing' },
                 { status: 500 }
             );
         }
 
-        const client = new ApifyClient({
-            token: token,
-        });
+        const client = new ApifyClient({ token: token });
 
         // Prepare Input
         const categories = Array.isArray(keywords) ? keywords : [keywords];
         const locations = location ? [location] : [];
 
-        // STRATEGY: Over-fetch by 2x to ensure we have enough valid results to meet the requested limit
+        // STRATEGY: Over-fetch by 2x
         const requestedLimit = Number(limit);
-        const fetchLimit = Math.max(requestedLimit * 2, 20); // Always fetch at least 20
+        const fetchLimit = Math.max(requestedLimit * 2, 20);
 
         const runInput = {
             "categories": categories,
@@ -79,11 +108,7 @@ export async function POST(request: Request) {
             }
         };
 
-        console.log(`\n========== PAGE DISCOVERY REQUEST ==========`);
-        console.log(`Keywords: "${categories.join(', ')}"`);
-        console.log(`Location: "${locations.join(', ')}"`);
-        console.log(`Requested Limit: ${requestedLimit} (Fetching ${fetchLimit})`);
-        console.log(`============================================\n`);
+        log('ACTOR_INIT', { actorId: 'Us34x9p7VgjCz99H6', runInput });
 
         // Retry Logic
         let items: any[] = [];
@@ -93,11 +118,7 @@ export async function POST(request: Request) {
 
         while (attempts < maxAttempts && !success) {
             attempts++;
-            console.log(`Attempt ${attempts} of ${maxAttempts}...`);
-
             try {
-                // Start Actor Run (Facebook Search Scraper - Us34x9p7VgjCz99H6)
-                // Increased wait time to 300s
                 const run = await client.actor('Us34x9p7VgjCz99H6').call(runInput, {
                     waitSecs: 300,
                 });
@@ -106,7 +127,8 @@ export async function POST(request: Request) {
                     const dataset = await client.dataset(run.defaultDatasetId).listItems();
                     items = dataset.items;
 
-                    // Simple check: did we get anything?
+                    log(`ACTOR_ATTEMPT_${attempts}_COMPLETE`, { count: items.length });
+
                     if (items.length > 0) {
                         success = true;
 
@@ -123,29 +145,30 @@ export async function POST(request: Request) {
                                         resultsCount: items.length
                                     }
                                 });
+                                log('HISTORY_SAVED');
                             } catch (hErr) {
-                                console.error('Failed to save history:', hErr);
+                                errorLog('HISTORY_ERROR', hErr);
                             }
                         })();
 
                     } else {
-                        console.log('Run succeeded but returned 0 page results.');
+                        log(`ACTOR_ATTEMPT_${attempts}_EMPTY`);
                     }
                 } else {
-                    console.error('Apify Page Discovery run failed or was aborted:', run);
+                    log(`ACTOR_ATTEMPT_${attempts}_FAILED`, { status: run?.status });
                 }
             } catch (err) {
-                console.error(`Page Discovery Attempt ${attempts} error:`, err);
+                errorLog(`ACTOR_ATTEMPT_${attempts}_EXCEPTION`, err);
+            }
+
+            if (!success && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
         }
 
         if (items.length === 0) {
-            console.log(`\n========== EMPTY RESULTS ==========`);
-            console.log('Page Discovery returned 0 items after retries.');
+            log('EMPTY_RESULTS_FINAL');
         }
-
-        console.log(`\n========== RAW PAGE RESULTS ==========`);
-        console.log(`Total items fetched: ${items.length}`);
 
         // SORTING: Prioritize "Best" pages (Having Ads -> Most Followers)
         items.sort((a: any, b: any) => {
@@ -168,13 +191,12 @@ export async function POST(request: Request) {
         // Slice to the exact requested limit
         const finalItems = items.slice(0, requestedLimit);
 
-        console.log(`Returning ${finalItems.length} items (Requested: ${requestedLimit})`);
-        console.log(`======================================\n`);
+        log('REQUEST_SUCCESS', { fetched: items.length, returned: finalItems.length });
 
         return NextResponse.json(finalItems);
 
     } catch (error: any) {
-        console.error('Apify Page Discovery Error:', error);
+        errorLog('UNHANDLED_EXCEPTION', error);
         return NextResponse.json(
             { error: error.message || 'Internal Server Error' },
             { status: 500 }

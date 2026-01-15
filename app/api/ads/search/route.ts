@@ -11,20 +11,47 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+    // Generate a unique Request ID for tracing
+    const requestId = `REQ_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const log = (step: string, details?: any) => {
+        console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            requestId,
+            step,
+            details
+        }, null, 2));
+    };
+
+    const errorLog = (step: string, error: any) => {
+        console.error(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            requestId,
+            step,
+            error: error.message || error,
+            stack: error.stack,
+            fullError: error
+        }, null, 2));
+    };
+
     try {
+        log('START_REQUEST', { method: request.method, url: request.url });
+
         // Authenticate User
-        // Authenticate User with Retry for Robustness
         const supabase = await createClient();
         let user = null;
         let authError = null;
 
+        log('AUTH_START');
         // Retry auth check up to 3 times if network issues occur
         for (let i = 0; i < 3; i++) {
             const result = await supabase.auth.getUser();
             user = result.data.user;
             authError = result.error;
 
-            if (!authError) break;
+            if (!authError) {
+                log('AUTH_SUCCESS', { userId: user?.id, attempt: i + 1 });
+                break;
+            }
 
             const isNetwork = authError.message && (
                 authError.message.toLowerCase().includes('fetch failed') ||
@@ -33,6 +60,8 @@ export async function POST(request: Request) {
                 authError.message.toLowerCase().includes('connection')
             );
 
+            log('AUTH_ATTEMPT_FAILED', { attempt: i + 1, error: authError.message, isNetwork });
+
             if (!isNetwork) break;
 
             console.warn(`Auth attempt ${i + 1} timed out or failed. Retrying...`);
@@ -40,25 +69,22 @@ export async function POST(request: Request) {
         }
 
         if (authError && (authError.message?.toLowerCase().includes('fetch') || authError.message?.toLowerCase().includes('timeout'))) {
-            console.error('Supabase Auth verification failed due to network timeout:', authError);
+            errorLog('AUTH_NETWORK_ERROR', authError);
             return NextResponse.json({ error: 'Service temporarily unavailable, please try again' }, { status: 503 });
         }
 
         if (authError || !user) {
+            errorLog('AUTH_FAILED_FINAL', authError);
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await request.json();
         const { keyword, country, maxResults = 10, unique = false } = body;
 
-        console.log(`\n========== AD SEARCH REQUEST ==========`);
-        console.log(`Keyword: "${keyword}"`);
-        console.log(`Country: ${country}`);
-        console.log(`Max Results: ${maxResults}`);
-        console.log(`Unique Mode: ${unique}`);
-        console.log(`========================================\n`);
+        log('PARSE_BODY', { keyword, country, maxResults, unique });
 
         if (!keyword) {
+            log('VALIDATION_ERROR', { field: 'keyword', message: 'Keyword is required' });
             return NextResponse.json(
                 { error: 'Keyword is required' },
                 { status: 400 }
@@ -67,55 +93,53 @@ export async function POST(request: Request) {
 
         const token = process.env.APIFY_API_TOKEN;
         if (!token) {
-            console.error('APIFY_API_TOKEN is not configured');
+            errorLog('CONFIG_ERROR', 'APIFY_API_TOKEN missing');
             return NextResponse.json(
                 { error: 'Server configuration error: APIFY_API_TOKEN missing' },
                 { status: 500 }
             );
         }
 
-        const client = new ApifyClient({
-            token: token,
-        });
+        const client = new ApifyClient({ token: token });
 
         const countryCode = country || 'US';
-        const fetchMultiplier = unique ? 3 : 1;
+        const fetchMultiplier = unique ? 3 : 1.5;
 
         const runInput = {
             "query": keyword,
             "country": countryCode,
             "max_results": Number(maxResults) * fetchMultiplier,
             "keyword_type": "KEYWORD_EXACT_PHRASE",
-            "languages": [
-                "en"
-            ],
+            "languages": ["en"],
             "media_type": "all",
             "start_date_min": "2025-01-01",
             "start_date_max": new Date().toISOString().split('T')[0]
         };
 
+        log('PRIMARY_ACTOR_INIT', { actorId: 'uMnsf6khYz0VsDGlg', input: runInput });
+
         let items: any[] = [];
         let usedFallback = false;
         let fallbackAttempted = false;
 
-        console.log('Starting Primary Actor (uMnsf6khYz0VsDGlg)...');
         const run = await client.actor('uMnsf6khYz0VsDGlg').call(runInput, {
             waitSecs: 60,
         });
 
+        log('PRIMARY_ACTOR_COMPLETE', { status: run?.status, datasetId: run?.defaultDatasetId });
+
         if (run && run.status === 'SUCCEEDED') {
             const dataset = await client.dataset(run.defaultDatasetId).listItems();
             items = dataset.items;
+            log('PRIMARY_ACTOR_FETCHED', { count: items.length });
         } else {
-            console.warn('Primary actor run failed or was aborted:', run);
+            errorLog('PRIMARY_ACTOR_FAILED', run);
         }
-
-        console.log(`Primary Actor Results: ${items.length} items`);
 
         // --- FALLBACK ACTOR STRATEGY ---
         if (items.length === 0) {
             fallbackAttempted = true;
-            console.log('Primary actor returned 0 items. Initiating Fallback Actor (XtaWFhbtfxyzqrFmd)...');
+            log('FALLBACK_TRIGGERED', { reason: 'Primary actor returned 0 items' });
 
             const params = new URLSearchParams({
                 active_status: "active",
@@ -128,73 +152,197 @@ export async function POST(request: Request) {
             });
 
             const fallbackUrl = `https://www.facebook.com/ads/library/?${params.toString()}`;
-            console.log(`Fallback URL: ${fallbackUrl}`);
+            log('FALLBACK_URL_GENERATED', { url: fallbackUrl });
 
             const fallbackInput = {
                 "count": Number(maxResults) * fetchMultiplier,
-                "urls": [
-                    { "url": fallbackUrl }
-                ]
+                "urls": [{ "url": fallbackUrl }]
             };
 
             try {
+                log('FALLBACK_1_INIT', { actorId: 'XtaWFhbtfxyzqrFmd', input: fallbackInput });
                 const fallbackRun = await client.actor('XtaWFhbtfxyzqrFmd').call(fallbackInput, {
                     waitSecs: 300,
                 });
 
+                log('FALLBACK_1_COMPLETE', { status: fallbackRun?.status });
+
                 if (fallbackRun && (fallbackRun.status === 'SUCCEEDED' || fallbackRun.status === 'RUNNING')) {
-                    if (fallbackRun.status === 'RUNNING') {
-                        console.log('Fallback Actor is still running (timeout reached). Checking for partial results...');
-                    }
                     const dataset = await client.dataset(fallbackRun.defaultDatasetId).listItems();
                     if (dataset.items.length > 0) {
                         items = dataset.items;
                         usedFallback = true;
-                        console.log(`Fallback Actor succeeded/partial with ${items.length} items`);
+                        log('FALLBACK_1_SUCCESS', { count: items.length });
                     } else {
-                        console.log('Fallback Actor returned 0 items so far.');
+                        log('FALLBACK_1_EMPTY');
                     }
                 } else {
-                    console.warn('Fallback Actor run failed (Status: ' + fallbackRun?.status + ')');
+                    errorLog('FALLBACK_1_FAILED', fallbackRun);
                 }
             } catch (fbError) {
-                console.error('Fallback Actor triggered an error:', fbError);
+                errorLog('FALLBACK_1_EXCEPTION', fbError);
+            }
+
+            // --- SECOND FALLBACK ACTOR (JJghSZmShuco4j9gJ) ---
+            if (items.length === 0) {
+                log('FALLBACK_2_TRIGGERED');
+                const secondFallbackInput = {
+                    "startUrls": [{ "url": fallbackUrl }],
+                    "resultsLimit": Number(maxResults) * fetchMultiplier,
+                    "activeStatus": ""
+                };
+
+                try {
+                    log('FALLBACK_2_INIT', { actorId: 'JJghSZmShuco4j9gJ', input: secondFallbackInput });
+                    const secondRun = await client.actor('JJghSZmShuco4j9gJ').call(secondFallbackInput, {
+                        waitSecs: 300,
+                    });
+
+                    if (secondRun && (secondRun.status === 'SUCCEEDED' || secondRun.status === 'RUNNING')) {
+                        const dataset = await client.dataset(secondRun.defaultDatasetId).listItems();
+                        const rawItems = dataset.items;
+                        log('FALLBACK_2_COMPLETE', { count: rawItems.length });
+
+                        if (rawItems.length > 0) {
+                            // Map JJghSZmShuco4j9gJ output
+                            items = rawItems.map((item: any) => {
+                                const snap = item.snapshot || {};
+                                return {
+                                    ...item,
+                                    ad_archive_id: item.adArchiveID || item.adArchiveId || item.ad_archive_id,
+                                    snapshot: {
+                                        ...snap,
+                                        images: (snap.images || []).map((img: any) => ({
+                                            original_image_url: img.originalImageUrl || img.original_image_url
+                                        })),
+                                        videos: (snap.videos || []).map((vid: any) => ({
+                                            video_hd_url: vid.videoHdUrl || vid.video_hd_url,
+                                            video_sd_url: vid.videoSdUrl || vid.video_sd_url,
+                                            video_preview_image_url: vid.videoPreviewImageUrl || vid.video_preview_image_url
+                                        })),
+                                        body: snap.body || { text: item.snapshot?.body?.text },
+                                        title: snap.title || item.snapshot?.title,
+                                        link_url: snap.linkUrl || snap.link_url,
+                                        cta_text: snap.ctaText || snap.cta_text,
+                                        page_name: snap.pageName || item.page?.name,
+                                        page_profile_uri: snap.pageProfileUri,
+                                        page_profile_picture_url: snap.pageProfilePictureUrl,
+                                        page_id: snap.pageId || item.page?.id || item.pageID
+                                    }
+                                };
+                            });
+                            log('FALLBACK_2_MAPPING_COMPLETE');
+
+                            const validCount = items.filter(item => validateAd(item)).length;
+                            if (validCount > 0) {
+                                usedFallback = true;
+                                log('FALLBACK_2_VALIDATED', { validCount });
+                            } else {
+                                log('FALLBACK_2_INVALID_ALL', { total: items.length });
+                                items = [];
+                                usedFallback = false;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    errorLog('FALLBACK_2_EXCEPTION', err);
+                }
+            }
+
+            // --- THIRD FALLBACK ACTOR (zifiWgYXT1cHHxavq) ---
+            if (items.length === 0) {
+                log('FALLBACK_3_TRIGGERED');
+                const thirdParams = new URLSearchParams({
+                    active_status: "active",
+                    ad_type: "all",
+                    country: countryCode,
+                    q: keyword,
+                    search_type: "keyword_exact_phrase",
+                    media_type: "all"
+                });
+                const adLibraryUrl = `https://www.facebook.com/ads/library/?${thirdParams.toString()}`;
+
+                const thirdFallbackInput = {
+                    "adLibraryUrl": adLibraryUrl,
+                    "maxResults": Number(maxResults) * fetchMultiplier
+                };
+
+                try {
+                    log('FALLBACK_3_INIT', { actorId: 'zifiWgYXT1cHHxavq', input: thirdFallbackInput });
+                    const thirdRun = await client.actor('zifiWgYXT1cHHxavq').call(thirdFallbackInput, {
+                        waitSecs: 300,
+                    });
+
+                    if (thirdRun && (thirdRun.status === 'SUCCEEDED' || thirdRun.status === 'RUNNING')) {
+                        const dataset = await client.dataset(thirdRun.defaultDatasetId).listItems();
+                        const rawItems = dataset.items;
+                        log('FALLBACK_3_COMPLETE', { count: rawItems.length });
+
+                        if (rawItems.length > 0) {
+                            items = rawItems.map((item: any) => ({
+                                ...item,
+                                ad_archive_id: item.ad_archive_id || item.id,
+                                snapshot: {
+                                    title: item.ad_title,
+                                    body: { text: item.ad_body },
+                                    link_url: item.link_url,
+                                    cta_text: item.cta_text,
+                                    page_name: item.page_name,
+                                    page_id: item.page_id,
+                                    page_like_count: item.page_like_count,
+                                    images: (item.images || []).map((img: any) => ({
+                                        original_image_url: img.original_url || img.src
+                                    })),
+                                    videos: (item.videos || []).map((vid: any) => ({
+                                        video_hd_url: vid.url || vid.video_hd_url
+                                    })),
+                                    publisher_platforms: item.publisher_platform
+                                },
+                                start_date: item.start_date,
+                                end_date: item.end_date,
+                                is_active: item.is_active
+                            }));
+                            usedFallback = true;
+                            log('FALLBACK_3_MAPPED');
+                        }
+                    }
+                } catch (err) {
+                    errorLog('FALLBACK_3_EXCEPTION', err);
+                }
             }
         }
 
-        console.log(`\n========== RAW API RESPONSE ==========`);
-        console.log(`Total items fetched: ${items.length}`);
-        console.log(`Fallback Attempted: ${fallbackAttempted}`);
-        console.log(`Used Fallback Results: ${usedFallback}`);
-        console.log(`======================================\n`);
+        log('FETCH_COMPLETE', { totalRawItems: items.length });
 
-        // Simple Validation & Normalization
-        const validatedAds: AdData[] = items
-            .filter(item => validateAd(item))
-            .map(item => normalizeAdData(item));
+        // Validation & Normalization
+        const validatedAds: AdData[] = [];
+        const invalidSamples: any[] = [];
+
+        items.forEach((item, idx) => {
+            const isValid = validateAd(item);
+            if (isValid) {
+                validatedAds.push(normalizeAdData(item));
+            } else {
+                if (invalidSamples.length < 5) invalidSamples.push({ idx, id: item.id || item.ad_archive_id, reason: 'Failed validateAd' });
+            }
+        });
+
+        log('VALIDATION_COMPLETE', {
+            totalRaw: items.length,
+            totalValid: validatedAds.length,
+            invalidCount: items.length - validatedAds.length,
+            firstFewInvalid: invalidSamples
+        });
 
         if (items.length > 0 && validatedAds.length === 0) {
-            console.warn('⚠️ WARNING: Items were fetched but ALL failed validation.');
-            console.log('First 3 invalid items for debugging:');
-            items.slice(0, 3).forEach((item, idx) => {
-                const snapshot: any = item.snapshot || {};
-                console.log(`\n❌ Invalid Item ${idx + 1}:`);
-                console.log(`   ID: ${item.ad_archive_id || item.id}`);
-                console.log(`   Has Image: ${!!((snapshot.images?.length) || (snapshot.cards?.length) || (snapshot.videos?.length))}`);
-                console.log(`   Has Text: ${!!(snapshot.body?.text || snapshot.title || item.adCreativeBody)}`);
-                console.log(`   Has Link: ${!!(snapshot.link_url || item.adCreativeLinkUrl)}`);
-            });
+            log('CRITICAL_VALIDATION_FAILURE', { message: 'Items fetched but all failed validation', sample: items[0] });
         }
 
-        console.log(`\n========== RESULTS SUMMARY ==========`);
-        console.log(`Total Valid Ads: ${validatedAds.length}`);
-
+        // Slicing
         let cutoffIndex = validatedAds.length;
         let validUniqueCount = validatedAds.length;
 
         if (unique) {
-            // Smart Slicing: Ensure we return 'maxResults' *unique* ads
-            // We include duplicates encountered along the way so the frontend can "Show Duplicates"
             const uniqueTarget = Number(maxResults);
             const seen = new Set<string>();
             validUniqueCount = 0;
@@ -203,46 +351,27 @@ export async function POST(request: Request) {
             for (let i = 0; i < validatedAds.length; i++) {
                 const ad = validatedAds[i];
                 const key = `${ad.pageId}|${ad.title}|${ad.body}`;
-
                 if (!seen.has(key)) {
                     seen.add(key);
                     validUniqueCount++;
                 }
-
                 cutoffIndex = i + 1;
                 if (validUniqueCount >= uniqueTarget) break;
             }
         } else {
-            // Standard Slicing (No guarantee of uniqueness, just raw count)
             cutoffIndex = Math.min(validatedAds.length, Number(maxResults));
-            validUniqueCount = cutoffIndex; // Treat as if all were "requested"
+            validUniqueCount = cutoffIndex;
         }
 
-        console.log(`Returning: ${cutoffIndex} ads (containing ${validUniqueCount} unique)`);
-        console.log(`====================================\n`);
-
-        // Log first 3 ads for debugging
-        for (let i = 0; i < Math.min(3, validatedAds.length); i++) {
-            const normalizedAd = validatedAds[i];
-            console.log(`\n✅ Ad ${i + 1} - NORMALIZED DATA:`);
-            console.log(`   ID: ${normalizedAd.adArchiveID}`);
-            console.log(`   Page: ${normalizedAd.pageName} (ID: ${normalizedAd.pageId})`);
-            console.log(`   Score: ${normalizedAd.performanceScore} (Auth: ${normalizedAd.pageAuthorityScore}, Media: ${normalizedAd.mediaType})`);
-            console.log(`   Title: ${normalizedAd.title?.substring(0, 50)}...`);
-            console.log(`   Dates: ${normalizedAd.startDate} → ${normalizedAd.endDate} (${normalizedAd.adActiveDays} days)`);
-        }
+        log('SLICING_COMPLETE', { requested: maxResults, uniqueMode: unique, finalCount: cutoffIndex, uniqueFound: validUniqueCount });
 
         const topAds = validatedAds.slice(0, cutoffIndex);
 
-        // Save to Supabase Search History (Fire and Forget)
-        // Save to Supabase Search History
+        // History Saving
         try {
-            const supabase = await createClient();
             const { data: { user } } = await supabase.auth.getUser();
-
             if (user) {
                 const countryCode = country || 'US';
-
                 const { data: existingHistory } = await supabase
                     .from('search_history')
                     .select('id')
@@ -257,6 +386,7 @@ export async function POST(request: Request) {
                         .from('search_history')
                         .update({ created_at: new Date().toISOString() })
                         .eq('id', existingHistory.id);
+                    log('HISTORY_UPDATED', { id: existingHistory.id });
                 } else {
                     await supabase
                         .from('search_history')
@@ -269,17 +399,18 @@ export async function POST(request: Request) {
                                 maxResults
                             }
                         });
+                    log('HISTORY_INSERTED');
                 }
-
-                console.log('✅ Keyword search saved to history');
             }
         } catch (dbError) {
-            console.error('Error saving keyword search history:', dbError);
+            errorLog('HISTORY_ERROR', dbError);
         }
 
+        log('REQUEST_SUCCESS', { returnedAds: topAds.length });
         return NextResponse.json(topAds);
+
     } catch (error: any) {
-        console.error('Apify Scraper Error:', error);
+        errorLog('UNHANDLED_EXCEPTION', error);
         return NextResponse.json(
             { error: error.message || 'Internal Server Error' },
             { status: 500 }
