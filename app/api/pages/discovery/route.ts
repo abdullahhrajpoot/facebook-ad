@@ -115,6 +115,7 @@ export async function POST(request: Request) {
         let attempts = 0;
         const maxAttempts = 2; // Try twice
         let success = false;
+        let lastError: any = null;
 
         while (attempts < maxAttempts && !success) {
             attempts++;
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
                     log(`ACTOR_ATTEMPT_${attempts}_FAILED`, { status: run?.status });
                 }
             } catch (err) {
+                lastError = err;
                 errorLog(`ACTOR_ATTEMPT_${attempts}_EXCEPTION`, err);
             }
 
@@ -192,6 +194,18 @@ export async function POST(request: Request) {
         const finalItems = items.slice(0, requestedLimit);
 
         log('REQUEST_SUCCESS', { fetched: items.length, returned: finalItems.length });
+
+        if (finalItems.length === 0 && lastError) {
+            const errorMessage = lastError.message || '';
+            if (errorMessage.includes('Monthly usage hard limit exceeded') ||
+                lastError.type === 'platform-feature-disabled' ||
+                lastError.statusCode === 403) {
+                return NextResponse.json(
+                    { error: 'Service usage limit exceeded. Please contact administrator.' },
+                    { status: 429 }
+                );
+            }
+        }
 
         return NextResponse.json(finalItems);
 

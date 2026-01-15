@@ -121,6 +121,7 @@ export async function POST(request: Request) {
         let items: any[] = [];
         let usedFallback = false;
         let fallbackAttempted = false;
+        let lastError: any = null;
 
         const run = await client.actor('uMnsf6khYz0VsDGlg').call(runInput, {
             waitSecs: 60,
@@ -133,6 +134,7 @@ export async function POST(request: Request) {
             items = dataset.items;
             log('PRIMARY_ACTOR_FETCHED', { count: items.length });
         } else {
+            lastError = run; // Capture run failure
             errorLog('PRIMARY_ACTOR_FAILED', run);
         }
 
@@ -180,6 +182,7 @@ export async function POST(request: Request) {
                     errorLog('FALLBACK_1_FAILED', fallbackRun);
                 }
             } catch (fbError) {
+                lastError = fbError;
                 errorLog('FALLBACK_1_EXCEPTION', fbError);
             }
 
@@ -245,6 +248,7 @@ export async function POST(request: Request) {
                         }
                     }
                 } catch (err) {
+                    lastError = err;
                     errorLog('FALLBACK_2_EXCEPTION', err);
                 }
             }
@@ -307,6 +311,7 @@ export async function POST(request: Request) {
                         }
                     }
                 } catch (err) {
+                    lastError = err;
                     errorLog('FALLBACK_3_EXCEPTION', err);
                 }
             }
@@ -407,6 +412,21 @@ export async function POST(request: Request) {
         }
 
         log('REQUEST_SUCCESS', { returnedAds: topAds.length });
+        log('REQUEST_SUCCESS', { returnedAds: topAds.length });
+
+        if (topAds.length === 0 && lastError) {
+            const errorMessage = lastError.message || (lastError.error?.message) || '';
+            // Check for Usage Limit / Plan limits
+            if (errorMessage.includes('Monthly usage hard limit exceeded') ||
+                lastError.type === 'platform-feature-disabled' ||
+                lastError.statusCode === 403) {
+                return NextResponse.json(
+                    { error: 'Service usage limit exceeded. Please contact administrator.' },
+                    { status: 429 }
+                );
+            }
+        }
+
         return NextResponse.json(topAds);
 
     } catch (error: any) {

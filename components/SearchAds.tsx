@@ -7,7 +7,7 @@ import { validateAd, AdData } from '@/utils/adValidation'
 import { createClient } from '@/utils/supabase/client'
 import {
     Search, Filter, Play, Image as ImageIcon,
-    Clock, Globe, ChevronDown, X, Layers, Copy, Fingerprint, Sparkles, LayoutGrid, Zap, SortAsc, MapPin, List
+    Clock, Globe, ChevronDown, X, Layers, Copy, Fingerprint, Sparkles, LayoutGrid, Zap, SortAsc, MapPin, List, ShieldAlert
 } from 'lucide-react'
 import MaterialDropdown from '@/components/ui/MaterialDropdown'
 
@@ -732,12 +732,33 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                     ) : (
                         <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
                             {error ? (
-                                <div className="max-w-md bg-red-500/10 border border-red-500/20 rounded-3xl p-8 backdrop-blur-md">
-                                    <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <X className="w-8 h-8 text-red-500" />
+                                <div className={`max-w-md border rounded-3xl p-8 backdrop-blur-md ${error.toLowerCase().includes('usage limit')
+                                        ? 'bg-amber-500/10 border-amber-500/20'
+                                        : 'bg-red-500/10 border-red-500/20'
+                                    }`}>
+                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${error.toLowerCase().includes('usage limit')
+                                            ? 'bg-amber-500/20'
+                                            : 'bg-red-500/20'
+                                        }`}>
+                                        {error.toLowerCase().includes('usage limit') ? (
+                                            <ShieldAlert className="w-8 h-8 text-amber-500" />
+                                        ) : (
+                                            <X className="w-8 h-8 text-red-500" />
+                                        )}
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">Search Failed</h3>
-                                    <p className="text-zinc-400">{error}</p>
+                                    <h3 className="text-xl font-bold text-white mb-2">
+                                        {error.toLowerCase().includes('usage limit')
+                                            ? 'Service Warning'
+                                            : 'Search Failed'}
+                                    </h3>
+                                    <p className="text-zinc-400 mb-4">{error}</p>
+
+                                    {error.toLowerCase().includes('usage limit') && (
+                                        <div className="bg-black/40 rounded-xl p-4 text-xs text-zinc-500 font-mono text-left border border-white/5">
+                                            <p className="mb-2 font-bold text-amber-500/80">ADMINISTRATOR ACTION REQUIRED:</p>
+                                            <p>The external data provider monthly quota has been reached. Please upgrade the plan or wait for the next billing cycle.</p>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="max-w-xl relative">

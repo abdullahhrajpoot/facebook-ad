@@ -193,6 +193,7 @@ export async function POST(request: Request) {
         const maxAttempts = 3;
         let success = false;
         let usedFallback = false;
+        let lastError: any = null;
 
         while (attempts < maxAttempts && !success) {
             attempts++;
@@ -214,6 +215,7 @@ export async function POST(request: Request) {
                     log(`PRIMARY_ACTOR_ATTEMPT_${attempts}_FAILED`, { status: run?.status });
                 }
             } catch (err) {
+                lastError = err;
                 errorLog(`PRIMARY_ACTOR_ATTEMPT_${attempts}_EXCEPTION`, err);
             }
 
@@ -302,6 +304,7 @@ export async function POST(request: Request) {
                     log('FALLBACK_SKIPPED_NO_ID');
                 }
             } catch (err) {
+                lastError = err;
                 errorLog('FALLBACK_ACTOR_EXCEPTION', err);
             }
         }
@@ -378,6 +381,20 @@ export async function POST(request: Request) {
             }
         } catch (dbError) {
             errorLog('HISTORY_ERROR', dbError);
+        }
+
+        // Check for specific Apify errors if no items found
+        if (items.length === 0 && lastError) {
+            const errorMessage = lastError.message || '';
+            // Check for Usage Limit / Plan limits
+            if (errorMessage.includes('Monthly usage hard limit exceeded') ||
+                lastError.type === 'platform-feature-disabled' ||
+                lastError.statusCode === 403) {
+                return NextResponse.json(
+                    { error: 'Service usage limit exceeded. Please contact administrator.' },
+                    { status: 429 }
+                );
+            }
         }
 
         return NextResponse.json(topAds);
