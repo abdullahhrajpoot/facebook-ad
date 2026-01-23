@@ -55,44 +55,85 @@ export const validateAd = (ad: any): boolean => {
     const snapshot = ad.snapshot || {}
 
     // 1. MUST have ad_archive_id
-    if (!ad.ad_archive_id && !ad.adArchiveID && !ad.id) return false
+    if (!ad.ad_archive_id && !ad.adArchiveID && !ad.adArchiveId && !ad.id && !ad.archive_id) return false
 
     // 2. MUST have at least one image or video
-    const hasImage =
+    const hasMedia =
+        // Snapshot-level checks
         (snapshot.images && snapshot.images.length > 0) ||
         (snapshot.cards && snapshot.cards.length > 0) ||
         (snapshot.videos && snapshot.videos.length > 0) ||
         (snapshot.extra_images && snapshot.extra_images.length > 0) ||
-        // Check root-level fallbacks
+        (snapshot.extra_videos && snapshot.extra_videos.length > 0) ||
+        !!snapshot.image ||
+        !!snapshot.video ||
+        !!snapshot.thumbnail_url ||
+        !!snapshot.preview_image_url ||
+        !!snapshot.video_preview_image_url ||
+        // Root-level array checks
         (Array.isArray(ad.images) && ad.images.length > 0) ||
         (Array.isArray(ad.videos) && ad.videos.length > 0) ||
         (Array.isArray(ad.cards) && ad.cards.length > 0) ||
+        (Array.isArray(ad.media) && ad.media.length > 0) ||
+        // Root-level singular checks
         !!ad.imageUrl ||
+        !!ad.image_url ||
+        !!ad.image ||
         !!ad.videoUrl ||
-        !!ad.thumbnailUrl
+        !!ad.video_url ||
+        !!ad.video ||
+        !!ad.thumbnailUrl ||
+        !!ad.thumbnail_url ||
+        !!ad.thumbnail ||
+        !!ad.preview_image_url ||
+        !!ad.media_url ||
+        !!ad.creative_image ||
+        !!ad.creative_video
 
-    if (!hasImage) return false
+    if (!hasMedia) return false
 
     // 3. MUST have some text content
     const hasText =
         snapshot.body?.text ||
+        snapshot.body ||
         snapshot.title ||
         snapshot.link_description ||
+        snapshot.description ||
+        snapshot.message ||
+        snapshot.caption ||
+        snapshot.text ||
         ad.adCreativeBody ||
         ad.adCreativeLinkTitle ||
         ad.message ||
         ad.caption ||
-        ad.body
+        ad.body ||
+        ad.text ||
+        ad.description ||
+        ad.ad_creative_body ||
+        ad.creative_body ||
+        ad.content
 
     if (!hasText) return false
 
     // 4. MUST have at least one link
     const hasLink =
         snapshot.link_url ||
-        ad.adCreativeLinkUrl ||
+        snapshot.linkUrl ||
+        snapshot.website_url ||
+        snapshot.destination_url ||
+        snapshot.cta_link ||
         (snapshot.extra_links && snapshot.extra_links.length > 0) ||
+        (snapshot.links && snapshot.links.length > 0) ||
+        ad.adCreativeLinkUrl ||
+        ad.ad_creative_link_url ||
         ad.link ||
+        ad.link_url ||
+        ad.linkUrl ||
         ad.url ||
+        ad.website_url ||
+        ad.destination_url ||
+        ad.cta_link ||
+        (Array.isArray(ad.links) && ad.links.length > 0) ||
         ad.ad_library_url // Worst case, link to the ad itself is enough to be "valid"
 
     if (!hasLink) return false
@@ -119,88 +160,249 @@ export const normalizeAdData = (ad: any): AdData => {
 
     // ===== TEXT CONTENT =====
     // Clean template variables like {{product.name}}
-    const cleanText = (text: string) => {
+    const cleanText = (text: any): string => {
         if (!text) return ''
+        // Handle if text is an object with a text property
+        if (typeof text === 'object' && text.text) {
+            text = text.text
+        }
+        // Ensure we have a string before calling replace
+        if (typeof text !== 'string') {
+            return String(text || '')
+        }
         return text.replace(/\{\{.*?\}\}/g, '').trim()
     }
 
-    const bodyRaw = snapshot.body?.text || snapshot.body || ad.adCreativeBody || snapshot.message || snapshot.caption || ''
+    // Extract body text - handle various formats
+    let bodyRaw = ''
+    if (snapshot.body?.text) {
+        bodyRaw = snapshot.body.text
+    } else if (typeof snapshot.body === 'string') {
+        bodyRaw = snapshot.body
+    } else if (ad.adCreativeBody) {
+        bodyRaw = ad.adCreativeBody
+    } else if (snapshot.message) {
+        bodyRaw = snapshot.message
+    } else if (snapshot.caption) {
+        bodyRaw = snapshot.caption
+    } else if (snapshot.cards?.[0]?.body) {
+        bodyRaw = snapshot.cards[0].body
+    }
     const body = cleanText(bodyRaw)
 
-    const titleRaw = snapshot.title || ad.adCreativeLinkTitle || snapshot.link_description || snapshot.cards?.[0]?.title || ''
+    // Extract title - handle various formats
+    let titleRaw = ''
+    if (typeof snapshot.title === 'string') {
+        titleRaw = snapshot.title
+    } else if (ad.adCreativeLinkTitle) {
+        titleRaw = ad.adCreativeLinkTitle
+    } else if (snapshot.link_description) {
+        titleRaw = snapshot.link_description
+    } else if (snapshot.cards?.[0]?.title) {
+        titleRaw = snapshot.cards[0].title
+    }
     const title = cleanText(titleRaw)
 
     // ===== IMAGES =====
     const images: string[] = []
 
+    // Helper to extract URL from various image object formats
+    // Also checks video_preview_image_url for cards that contain videos instead of images
+    const extractImageUrl = (img: any): string | null => {
+        if (typeof img === 'string') return img
+        return img?.original_image_url || img?.originalImageUrl ||
+            img?.resized_image_url || img?.watermarked_resized_image_url ||
+            img?.video_preview_image_url || img?.videoPreviewImageUrl ||
+            img?.src || img?.url || img?.image_url || img?.imageUrl ||
+            img?.thumbnail || img?.thumbnailUrl || img?.thumbnail_url || null
+    }
+
     // Primary images from snapshot.images
     if (snapshot.images && Array.isArray(snapshot.images)) {
         snapshot.images.forEach((img: any) => {
-            if (img.original_image_url) images.push(img.original_image_url)
+            const url = extractImageUrl(img)
+            if (url) images.push(url)
         })
     }
 
-    // Carousel cards
+    // Carousel cards - these can have regular images OR video preview images
     if (snapshot.cards && Array.isArray(snapshot.cards)) {
         snapshot.cards.forEach((card: any) => {
-            if (card.original_image_url) images.push(card.original_image_url)
+            // First try to get a regular image
+            let url = card.original_image_url || card.originalImageUrl ||
+                card.resized_image_url || card.watermarked_resized_image_url
+            // If no regular image, fall back to video preview image
+            if (!url) {
+                url = card.video_preview_image_url || card.videoPreviewImageUrl
+            }
+            if (url) images.push(url)
         })
     }
 
     // Extra images
     if (snapshot.extra_images && Array.isArray(snapshot.extra_images)) {
         snapshot.extra_images.forEach((img: any) => {
-            if (img.original_image_url) images.push(img.original_image_url)
+            const url = extractImageUrl(img)
+            if (url) images.push(url)
+        })
+    }
+
+    // Root-level images array
+    if (images.length === 0 && Array.isArray(ad.images)) {
+        ad.images.forEach((img: any) => {
+            const url = extractImageUrl(img)
+            if (url) images.push(url)
+        })
+    }
+
+    // Root-level cards array
+    if (images.length === 0 && Array.isArray(ad.cards)) {
+        ad.cards.forEach((card: any) => {
+            const url = extractImageUrl(card)
+            if (url) images.push(url)
+        })
+    }
+
+    // Root-level media array
+    if (images.length === 0 && Array.isArray(ad.media)) {
+        ad.media.forEach((m: any) => {
+            if (m.type === 'image' || !m.type) {
+                const url = extractImageUrl(m)
+                if (url) images.push(url)
+            }
         })
     }
 
     // Video preview images as fallback
     if (images.length === 0 && snapshot.videos && Array.isArray(snapshot.videos)) {
         snapshot.videos.forEach((vid: any) => {
-            if (vid.video_preview_image_url) images.push(vid.video_preview_image_url)
+            const url = vid.video_preview_image_url || vid.videoPreviewImageUrl || vid.thumbnail || vid.thumbnail_url
+            if (url) images.push(url)
         })
     }
 
-    // Fallback to top-level imageUrl if exists
-    if (images.length === 0 && ad.imageUrl) {
-        images.push(ad.imageUrl)
+    // Singular image fallbacks
+    if (images.length === 0) {
+        const singularImage =
+            ad.imageUrl || ad.image_url || ad.image ||
+            ad.thumbnailUrl || ad.thumbnail_url || ad.thumbnail ||
+            ad.preview_image_url || ad.media_url ||
+            ad.creative_image ||
+            snapshot.image || snapshot.thumbnail_url || snapshot.preview_image_url
+        if (singularImage) images.push(singularImage)
     }
 
     // ===== VIDEOS =====
     const videos: string[] = []
 
+    // Helper to extract URL from various video object formats
+    const extractVideoUrl = (vid: any): string | null => {
+        if (typeof vid === 'string') return vid
+        return vid?.video_hd_url || vid?.videoHdUrl || vid?.video_sd_url || vid?.videoSdUrl ||
+            vid?.url || vid?.video_url || vid?.videoUrl || vid?.src || null
+    }
+
     if (snapshot.videos && Array.isArray(snapshot.videos)) {
         snapshot.videos.forEach((vid: any) => {
-            if (vid.video_hd_url) videos.push(vid.video_hd_url)
-            else if (vid.video_sd_url) videos.push(vid.video_sd_url)
+            const url = extractVideoUrl(vid)
+            if (url) videos.push(url)
+        })
+    }
+
+    // Extract videos from carousel cards - cards can contain video_hd_url/video_sd_url
+    if (snapshot.cards && Array.isArray(snapshot.cards)) {
+        snapshot.cards.forEach((card: any) => {
+            const url = card.video_hd_url || card.videoHdUrl ||
+                card.video_sd_url || card.videoSdUrl ||
+                card.watermarked_video_hd_url || card.watermarked_video_sd_url
+            if (url) videos.push(url)
         })
     }
 
     if (snapshot.extra_videos && Array.isArray(snapshot.extra_videos)) {
         snapshot.extra_videos.forEach((vid: any) => {
-            if (vid.video_hd_url) videos.push(vid.video_hd_url)
-            else if (vid.video_sd_url) videos.push(vid.video_sd_url)
+            const url = extractVideoUrl(vid)
+            if (url) videos.push(url)
         })
+    }
+
+    // Root-level videos array
+    if (videos.length === 0 && Array.isArray(ad.videos)) {
+        ad.videos.forEach((vid: any) => {
+            const url = extractVideoUrl(vid)
+            if (url) videos.push(url)
+        })
+    }
+
+    // Root-level media array (video type)
+    if (videos.length === 0 && Array.isArray(ad.media)) {
+        ad.media.forEach((m: any) => {
+            if (m.type === 'video') {
+                const url = extractVideoUrl(m)
+                if (url) videos.push(url)
+            }
+        })
+    }
+
+    // Singular video fallbacks
+    if (videos.length === 0) {
+        const singularVideo =
+            ad.videoUrl || ad.video_url || ad.video ||
+            ad.creative_video ||
+            snapshot.video || snapshot.video_url
+        if (singularVideo) videos.push(singularVideo)
     }
 
     // ===== LINKS (Blended into one array) =====
     const links: string[] = []
 
-    // Primary link
-    const primaryLink = snapshot.link_url || ad.adCreativeLinkUrl || snapshot.call_to_action?.value?.link
+    // Helper to extract URL from various link formats
+    const extractLinkUrl = (link: any): string | null => {
+        if (typeof link === 'string') return link
+        return link?.url || link?.link || link?.href || link?.link_url || link?.linkUrl || null
+    }
+
+    // Primary link - check multiple possible field names
+    const primaryLink =
+        snapshot.link_url || snapshot.linkUrl ||
+        snapshot.website_url || snapshot.destination_url ||
+        snapshot.cta_link ||
+        ad.adCreativeLinkUrl || ad.ad_creative_link_url ||
+        ad.link_url || ad.linkUrl ||
+        ad.website_url || ad.destination_url ||
+        ad.cta_link ||
+        snapshot.call_to_action?.value?.link
     if (primaryLink) links.push(primaryLink)
 
-    // Extra links
+    // Extra links from snapshot
     if (snapshot.extra_links && Array.isArray(snapshot.extra_links)) {
-        snapshot.extra_links.forEach((link: string) => {
-            if (link && !links.includes(link)) links.push(link)
+        snapshot.extra_links.forEach((link: any) => {
+            const url = extractLinkUrl(link)
+            if (url && !links.includes(url)) links.push(url)
+        })
+    }
+
+    // Links array from snapshot
+    if (snapshot.links && Array.isArray(snapshot.links)) {
+        snapshot.links.forEach((link: any) => {
+            const url = extractLinkUrl(link)
+            if (url && !links.includes(url)) links.push(url)
+        })
+    }
+
+    // Root-level links array
+    if (Array.isArray(ad.links)) {
+        ad.links.forEach((link: any) => {
+            const url = extractLinkUrl(link)
+            if (url && !links.includes(url)) links.push(url)
         })
     }
 
     // Card links
     if (snapshot.cards && Array.isArray(snapshot.cards)) {
         snapshot.cards.forEach((card: any) => {
-            if (card.link && !links.includes(card.link)) links.push(card.link)
+            const url = extractLinkUrl(card.link) || extractLinkUrl(card)
+            if (url && !links.includes(url)) links.push(url)
         })
     }
 
