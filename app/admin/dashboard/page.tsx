@@ -12,11 +12,13 @@ import SearchHistory from '@/components/SearchHistory'
 
 import SavedAds from '@/components/SavedAds'
 import PageDiscovery from '@/components/PageDiscovery'
+import AdminSettings from '@/components/admin/AdminSettings'
+import useFeatureFlags from '@/utils/useFeatureFlags'
 
 export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
-    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery'>('users')
+    const [activeTab, setActiveTab] = useState<'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery' | 'settings'>('users')
 
     // Data State
     const [users, setUsers] = useState<any[]>([])
@@ -29,6 +31,7 @@ export default function AdminDashboard() {
 
     const router = useRouter()
     const supabase = createClient()
+    const { isEnabled } = useFeatureFlags()
 
     useEffect(() => {
         fetchData()
@@ -101,6 +104,10 @@ export default function AdminDashboard() {
         const type = item.filters?.type || 'ad_search'
 
         if (type === 'page_discovery') {
+            // Only navigate to pagediscovery if feature is enabled
+            if (!isEnabled('page_discovery')) {
+                return // Do nothing if feature is disabled
+            }
             setSearchHistoryState({
                 keywords: item.keyword,
                 location: item.filters?.location || '',
@@ -164,6 +171,10 @@ export default function AdminDashboard() {
             case 'profile':
                 return <UserProfile profile={profile} setProfile={setProfile} />
             case 'pagediscovery':
+                // Double-check feature flag before rendering
+                if (!isEnabled('page_discovery')) {
+                    return <SearchAds initialSearchState={null} />
+                }
                 return (
                     <PageDiscovery
                         onSearchAds={(query) => {
@@ -178,6 +189,8 @@ export default function AdminDashboard() {
                         initialState={activeTab === 'pagediscovery' ? searchHistoryState : null}
                     />
                 )
+            case 'settings':
+                return <AdminSettings />
             default:
                 return null
         }
@@ -191,6 +204,7 @@ export default function AdminDashboard() {
             case 'history': return { title: 'Search History', subtitle: 'Review past search queries and activity.' }
             case 'profile': return { title: 'My Profile', subtitle: 'View your administrator account details.' }
             case 'pagediscovery': return { title: 'Page Discovery', subtitle: 'Find new Facebook pages to analyze.' }
+            case 'settings': return { title: 'System Settings', subtitle: 'Configure platform features and system options.' }
         }
     }
 

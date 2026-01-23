@@ -1,24 +1,39 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Users, Globe, Bookmark, Clock, Compass, Shield, Settings, LogOut, Activity } from 'lucide-react'
+import useFeatureFlags from '@/utils/useFeatureFlags'
 
 interface AdminSidebarProps {
-    activeTab: 'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery'
-    setActiveTab: (tab: 'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery') => void
+    activeTab: 'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery' | 'settings'
+    setActiveTab: (tab: 'users' | 'ads' | 'saved' | 'history' | 'profile' | 'pagediscovery' | 'settings') => void
     onSignOut: () => void
     sidebarOpen: boolean
     setSidebarOpen: (open: boolean) => void
 }
 
 export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sidebarOpen, setSidebarOpen }: AdminSidebarProps) {
-    const menuItems = [
-        { id: 'users', label: 'User Management', icon: Users },
-        { id: 'ads', label: 'Global Campaigns', icon: Globe },
-        { id: 'pagediscovery', label: 'Discovery Engine', icon: Compass },
-        { id: 'saved', label: 'Saved Library', icon: Bookmark },
-        { id: 'history', label: 'Search History', icon: Clock },
-        { id: 'profile', label: 'Administrator', icon: Shield },
-    ]
+    const { isEnabled } = useFeatureFlags()
+
+    const menuItems = useMemo(() => {
+        const items = [
+            { id: 'users', label: 'User Management', icon: Users },
+            { id: 'ads', label: 'Global Campaigns', icon: Globe },
+        ]
+
+        // Dynamically add Page Discovery if enabled
+        if (isEnabled('page_discovery')) {
+            items.push({ id: 'pagediscovery', label: 'Discovery Engine', icon: Compass })
+        }
+
+        items.push(
+            { id: 'saved', label: 'Saved Library', icon: Bookmark },
+            { id: 'history', label: 'Search History', icon: Clock },
+            { id: 'profile', label: 'Administrator', icon: Shield },
+        )
+
+        return items
+    }, [isEnabled])
 
     return (
         <>
@@ -103,11 +118,33 @@ export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sideb
                     })}
 
                     <div className="text-[10px] font-extrabold text-zinc-600 uppercase tracking-[0.2em] mt-8 mb-4 px-4">System</div>
-                    <button className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-zinc-600 cursor-not-allowed opacity-50 hover:bg-zinc-900/30 transition-colors">
-                        <span className="p-2 rounded-lg bg-zinc-900/30 text-zinc-600">
-                            <Settings className="w-5 h-5" />
+                    <button
+                        onClick={() => {
+                            setActiveTab('settings')
+                            setSidebarOpen(false)
+                        }}
+                        className={`
+                            relative w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden
+                            ${activeTab === 'settings'
+                                ? 'text-white'
+                                : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}
+                        `}
+                    >
+                        {activeTab === 'settings' && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent border-l-2 border-red-600 animate-fade-in" />
+                        )}
+                        <span className={`
+                            relative z-10 p-2 rounded-lg transition-all duration-300
+                            ${activeTab === 'settings'
+                                ? 'bg-gradient-to-br from-red-600 to-orange-600 text-white shadow-lg shadow-red-600/20'
+                                : 'bg-zinc-900/50 group-hover:bg-zinc-800 text-zinc-400 group-hover:text-white group-hover:scale-110'}
+                        `}>
+                            <Settings className="w-4 h-4" />
                         </span>
-                        <span className="font-bold text-sm">Settings</span>
+                        <span className="relative z-10 font-bold text-sm tracking-wide">Settings</span>
+                        {activeTab === 'settings' && (
+                            <div className="absolute right-4 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse" />
+                        )}
                     </button>
                 </nav>
 

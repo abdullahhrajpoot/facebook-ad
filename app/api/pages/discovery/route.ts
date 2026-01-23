@@ -1,8 +1,33 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
+import fs from 'fs';
+import path from 'path';
+
+// Read feature flag from config file
+function isPageDiscoveryEnabled(): boolean {
+    try {
+        const configPath = path.join(process.cwd(), 'config', 'feature-flags.json');
+        if (fs.existsSync(configPath)) {
+            const content = fs.readFileSync(configPath, 'utf-8');
+            const flags = JSON.parse(content);
+            return flags.page_discovery === true;
+        }
+    } catch (error) {
+        console.error('Error reading feature flags:', error);
+    }
+    return false; // Default to disabled
+}
 
 export async function POST(request: Request) {
+    // Check feature flag first - return early if disabled
+    if (!isPageDiscoveryEnabled()) {
+        return NextResponse.json(
+            { error: 'Page Discovery feature is temporarily disabled. Please check back later.' },
+            { status: 503 }
+        );
+    }
+
     const requestId = `REQ_DISCO_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const log = (step: string, details?: any) => {
         console.log(JSON.stringify({

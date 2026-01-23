@@ -1,6 +1,8 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Search, Globe, Clock, Bookmark, User, LogOut } from 'lucide-react'
+import useFeatureFlags from '@/utils/useFeatureFlags'
 
 interface UserSidebarProps {
     profile: any
@@ -12,13 +14,26 @@ interface UserSidebarProps {
 }
 
 export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOut, sidebarOpen, setSidebarOpen }: UserSidebarProps) {
-    const menuItems = [
-        { id: 'discover', label: 'Discover Ads', icon: Search },
-        { id: 'pages', label: 'Find Pages', icon: Globe },
-        { id: 'history', label: 'Search History', icon: Clock },
-        { id: 'saved', label: 'Saved Ads', icon: Bookmark },
-        { id: 'profile', label: 'My Profile', icon: User },
-    ]
+    const { isEnabled } = useFeatureFlags()
+
+    const menuItems = useMemo(() => {
+        const items = [
+            { id: 'discover', label: 'Discover Ads', icon: Search },
+        ]
+
+        // Dynamically add Page Discovery if enabled
+        if (isEnabled('page_discovery')) {
+            items.push({ id: 'pages', label: 'Find Pages', icon: Globe })
+        }
+
+        items.push(
+            { id: 'history', label: 'Search History', icon: Clock },
+            { id: 'saved', label: 'Saved Ads', icon: Bookmark },
+            { id: 'profile', label: 'My Profile', icon: User },
+        )
+
+        return items
+    }, [isEnabled])
 
     return (
         <>

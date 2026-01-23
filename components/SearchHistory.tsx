@@ -1,8 +1,9 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Search, MapPin, Globe, Filter, Archive, ArrowRight, LayoutGrid } from 'lucide-react'
+import useFeatureFlags from '@/utils/useFeatureFlags'
 
 export interface SearchHistoryItem {
     id: string
@@ -27,6 +28,7 @@ export default function SearchHistory({ onSelect, refreshTrigger }: SearchHistor
     const [history, setHistory] = useState<SearchHistoryItem[]>([])
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
+    const { isEnabled } = useFeatureFlags()
 
     useEffect(() => {
         fetchHistory()
@@ -140,7 +142,12 @@ export default function SearchHistory({ onSelect, refreshTrigger }: SearchHistor
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {history.map((item: any) => {
+            {/* Filter out Page Discovery entries if the feature is disabled */}
+            {history.filter(item => {
+                const isPageDiscovery = (item as any).uiType === 'page_discovery'
+                // Show Page Discovery entries only if the feature is enabled
+                return !isPageDiscovery || isEnabled('page_discovery')
+            }).map((item: any) => {
                 const type = item.uiType || 'ad_search_keyword'
                 const config = getTypeConfig(type)
                 const isDiscovery = type === 'page_discovery'

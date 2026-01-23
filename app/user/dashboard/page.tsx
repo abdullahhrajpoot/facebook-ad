@@ -9,6 +9,7 @@ import UserProfile from '@/components/UserProfile'
 import SearchHistory from '@/components/SearchHistory'
 import SavedAds from '@/components/SavedAds'
 import PageDiscovery from '@/components/PageDiscovery'
+import useFeatureFlags from '@/utils/useFeatureFlags'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
@@ -19,6 +20,7 @@ export default function UserDashboard() {
 
     const router = useRouter()
     const supabase = createClient()
+    const { isEnabled } = useFeatureFlags()
 
     useEffect(() => {
         const checkUser = async () => {
@@ -59,6 +61,10 @@ export default function UserDashboard() {
         const type = item.filters?.type || 'ad_search'
 
         if (type === 'page_discovery') {
+            // Only navigate to pages if feature is enabled
+            if (!isEnabled('page_discovery')) {
+                return // Do nothing if feature is disabled
+            }
             setSearchHistoryState({
                 keywords: item.keyword,
                 location: item.filters?.location || '',
@@ -92,6 +98,10 @@ export default function UserDashboard() {
             case 'discover':
                 return <SearchAds initialPageQuery={initialAdQuery} initialSearchState={activeTab === 'discover' ? searchHistoryState : null} />
             case 'pages':
+                // Double-check feature flag before rendering
+                if (!isEnabled('page_discovery')) {
+                    return <SearchAds initialPageQuery={initialAdQuery} initialSearchState={null} />
+                }
                 return (
                     <PageDiscovery
                         onSearchAds={(url) => {
