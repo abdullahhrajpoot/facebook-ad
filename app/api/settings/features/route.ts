@@ -1,49 +1,55 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import fs from 'fs';
-import path from 'path';
-
-// Feature flags file path - stored in a JSON file for simplicity
-const FEATURE_FLAGS_PATH = path.join(process.cwd(), 'config', 'feature-flags.json');
 
 // Default feature flags
 const DEFAULT_FLAGS: Record<string, boolean> = {
     page_discovery: false
 };
 
-// Ensure config directory and file exist
-function ensureConfigExists() {
-    const configDir = path.join(process.cwd(), 'config');
-
-    if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
-    }
-
-    if (!fs.existsSync(FEATURE_FLAGS_PATH)) {
-        fs.writeFileSync(FEATURE_FLAGS_PATH, JSON.stringify(DEFAULT_FLAGS, null, 2));
-    }
-}
-
-// Read feature flags from file
-function readFeatureFlags(): Record<string, boolean> {
+// Read feature flags from Supabase
+async function readFeatureFlags(): Promise<Record<string, boolean>> {
     try {
-        ensureConfigExists();
-        const content = fs.readFileSync(FEATURE_FLAGS_PATH, 'utf-8');
-        return { ...DEFAULT_FLAGS, ...JSON.parse(content) };
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('feature_flags')
+            .select('*');
+        
+        if (error) {
+            console.error('Error reading feature flags from database:', error);
+            return DEFAULT_FLAGS;
+        }
+
+        const flags: Record<string, boolean> = { ...DEFAULT_FLAGS };
+        if (data) {
+            data.forEach(row => {
+                flags[row.feature_id] = row.enabled;
+            });
+        }
+        return flags;
     } catch (error) {
         console.error('Error reading feature flags:', error);
         return DEFAULT_FLAGS;
     }
 }
 
-// Write feature flags to file
-function writeFeatureFlags(flags: Record<string, boolean>) {
+// Write feature flags to Supabase
+async function writeFeatureFlags(featureId: string, enabled: boolean): Promise<boolean> {
     try {
-        ensureConfigExists();
-        fs.writeFileSync(FEATURE_FLAGS_PATH, JSON.stringify(flags, null, 2));
+        const supabase = await createClient();
+        const { error } = await supabase
+            .from('feature_flags')
+            .upsert(
+                { feature_id: featureId, enabled, updated_at: new Date().toISOString() },
+                { onConflict: 'feature_id' }
+            );
+        
+        if (error) {
+            console.error('Error writing feature flag to database:', error);
+            return false;
+        }
         return true;
     } catch (error) {
-        console.error('Error writing feature flags:', error);
+        console.error('Error writing feature flag:', error);
         return false;
     }
 }
@@ -114,11 +120,8 @@ export async function POST(request: Request) {
             );
         }
 
-        // Update the flags
-        const flags = readFeatureFlags();
-        flags[featureId] = enabled;
-
-        if (!writeFeatureFlags(flags)) {
+        // Update the flag
+        if (!await writeFeatureFlags(featureId, enabled)) {
             return NextResponse.json(
                 { error: 'Failed to save feature flag' },
                 { status: 500 }

@@ -1,27 +1,32 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
-import fs from 'fs';
-import path from 'path';
 
-// Read feature flag from config file
-function isPageDiscoveryEnabled(): boolean {
+// Read feature flag from Supabase database
+async function isPageDiscoveryEnabled(): Promise<boolean> {
     try {
-        const configPath = path.join(process.cwd(), 'config', 'feature-flags.json');
-        if (fs.existsSync(configPath)) {
-            const content = fs.readFileSync(configPath, 'utf-8');
-            const flags = JSON.parse(content);
-            return flags.page_discovery === true;
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('feature_flags')
+            .select('enabled')
+            .eq('feature_id', 'page_discovery')
+            .single();
+        
+        if (error) {
+            console.error('Error reading feature flag from database:', error);
+            return false;
         }
+        
+        return data?.enabled ?? false;
     } catch (error) {
         console.error('Error reading feature flags:', error);
+        return false;
     }
-    return false; // Default to disabled
 }
 
 export async function POST(request: Request) {
     // Check feature flag first - return early if disabled
-    if (!isPageDiscoveryEnabled()) {
+    if (!(await isPageDiscoveryEnabled())) {
         return NextResponse.json(
             { error: 'Page Discovery feature is temporarily disabled. Please check back later.' },
             { status: 503 }
