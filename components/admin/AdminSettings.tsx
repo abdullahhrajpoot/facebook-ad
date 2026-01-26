@@ -64,9 +64,8 @@ export default function AdminSettings() {
             })
 
             if (res.ok) {
-                setFeatures(prev => prev.map(f =>
-                    f.id === featureId ? { ...f, enabled: !f.enabled } : f
-                ))
+                // Refetch to get the latest state from database
+                await fetchFeatureFlags()
                 setMessage({
                     type: 'success',
                     text: `${feature.name} has been ${!feature.enabled ? 'enabled' : 'disabled'}`

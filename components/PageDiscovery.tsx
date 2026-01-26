@@ -9,53 +9,90 @@ import PagePreviewModal from './modals/PagePreviewModal'
 import MaterialDropdown from '@/components/ui/MaterialDropdown'
 // Redefine locally to ensure self-contained type safety and avoid import issues
 interface FacebookPageLocal {
+    // Core identifiers
     facebookUrl?: string
-    categories?: string[]
-    info?: string[]
-    likes?: number
-    messenger?: string | null
-    title?: string
-    address?: string
-    pageId?: string
-    pageName?: string
     pageUrl?: string
+    url?: string
+    profile_url?: string
+    pageId?: string
+    facebookId?: string
+    facebook_id?: string
+    
+    // Names
+    title?: string
+    pageName?: string
+    name?: string
+    
+    // Categories
+    categories?: string[]
+    category?: string
+    type?: string
+    
+    // Engagement stats
+    likes?: number
+    followers?: number
+    followings?: number
+    
+    // Contact info
     phone?: string
     email?: string
     website?: string
     websites?: string[]
+    address?: string
+    messenger?: string | null
+    
+    // Rating
     rating?: string
     ratingOverall?: number | null
     ratingCount?: number | null
-    followers?: number
-    followings?: number
-    creation_date?: string
-    ad_status?: string
-    facebookId?: string
-    intro?: string
-    CONFIRMED_OWNER_LABEL?: string
-    confirmed_owner?: string
-    alternativeSocialMedia?: string
+    
+    // Images
     profilePictureUrl?: string
     coverPhotoUrl?: string
     profilePhoto?: string
-    category?: string
-    instagram?: {
-        username: string
-        url: string
-    }[]
-    pageAdLibrary?: {
-        is_business_page_active: boolean
-        id: string
+    profilePic?: string
+    coverUrl?: string
+    image?: {
+        uri?: string
+        width?: number
+        height?: number
     }
+    
+    // Text content
+    info?: string[]
+    intro?: string
     about_me?: {
         text: string
         urls: any[]
     }
-    priceRange?: string
-    // Legacy/Fallback fields
-    profilePic?: string
-    coverUrl?: string
+    
+    // Verification
+    CONFIRMED_OWNER_LABEL?: string
+    confirmed_owner?: string
+    is_verified?: boolean
     verificationStatus?: string
+    
+    // Ads status
+    ad_status?: string
+    pageAdLibrary?: {
+        is_business_page_active: boolean
+        id: string
+    }
+    
+    // Dates
+    creation_date?: string
+    scrapedAt?: string
+    
+    // Other
+    alternativeSocialMedia?: string
+    priceRange?: string
+    instagram?: {
+        username: string
+        url: string
+    }[]
+    
+    // Relevance from API
+    relevanceScore?: number
 }
 
 interface PageDiscoveryProps {
@@ -553,16 +590,34 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
 
 function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSearchAds?: (url: string) => void, onView: () => void }) {
 
-    // Derived Data
+    // Derived Data - handle all field name variations
     const isAdsRunning = page.pageAdLibrary?.is_business_page_active ||
         (page.ad_status && page.ad_status.toLowerCase().includes('running ads') && !page.ad_status.toLowerCase().includes('not'))
 
-    const profileImgSrc = page.profilePictureUrl || page.profilePhoto || page.profilePic || `https://graph.facebook.com/${page.facebookId || page.pageId}/picture?type=large`
-    // Use Cover info but fallback to profile if needed for background effect
+    // Profile image - check all possible sources
+    const profileImgSrc = page.profilePictureUrl || page.profilePhoto || page.profilePic || page.image?.uri || 
+        (page.facebookId || page.facebook_id || page.pageId ? `https://graph.facebook.com/${page.facebookId || page.facebook_id || page.pageId}/picture?type=large` : null)
+    
+    // Cover image - fallback to profile if needed
     const coverImgSrc = page.coverPhotoUrl || page.coverUrl || profileImgSrc
 
-    const ownerLabel = page.CONFIRMED_OWNER_LABEL || page.confirmed_owner
-    const introText = page.intro || (page.info && page.info.length > 0 ? page.info[0] : null)
+    // Verification status - check all variations
+    const ownerLabel = page.CONFIRMED_OWNER_LABEL || page.confirmed_owner || (page.is_verified ? 'Verified' : null)
+    
+    // Intro text - check multiple sources
+    const introText = page.intro || page.about_me?.text || (page.info && page.info.length > 0 ? page.info[0] : null)
+    
+    // Page title - handle all name variations
+    const pageTitle = page.title || page.pageName || page.name
+    
+    // Page URL - handle all URL variations
+    const pageUrl = page.facebookUrl || page.pageUrl || page.url || page.profile_url
+    
+    // Page ID - handle all ID variations
+    const pageIdValue = page.pageId || page.facebookId || page.facebook_id
+    
+    // Categories - handle different formats
+    const pageCategories = page.categories || (page.category ? [page.category] : (page.type ? [page.type] : []))
 
     return (
         <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-[2rem] overflow-hidden hover:border-purple-500/30 hover:bg-zinc-900/40 transition-all flex flex-col group relative shadow-lg hover:shadow-purple-900/10 hover:-translate-y-1 ring-1 ring-white/10">
@@ -575,13 +630,11 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                 <div className="absolute inset-0 bg-zinc-900">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                        src={coverImgSrc}
+                        src={coverImgSrc || ''}
                         alt="Cover"
-                        className={`w-full h-full object-cover transition-transform duration-700 group-hover/header:rotate-1 group-hover/header:scale-105 ${!page.coverPhotoUrl && !page.coverUrl ? 'blur-2xl opacity-40 scale-125' : ''}`}
+                        className={`w-full h-full object-cover transition-transform duration-700 group-hover/header:rotate-1 group-hover/header:scale-105 ${!coverImgSrc || coverImgSrc === profileImgSrc ? 'blur-2xl opacity-40 scale-125' : ''}`}
                         onError={(e) => {
-                            if (!page.coverPhotoUrl && !page.coverUrl) {
-                                e.currentTarget.style.display = 'none';
-                            }
+                            e.currentTarget.style.display = 'none';
                         }}
                     />
                 </div>
@@ -615,17 +668,17 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                     <div className="w-20 h-20 rounded-2xl bg-zinc-900 border-4 border-black shadow-xl flex items-center justify-center overflow-hidden relative group cursor-pointer pointer-events-auto ring-1 ring-white/10" onClick={onView}>
                         {/* Placeholder Background (Rendered First) */}
                         <div className="text-2xl font-black text-zinc-700 absolute inset-0 flex items-center justify-center bg-zinc-900 z-0 select-none">
-                            {page.title ? page.title.charAt(0).toUpperCase() : (page.pageName ? page.pageName.charAt(0).toUpperCase() : 'P')}
+                            {pageTitle ? pageTitle.charAt(0).toUpperCase() : 'P'}
                         </div>
 
                         {/* Actual Image (Rendered Second, on top) */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src={profileImgSrc}
+                            src={profileImgSrc || ''}
                             onError={(e) => {
                                 // Fallback logic
-                                if ((page.facebookId || page.pageId) && !e.currentTarget.src.includes('graph.facebook')) {
-                                    e.currentTarget.src = `https://graph.facebook.com/${page.facebookId || page.pageId}/picture?type=large`;
+                                if (pageIdValue && !e.currentTarget.src.includes('graph.facebook')) {
+                                    e.currentTarget.src = `https://graph.facebook.com/${pageIdValue}/picture?type=large`;
                                 } else {
                                     e.currentTarget.style.display = 'none';
                                 }
@@ -648,12 +701,12 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
 
                 <div className="mb-4">
                     <h3 onClick={onView} className="text-lg font-black text-white leading-tight mb-2 group-hover:text-purple-400 transition-colors line-clamp-2 cursor-pointer">
-                        {page.title || page.pageName}
+                        {pageTitle}
                     </h3>
                     <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
-                        {(page.categories || [page.category])
+                        {pageCategories
                             .filter(Boolean)
-                            .filter(c => c !== 'Page')
+                            .filter(c => c !== 'Page' && c !== 'page')
                             .slice(0, 2)
                             .map((cat, i) => (
                                 <span key={i} className="bg-white/5 px-2 py-0.5 rounded text-zinc-400 border border-white/5 break-words max-w-full font-medium">
@@ -663,43 +716,78 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                     </div>
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-2 gap-2 mb-4 py-3 border-y border-white/5 bg-white/[0.02] -mx-6 px-6">
-                    <div className="flex flex-col">
-                        <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
-                            <Target className="w-3 h-3" /> Following
+                {/* Stats Row - Only show if we have data */}
+                {(page.likes || page.followers || page.followings) && (
+                    <div className="grid grid-cols-2 gap-2 mb-4 py-3 border-y border-white/5 bg-white/[0.02] -mx-6 px-6">
+                        <div className="flex flex-col">
+                            <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
+                                <Target className="w-3 h-3" /> {page.likes ? 'Likes' : 'Following'}
+                            </div>
+                            <div className="text-sm font-bold text-zinc-200">
+                                {(page.likes || page.followings || 0).toLocaleString()}
+                            </div>
                         </div>
-                        <div className="text-sm font-bold text-zinc-200">
-                            {page.followings ? page.followings.toLocaleString() : 'N/A'}
+                        <div className="flex flex-col border-l border-white/5 pl-4">
+                            <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
+                                <Users className="w-3 h-3" /> Followers
+                            </div>
+                            <div className="text-sm font-bold text-zinc-200">
+                                {(page.followers || 0).toLocaleString()}
+                            </div>
                         </div>
                     </div>
-                    <div className="flex flex-col border-l border-white/5 pl-4">
-                        <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
-                            <Users className="w-3 h-3" /> Followers
-                        </div>
-                        <div className="text-sm font-bold text-zinc-200">
-                            {page.followers ? page.followers.toLocaleString() : 'N/A'}
-                        </div>
-                    </div>
-                </div>
+                )}
 
                 {/* Info Text / Intro */}
                 {introText && (
                     <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/5 text-xs text-zinc-400 line-clamp-3 italic">
-                        "{introText}"
+                        &quot;{introText}&quot;
                     </div>
                 )}
+                
+                {/* Contact Info Row - Show available contact details */}
+                {(page.email || page.phone || page.website) && (
+                    <div className="mb-4 flex flex-wrap gap-2 text-xs">
+                        {page.email && (
+                            <a href={`mailto:${page.email}`} className="flex items-center gap-1 text-zinc-400 hover:text-purple-400 transition-colors">
+                                <Mail className="w-3 h-3" />
+                                <span className="truncate max-w-[120px]">{page.email}</span>
+                            </a>
+                        )}
+                        {page.phone && (
+                            <a href={`tel:${page.phone}`} className="flex items-center gap-1 text-zinc-400 hover:text-purple-400 transition-colors">
+                                <Phone className="w-3 h-3" />
+                                <span>{page.phone}</span>
+                            </a>
+                        )}
+                        {page.website && (
+                            <a href={page.website.startsWith('http') ? page.website : `https://${page.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-zinc-400 hover:text-purple-400 transition-colors">
+                                <Globe className="w-3 h-3" />
+                                <span className="truncate max-w-[120px]">{page.website}</span>
+                            </a>
+                        )}
+                    </div>
+                )}
+                
+                {/* Address - only if no intro and has address */}
                 {!introText && page.address && (
                     <div className="mb-4 text-xs text-zinc-500 flex items-start gap-2">
                         <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                         <span className="line-clamp-2 font-medium">{page.address.replace(/http[^\s]+/, '')}</span>
                     </div>
                 )}
+                
+                {/* Creation Date */}
+                {page.creation_date && (
+                    <div className="mb-4 text-[10px] text-zinc-600 font-medium">
+                        Created: {page.creation_date}
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 mt-auto pt-2">
                     <a
-                        href={page.facebookUrl || page.pageUrl}
+                        href={pageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-zinc-300 font-bold text-xs hover:bg-white/10 hover:text-white transition-all border border-white/5 hover:border-white/10 group/btn"
@@ -710,7 +798,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
 
                     {/* Analyze Ads Button */}
                     <button
-                        onClick={() => onSearchAds && onSearchAds(page.facebookUrl || page.title || '')}
+                        onClick={() => onSearchAds && onSearchAds(pageUrl || pageTitle || '')}
                         className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-xs hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-900/20 active:scale-95 group/btn border border-white/10"
                     >
                         <Play className="w-3.5 h-3.5 fill-white group-hover/btn:scale-110 transition-transform" />

@@ -23,8 +23,9 @@ The Page Discovery feature allows users to discover Facebook business pages by i
 ### Technical Details
 
 The feature is controlled by the `page_discovery` flag stored in:
-- **Config file:** `/config/feature-flags.json`
-- **API endpoint:** `/api/settings/features`
+- **Database table:** `feature_flags` in Supabase
+- **Admin API endpoint:** `/api/settings/features` (POST to update)
+- **Public API endpoint:** `/api/features` (GET to read)
 
 When disabled:
 - The API route `/api/pages/discovery` returns a 503 error
@@ -35,8 +36,9 @@ When disabled:
 
 | File | Purpose |
 |------|---------|
-| `/config/feature-flags.json` | Stores the feature flag values |
-| `/app/api/settings/features/route.ts` | API to read/write feature flags |
+| `supabase/migrations/20260127_create_feature_flags_table.sql` | Database migration for feature_flags table |
+| `/app/api/settings/features/route.ts` | Admin API to read/write feature flags |
+| `/app/api/features/route.ts` | Public API to read feature flags |
 | `/app/api/pages/discovery/route.ts` | Page Discovery API (checks flag) |
 | `/components/admin/AdminSettings.tsx` | Settings UI component |
 | `/components/UserSidebar.tsx` | User sidebar (dynamic menu) |

@@ -21,7 +21,7 @@ export function useFeatureFlags() {
 
     const fetchFlags = async () => {
         try {
-            const res = await fetch('/api/settings/features')
+            const res = await fetch('/api/features')
             if (res.ok) {
                 const data = await res.json()
                 setFlags({ ...DEFAULT_FLAGS, ...data })

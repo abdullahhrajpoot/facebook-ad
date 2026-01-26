@@ -76,7 +76,7 @@ export async function GET() {
             return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
         }
 
-        const flags = readFeatureFlags();
+        const flags = await readFeatureFlags();
         return NextResponse.json(flags);
 
     } catch (error: any) {
