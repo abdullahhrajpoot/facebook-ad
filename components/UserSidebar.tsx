@@ -47,21 +47,21 @@ export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOu
 
             {/* Sidebar */}
             <aside className={`
-                fixed top-0 left-0 z-50 h-screen w-72 bg-black/60 backdrop-blur-xl border-r border-white/5 shadow-2xl transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+                fixed top-0 left-0 z-50 h-screen w-[280px] sm:w-72 bg-black/60 backdrop-blur-xl border-r border-white/5 shadow-2xl transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 md:relative md:translate-x-0 flex flex-col
             `}>
                 {/* Logo Area */}
-                <div className="p-8 pb-6 border-b border-white/5 relative overflow-hidden">
+                <div className="p-6 sm:p-8 pb-5 sm:pb-6 border-b border-white/5 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none" />
 
-                    <div className="flex items-center gap-3 mb-2 relative z-10">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
-                            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2 relative z-10">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
+                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                         </div>
-                        <h1 className="text-xl font-black italic tracking-tighter leading-none">
+                        <h1 className="text-lg sm:text-xl font-black italic tracking-tighter leading-none">
                             <span className="block text-white drop-shadow-md">IKONIC</span>
                             <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent filter drop-shadow-sm">MARKETERS</span>
                         </h1>
@@ -69,8 +69,8 @@ export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOu
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto custom-scrollbar">
-                    <div className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-4 px-4">Menu</div>
+                <nav className="flex-1 px-3 sm:px-4 py-6 sm:py-8 space-y-1.5 sm:space-y-2 overflow-y-auto custom-scrollbar">
+                    <div className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-3 sm:mb-4 px-3 sm:px-4">Menu</div>
 
                     {menuItems.map((item) => {
                         const Icon = item.icon
@@ -109,22 +109,22 @@ export default function UserSidebar({ profile, activeTab, setActiveTab, onSignOu
                 </nav>
 
                 {/* Footer User Info */}
-                <div className="p-4 border-t border-white/5 space-y-4 bg-black/20 backdrop-blur-md">
-                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold shrink-0 ring-1 ring-white/10 group-hover:scale-105 transition-transform">
-                            {profile?.full_name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
+                <div className="p-3 sm:p-4 border-t border-white/5 space-y-3 sm:space-y-4 bg-black/20 backdrop-blur-md">
+                    <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer group">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold shrink-0 ring-1 ring-white/10 group-hover:scale-105 transition-transform text-sm sm:text-base">
+                            {profile?.full_name?.[0]?.toUpperCase() || <User className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </div>
                         <div className="overflow-hidden">
-                            <div className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{profile?.full_name || 'User'}</div>
-                            <div className="text-[10px] text-zinc-500 font-medium truncate tracking-wide">{profile?.email}</div>
+                            <div className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{profile?.full_name || 'User'}</div>
+                            <div className="text-[9px] sm:text-[10px] text-zinc-500 font-medium truncate tracking-wide">{profile?.email}</div>
                         </div>
                     </div>
 
                     <button
                         onClick={onSignOut}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest border border-red-600/20 hover:border-red-500 hover:shadow-lg hover:shadow-red-600/20 active:scale-95 group"
+                        className="w-full flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white transition-all text-[10px] sm:text-xs font-bold uppercase tracking-widest border border-red-600/20 hover:border-red-500 hover:shadow-lg hover:shadow-red-600/20 active:scale-95 group"
                     >
-                        <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                        <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:-translate-x-1 transition-transform" />
                         Sign Out
                     </button>
                 </div>

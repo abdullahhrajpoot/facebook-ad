@@ -47,25 +47,25 @@ export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sideb
 
             {/* SidebarContainer */}
             <aside className={`
-                fixed inset-y-0 left-0 z-50 w-72 h-screen
+                fixed inset-y-0 left-0 z-50 w-[280px] sm:w-72 h-screen
                 bg-black/60 backdrop-blur-2xl border-r border-white/5 
                 transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) shadow-2xl
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 md:relative md:translate-x-0 flex flex-col
             `}>
                 {/* Logo Area */}
-                <div className="p-8 pb-6 border-b border-white/5 relative overflow-hidden">
+                <div className="p-6 sm:p-8 pb-5 sm:pb-6 border-b border-white/5 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-32 h-32 bg-red-600/10 blur-[50px] rounded-full pointer-events-none" />
 
-                    <div className="flex items-center gap-3 mb-1 group cursor-default relative z-10">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)] group-hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] transition-all duration-500 ring-1 ring-white/10">
-                            <Activity className="w-6 h-6 text-white transform group-hover:scale-110 transition-transform duration-500" />
+                    <div className="flex items-center gap-2 sm:gap-3 mb-1 group cursor-default relative z-10">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)] group-hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] transition-all duration-500 ring-1 ring-white/10">
+                            <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-white transform group-hover:scale-110 transition-transform duration-500" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black italic tracking-tighter leading-none text-white drop-shadow-md">
+                            <h1 className="text-lg sm:text-xl font-black italic tracking-tighter leading-none text-white drop-shadow-md">
                                 IKONIC
                             </h1>
-                            <span className="text-[10px] font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-orange-500 tracking-[0.2em] uppercase">
+                            <span className="text-[9px] sm:text-[10px] font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-orange-500 tracking-[0.2em] uppercase">
                                 MARKETERS
                             </span>
                         </div>
@@ -73,8 +73,8 @@ export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sideb
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-                    <div className="text-[10px] font-extrabold text-zinc-600 uppercase tracking-[0.2em] mb-4 px-4">Menu</div>
+                <nav className="flex-1 px-3 sm:px-4 py-5 sm:py-6 space-y-1 overflow-y-auto custom-scrollbar">
+                    <div className="text-[9px] sm:text-[10px] font-extrabold text-zinc-600 uppercase tracking-[0.2em] mb-3 sm:mb-4 px-3 sm:px-4">Menu</div>
 
                     {menuItems.map((item) => {
                         const Icon = item.icon
@@ -117,14 +117,14 @@ export default function AdminSidebar({ activeTab, setActiveTab, onSignOut, sideb
                         )
                     })}
 
-                    <div className="text-[10px] font-extrabold text-zinc-600 uppercase tracking-[0.2em] mt-8 mb-4 px-4">System</div>
+                    <div className="text-[9px] sm:text-[10px] font-extrabold text-zinc-600 uppercase tracking-[0.2em] mt-6 sm:mt-8 mb-3 sm:mb-4 px-3 sm:px-4">System</div>
                     <button
                         onClick={() => {
                             setActiveTab('settings')
                             setSidebarOpen(false)
                         }}
                         className={`
-                            relative w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group overflow-hidden
+                            relative w-full flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3.5 rounded-lg sm:rounded-xl transition-all duration-300 group overflow-hidden
                             ${activeTab === 'settings'
                                 ? 'text-white'
                                 : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}

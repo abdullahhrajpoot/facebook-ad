@@ -96,21 +96,21 @@ export default function Home() {
 
       {/* --- NAVBAR --- */}
       <nav className="fixed w-full top-0 z-50 border-b border-white/5 bg-[#020202]/60 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-lg font-black italic tracking-tighter text-white drop-shadow-md">IKONIC</span>
-              <span className="text-lg font-black italic tracking-tighter bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent filter drop-shadow-sm">MARKETERS</span>
+              <span className="text-sm sm:text-lg font-black italic tracking-tighter text-white drop-shadow-md">IKONIC</span>
+              <span className="text-sm sm:text-lg font-black italic tracking-tighter bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent filter drop-shadow-sm">MARKETERS</span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/auth/login" className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Log In</Link>
-            <Link href="/auth/login" className="px-5 py-2 rounded-full bg-white text-black text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors shadow-lg shadow-white/10">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link href="/auth/login" className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Log In</Link>
+            <Link href="/auth/login" className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors shadow-lg shadow-white/10">
               Access Terminal
             </Link>
           </div>
@@ -134,22 +134,22 @@ export default function Home() {
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">Search Facebook Ad Library</span>
           </div>
 
-          <h1 className="text-6xl md:text-9xl font-black tracking-tighter mb-8 leading-[0.85] text-white drop-shadow-2xl animate-fade-in-up delay-100 mix-blend-lighten">
+          <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter mb-6 sm:mb-8 leading-[0.85] text-white drop-shadow-2xl animate-fade-in-up delay-100 mix-blend-lighten">
             UNSEEN <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-400 to-zinc-800">ADVANTAGE</span>
           </h1>
 
-          <p className="text-lg text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed animate-fade-in-up delay-200 font-medium">
+          <p className="text-base sm:text-lg text-zinc-400 max-w-xl mx-auto mb-8 sm:mb-10 px-4 leading-relaxed animate-fade-in-up delay-200 font-medium">
             Declassify your competitors' strategy. Access a comprehensive archive of active campaigns, creatives, and copy.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-300 w-full justify-center">
-            <Link href={dashboardLink} className="group relative h-12 px-8 rounded-full bg-white text-black font-bold flex items-center justify-center gap-2 overflow-hidden hover:scale-105 transition-transform duration-300">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 animate-fade-in-up delay-300 w-full justify-center px-4">
+            <Link href={dashboardLink} className="group relative h-11 sm:h-12 px-6 sm:px-8 rounded-full bg-white text-black font-bold flex items-center justify-center gap-2 overflow-hidden hover:scale-105 transition-transform duration-300 text-sm sm:text-base">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
               <span className="relative z-10">Initialize Search</span>
               <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button className="h-12 px-8 rounded-full border border-white/10 bg-black/50 text-white font-bold hover:bg-white/10 transition-all backdrop-blur-md flex items-center gap-2">
+            <button className="h-11 sm:h-12 px-6 sm:px-8 rounded-full border border-white/10 bg-black/50 text-white font-bold hover:bg-white/10 transition-all backdrop-blur-md flex items-center justify-center gap-2 text-sm sm:text-base">
               <Play className="w-4 h-4 fill-white" />
               <span>Watch Demo</span>
             </button>
@@ -178,7 +178,7 @@ export default function Home() {
       </div>
 
       {/* --- INTELLIGENCE MODULES --- */}
-      <section className="relative z-10 max-w-7xl mx-auto px-6 py-32 space-y-32">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-32 space-y-16 sm:space-y-24 md:space-y-32">
 
         {/* Module 01: Deep Search */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center group">
@@ -221,7 +221,7 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 text-indigo-400 font-mono text-xs">
               <ScanLine className="w-4 h-4" /> MODULE_01
             </div>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white">
               SURGICAL <br /><span className="text-zinc-600">PRECISION.</span>
             </h2>
             <p className="text-lg text-zinc-400 leading-relaxed max-w-sm">
@@ -236,7 +236,7 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 text-purple-400 font-mono text-xs">
               <Cpu className="w-4 h-4" /> MODULE_02
             </div>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white">
               VISUAL <br /><span className="text-zinc-600">FORENSICS.</span>
             </h2>
             <p className="text-lg text-zinc-400 leading-relaxed max-w-sm">
@@ -297,7 +297,7 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 text-blue-400 font-mono text-xs">
               <Globe className="w-4 h-4" /> MODULE_03
             </div>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white">
               GLOBAL <br /><span className="text-zinc-600">SURVEILLANCE.</span>
             </h2>
             <p className="text-lg text-zinc-400 leading-relaxed max-w-sm">
@@ -312,21 +312,21 @@ export default function Home() {
 
       {/* --- FOOTER --- */}
       {/* --- FOOTER (SILVER REVEAL) --- */}
-      <footer className="relative py-24 bg-[#050505] border-t border-white/10 overflow-hidden">
-        <div className="max-w-[90rem] mx-auto px-6 flex flex-col items-center">
+      <footer className="relative py-12 sm:py-16 md:py-24 bg-[#050505] border-t border-white/10 overflow-hidden">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 flex flex-col items-center">
 
           {/* Reveal Container */}
           <div className="relative overflow-hidden">
-            <h1 className="text-[12vw] leading-none font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 animate-footer-reveal select-none">
+            <h1 className="text-[10vw] sm:text-[12vw] leading-none font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 animate-footer-reveal select-none text-center">
               IKONIC MARKETERS
             </h1>
           </div>
 
-          <div className="mt-12 flex flex-col md:flex-row items-center justify-between w-full max-w-7xl border-t border-white/5 pt-8">
-            <p className="text-zinc-600 font-mono text-xs">
+          <div className="mt-8 sm:mt-12 flex flex-col md:flex-row items-center justify-between w-full max-w-7xl border-t border-white/5 pt-6 sm:pt-8 gap-4">
+            <p className="text-zinc-600 font-mono text-[10px] sm:text-xs text-center md:text-left">
               © 2024 IKONIC MARKETERS INC. ALL RIGHTS RESERVED.
             </p>
-            <div className="flex gap-8 text-zinc-600 font-mono text-xs uppercase tracking-widest mt-4 md:mt-0">
+            <div className="flex gap-4 sm:gap-8 text-zinc-600 font-mono text-[10px] sm:text-xs uppercase tracking-widest">
               <a href="#" className="hover:text-white transition-colors">Privacy</a>
               <a href="#" className="hover:text-white transition-colors">Terms</a>
               <a href="#" className="hover:text-white transition-colors">Twitter</a>

@@ -119,12 +119,12 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 onClick={() => setShowPreview(true)}
             >
                 {/* Top Bar: Ad ID + Category + Status */}
-                <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+                <div className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between p-2 sm:p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
                     {/* Ad ID & Category */}
-                    <div className="flex items-center gap-2 pointer-events-auto">
-                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
-                            <Layers className={`w-3 h-3 ${theme.iconColor}`} />
-                            <span className="text-[10px] font-mono text-zinc-300 font-bold tracking-tight uppercase truncate max-w-[80px]">
+                    <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+                        <div className="flex items-center gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-white/10">
+                            <Layers className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${theme.iconColor}`} />
+                            <span className="text-[8px] sm:text-[10px] font-mono text-zinc-300 font-bold tracking-tight uppercase truncate max-w-[60px] sm:max-w-[80px]">
                                 {primaryCategory}
                             </span>
                         </div>
@@ -132,13 +132,13 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
 
                     {/* Status Toggle */}
                     <div className={`
-                        pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold backdrop-blur-sm border shadow-lg
+                        pointer-events-auto flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-[8px] sm:text-[10px] font-bold backdrop-blur-sm border shadow-lg
                         ${ad.isActive
                             ? 'bg-green-500/20 text-green-400 border-green-500/30'
                             : 'bg-zinc-800/80 text-zinc-500 border-zinc-700/50'}
                     `}>
-                        {ad.isActive ? <Zap className="w-3 h-3 fill-current" /> : <div className="w-2 h-2 rounded-full bg-zinc-500" />}
-                        {ad.isActive ? 'Active' : 'Inactive'}
+                        {ad.isActive ? <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" /> : <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-zinc-500" />}
+                        <span className="hidden xs:inline">{ad.isActive ? 'Active' : 'Inactive'}</span>
                     </div>
                 </div>
 
@@ -146,10 +146,10 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 <button
                     onClick={handleSaveToggle}
                     disabled={isSaving}
-                    className="absolute top-14 right-3 z-20 p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/80 hover:scale-110 transition-all duration-200 group/btn"
+                    className="absolute top-12 sm:top-14 right-2 sm:right-3 z-20 p-2 sm:p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-black/80 hover:scale-110 transition-all duration-200 group/btn"
                 >
                     <Heart
-                        className={`w-4 h-4 transition-all ${isSaved ? 'text-red-500 fill-red-500 scale-110' : 'text-white group-hover/btn:text-red-400'}`}
+                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all ${isSaved ? 'text-red-500 fill-red-500 scale-110' : 'text-white group-hover/btn:text-red-400'}`}
                     />
                 </button>
 
@@ -178,8 +178,8 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 </div>
 
                 {/* Bottom Section: Page Info */}
-                <div className="relative p-4 bg-black flex-1 flex flex-col justify-end">
-                    <div className="flex items-center gap-3 mb-4">
+                <div className="relative p-3 sm:p-4 bg-black flex-1 flex flex-col justify-end">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                         {/* Page Profile Picture */}
                         <div className="shrink-0 relative">
                             {ad.pageProfilePictureUrl ? (
@@ -188,10 +188,10 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                                     alt={ad.pageName}
                                     width={40}
                                     height={40}
-                                    className="rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
+                                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
                                 />
                             ) : (
-                                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${theme.placeholderGradient} flex items-center justify-center text-white font-bold text-sm border-2 border-zinc-800`}>
+                                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${theme.placeholderGradient} flex items-center justify-center text-white font-bold text-xs sm:text-sm border-2 border-zinc-800`}>
                                     {ad.pageName[0]?.toUpperCase()}
                                 </div>
                             )}

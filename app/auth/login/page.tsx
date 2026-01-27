@@ -101,15 +101,15 @@ export default function LoginPage() {
             </div>
 
             {/* --- RIGHT PANEL: LOGIN FORM --- */}
-            <div className="flex flex-col justify-center items-center p-8 md:p-24 relative bg-[#050505]">
-                <div className="w-full max-w-[400px] space-y-10 animate-fade-in-up">
+            <div className="flex flex-col justify-center items-center p-6 sm:p-8 md:p-24 relative bg-[#050505] min-h-screen md:min-h-0">
+                <div className="w-full max-w-[400px] space-y-8 sm:space-y-10 animate-fade-in-up">
 
                     {/* Header */}
                     <div className="space-y-2 text-center md:text-left">
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-white">
                             Welcome Back.
                         </h1>
-                        <p className="text-zinc-400 text-lg">
+                        <p className="text-zinc-400 text-base sm:text-lg">
                             Enter credentials to access the terminal.
                         </p>
                     </div>
@@ -125,24 +125,24 @@ export default function LoginPage() {
                         )}
 
                         <div className="space-y-2 group">
-                            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 group-focus-within:text-blue-500 transition-colors">Email Address</label>
+                            <label className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-zinc-500 group-focus-within:text-blue-500 transition-colors">Email Address</label>
                             <div className="relative">
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="agent@ikonic.com"
-                                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-5 py-4 text-white placeholder-zinc-700 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
+                                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 sm:px-5 py-3 sm:py-4 text-white placeholder-zinc-700 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm sm:text-base"
                                     required
                                 />
-                                <Mail className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-700 group-focus-within:text-blue-500 transition-colors" />
+                                <Mail className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-zinc-700 group-focus-within:text-blue-500 transition-colors" />
                             </div>
                         </div>
 
                         <div className="space-y-2 group">
                             <div className="flex justify-between items-center">
-                                <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 group-focus-within:text-blue-500 transition-colors">Password</label>
-                                <Link href="/auth/forgot-password" className="text-xs font-medium text-zinc-500 hover:text-white transition-colors">
+                                <label className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-zinc-500 group-focus-within:text-blue-500 transition-colors">Password</label>
+                                <Link href="/auth/forgot-password" className="text-[10px] sm:text-xs font-medium text-zinc-500 hover:text-white transition-colors">
                                     Forgot Password?
                                 </Link>
                             </div>
@@ -152,17 +152,17 @@ export default function LoginPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••••••"
-                                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-5 py-4 text-white placeholder-zinc-700 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
+                                    className="w-full bg-[#0A0A0A] border border-white/10 rounded-xl px-4 sm:px-5 py-3 sm:py-4 text-white placeholder-zinc-700 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm sm:text-base"
                                     required
                                 />
-                                <Lock className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-700 group-focus-within:text-blue-500 transition-colors" />
+                                <Lock className="absolute right-4 sm:right-5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-zinc-700 group-focus-within:text-blue-500 transition-colors" />
                             </div>
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-14 rounded-full bg-white text-black font-bold text-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_-5px_rgba(255,255,255,0.3)] mt-4"
+                            className="w-full h-12 sm:h-14 rounded-full bg-white text-black font-bold text-base sm:text-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 sm:gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_-5px_rgba(255,255,255,0.3)] mt-4"
                         >
                             {loading ? (
                                 <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />

@@ -321,11 +321,11 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                 </div>
 
                 {/* Main Heading Text */}
-                <div className="text-center mb-10 relative z-10">
-                    <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 tracking-tighter mb-4 drop-shadow-2xl">
+                <div className="text-center mb-6 sm:mb-10 relative z-10 px-4">
+                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 tracking-tighter mb-3 sm:mb-4 drop-shadow-2xl">
                         Page Discovery<span className="text-purple-500">.</span>
                     </h1>
-                    <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-zinc-400 text-sm sm:text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
                         Discover public Facebook pages by industry, niche, or topic. Analyze their performance and ads.
                     </p>
                 </div>
@@ -334,20 +334,20 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                 <div className="w-full relative z-20 group">
                     <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-purple-600 to-indigo-600 opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
 
-                    <div className="relative z-50 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-2 shadow-2xl flex flex-col items-center gap-4 overflow-visible ring-1 ring-white/5">
+                    <div className="relative z-50 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-[2rem] p-2 shadow-2xl flex flex-col items-center gap-3 sm:gap-4 overflow-visible ring-1 ring-white/5">
                         <form onSubmit={handleSearch} className="w-full">
                             <div className="flex flex-col md:flex-row gap-2 w-full">
                                 {/* Keyword Input */}
-                                <div className="flex-1 relative group/input h-[64px]">
-                                    <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                                        <Search className="w-6 h-6 text-zinc-600 group-focus-within/input:text-purple-400 transition-colors duration-300" />
+                                <div className="flex-1 relative group/input h-[52px] sm:h-[64px]">
+                                    <div className="absolute inset-y-0 left-0 pl-4 sm:pl-6 flex items-center pointer-events-none">
+                                        <Search className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-600 group-focus-within/input:text-purple-400 transition-colors duration-300" />
                                     </div>
                                     <input
                                         type="text"
                                         value={keywords}
                                         onChange={(e) => setKeywords(e.target.value)}
                                         placeholder="Industry keywords (e.g. Gyms, Design)..."
-                                        className="w-full bg-zinc-900/30 md:bg-transparent rounded-[1.5rem] md:rounded-l-[1.5rem] border-none text-xl font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full pl-16 pr-4 tracking-tight"
+                                        className="w-full bg-zinc-900/30 md:bg-transparent rounded-xl sm:rounded-[1.5rem] md:rounded-l-[1.5rem] border-none text-base sm:text-xl font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full pl-12 sm:pl-16 pr-4 tracking-tight"
                                     />
                                 </div>
 
@@ -355,16 +355,16 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                                 <div className="hidden md:block w-px bg-white/10 my-3 self-stretch" />
 
                                 {/* Location Input */}
-                                <div className="flex-1 md:flex-[0.6] relative group/input h-[64px]">
-                                    <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                                        <MapPin className="w-5 h-5 text-zinc-600 group-focus-within/input:text-purple-400 transition-colors duration-300" />
+                                <div className="flex-1 md:flex-[0.6] relative group/input h-[52px] sm:h-[64px]">
+                                    <div className="absolute inset-y-0 left-0 pl-4 sm:pl-6 flex items-center pointer-events-none">
+                                        <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-600 group-focus-within/input:text-purple-400 transition-colors duration-300" />
                                     </div>
                                     <input
                                         type="text"
                                         value={location}
                                         onChange={(e) => setLocation(e.target.value)}
                                         placeholder="Location (Optional)..."
-                                        className="w-full bg-zinc-900/30 md:bg-transparent rounded-[1.5rem] md:rounded-none border-none text-lg font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full pl-14 pr-4 tracking-tight"
+                                        className="w-full bg-zinc-900/30 md:bg-transparent rounded-xl sm:rounded-[1.5rem] md:rounded-none border-none text-base sm:text-lg font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full pl-10 sm:pl-14 pr-4 tracking-tight"
                                     />
                                 </div>
 
@@ -373,8 +373,8 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                                     type="submit"
                                     disabled={loading || !keywords}
                                     className={`
-                                        h-[64px] px-10 rounded-[1.5rem] font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-                                        bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 flex items-center gap-2 group/searchBtn shrink-0
+                                        h-[48px] sm:h-[64px] px-6 sm:px-10 rounded-xl sm:rounded-[1.5rem] font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                                        bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 flex items-center justify-center gap-2 group/searchBtn shrink-0 text-sm sm:text-base
                                     `}
                                 >
                                     {loading ? (
@@ -391,8 +391,8 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                     </div>
 
                     {/* Minimal Filters Below */}
-                    <div className="flex items-center justify-center gap-4 mt-6 text-zinc-500 relative z-20">
-                        <div className="w-[180px]">
+                    <div className="flex items-center justify-center gap-4 mt-4 sm:mt-6 text-zinc-500 relative z-20">
+                        <div className="w-[150px] sm:w-[180px]">
                             <MaterialDropdown
                                 value={limit}
                                 onChange={setLimit}
@@ -409,83 +409,85 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
 
             {/* Filters */}
             {pages.length > 0 && (
-                <div className="mt-10 flex flex-col space-y-4 animate-fade-in relative z-10 border-t border-white/5 pt-6">
+                <div className="mt-6 sm:mt-10 flex flex-col space-y-3 sm:space-y-4 animate-fade-in relative z-10 border-t border-white/5 pt-4 sm:pt-6 px-2">
                     {/* Filters Row */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 text-xs font-extrabold text-zinc-500 uppercase tracking-widest mr-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-extrabold text-zinc-500 uppercase tracking-widest mr-1 sm:mr-2">
                             <Filter className="w-3 h-3" />
-                            <span>Filters</span>
+                            <span className="hidden xs:inline">Filters</span>
                         </div>
 
                         <button
                             onClick={() => setFilterAdsOnly(!filterAdsOnly)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backgrop-blur-md
+                                flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border transition-all backgrop-blur-md
                                 ${filterAdsOnly
                                     ? 'bg-green-500/10 border-green-500/30 text-green-400'
                                     : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                         >
-                            <div className={`w-2 h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-                            Has Ads
+                            <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${filterAdsOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
+                            <span className="hidden xs:inline">Has Ads</span>
+                            <span className="xs:hidden">Ads</span>
                         </button>
 
                         <button
                             onClick={() => setFilterHasEmail(!filterHasEmail)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
+                                flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasEmail
                                     ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
                                     : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                         >
                             <Mail className="w-3 h-3" />
-                            Email
+                            <span className="hidden sm:inline">Email</span>
                         </button>
 
                         <button
                             onClick={() => setFilterHasWebsite(!filterHasWebsite)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
+                                flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasWebsite
                                     ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
                                     : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                         >
                             <Globe className="w-3 h-3" />
-                            Website
+                            <span className="hidden sm:inline">Website</span>
                         </button>
 
                         <button
                             onClick={() => setFilterHasPhone(!filterHasPhone)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
+                                flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterHasPhone
                                     ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
                                     : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                         >
                             <Phone className="w-3 h-3" />
-                            Phone
+                            <span className="hidden sm:inline">Phone</span>
                         </button>
 
                         <button
                             onClick={() => setFilterConfirmedOwner(!filterConfirmedOwner)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all backdrop-blur-md
+                                flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border transition-all backdrop-blur-md
                                 ${filterConfirmedOwner
                                     ? 'bg-teal-500/10 border-teal-500/30 text-teal-400'
                                     : 'bg-black/40 border-white/5 text-zinc-400 hover:border-zinc-700 hover:bg-white/5'}
                             `}
                         >
                             <UserCheck className="w-3 h-3" />
-                            Confirmed Owner
+                            <span className="hidden sm:inline">Confirmed Owner</span>
+                            <span className="sm:hidden">Verified</span>
                         </button>
                     </div>
 
                     {/* Sort Row */}
                     <div className="flex items-center justify-end w-full relative z-20">
-                        <div className="w-[220px]">
+                        <div className="w-[180px] sm:w-[220px]">
                             <MaterialDropdown
                                 value={sortBy}
                                 onChange={setSortBy}
@@ -516,15 +518,15 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                         </div>
 
                         {loading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                                 {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-2xl h-[300px] animate-pulse relative overflow-hidden">
+                                    <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-2xl h-[280px] sm:h-[300px] animate-pulse relative overflow-hidden">
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-zinc-800/10 to-transparent skew-x-12 translate-x-[-100%] animate-shimmer" />
                                     </div>
                                 ))}
                             </div>
                         ) : filteredPages.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                                 {filteredPages.map((page, i) => (
                                     <PageCard
                                         key={page.pageId || i}
@@ -623,10 +625,10 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
     const pageCategories = page.categories || (page.category ? [page.category] : (page.type ? [page.type] : []))
 
     return (
-        <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-[2rem] overflow-hidden hover:border-purple-500/30 hover:bg-zinc-900/40 transition-all flex flex-col group relative shadow-lg hover:shadow-purple-900/10 hover:-translate-y-1 ring-1 ring-white/10">
+        <div className="bg-black/40 backdrop-blur-md border border-white/5 rounded-xl sm:rounded-[2rem] overflow-hidden hover:border-purple-500/30 hover:bg-zinc-900/40 transition-all flex flex-col group relative shadow-lg hover:shadow-purple-900/10 hover:-translate-y-1 ring-1 ring-white/10">
             {/* Header / Cover */}
             <div
-                className="h-36 bg-zinc-900 relative overflow-hidden cursor-pointer group/header"
+                className="h-28 sm:h-36 bg-zinc-900 relative overflow-hidden cursor-pointer group/header"
                 onClick={onView}
             >
                 {/* Real Cover Image */}
@@ -665,12 +667,12 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                 )}
             </div>
 
-            <div className="px-6 pb-6 flex-1 flex flex-col relative">
+            <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex-1 flex flex-col relative">
                 {/* Profile Pic Placeholder & Title */}
-                <div className="relative -mt-10 mb-3 flex items-end justify-between pointer-events-none z-10">
-                    <div className="w-20 h-20 rounded-2xl bg-zinc-900 border-4 border-black shadow-xl flex items-center justify-center overflow-hidden relative group cursor-pointer pointer-events-auto ring-1 ring-white/10" onClick={onView}>
+                <div className="relative -mt-8 sm:-mt-10 mb-2 sm:mb-3 flex items-end justify-between pointer-events-none z-10">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-zinc-900 border-[4px] sm:border-4 border-black shadow-xl flex items-center justify-center overflow-hidden relative group cursor-pointer pointer-events-auto ring-1 ring-white/10" onClick={onView}>
                         {/* Placeholder Background (Rendered First) */}
-                        <div className="text-2xl font-black text-zinc-700 absolute inset-0 flex items-center justify-center bg-zinc-900 z-0 select-none">
+                        <div className="text-xl sm:text-2xl font-black text-zinc-700 absolute inset-0 flex items-center justify-center bg-zinc-900 z-0 select-none">
                             {pageTitle ? pageTitle.charAt(0).toUpperCase() : 'P'}
                         </div>
 
@@ -702,11 +704,11 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                     )}
                 </div>
 
-                <div className="mb-4">
-                    <h3 onClick={onView} className="text-lg font-black text-white leading-tight mb-2 group-hover:text-purple-400 transition-colors line-clamp-2 cursor-pointer">
+                <div className="mb-3 sm:mb-4">
+                    <h3 onClick={onView} className="text-base sm:text-lg font-black text-white leading-tight mb-1.5 sm:mb-2 group-hover:text-purple-400 transition-colors line-clamp-2 cursor-pointer">
                         {pageTitle}
                     </h3>
-                    <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-zinc-500">
                         {pageCategories
                             .filter(Boolean)
                             .filter(c => c !== 'Page' && c !== 'page')
@@ -721,20 +723,20 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
 
                 {/* Stats Row - Only show if we have data */}
                 {(page.likes || page.followers || page.followings) && (
-                    <div className="grid grid-cols-2 gap-2 mb-4 py-3 border-y border-white/5 bg-white/[0.02] -mx-6 px-6">
+                    <div className="grid grid-cols-2 gap-2 mb-3 sm:mb-4 py-2 sm:py-3 border-y border-white/5 bg-white/[0.02] -mx-4 sm:-mx-6 px-4 sm:px-6">
                         <div className="flex flex-col">
-                            <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
-                                <Target className="w-3 h-3" /> {page.likes ? 'Likes' : 'Following'}
+                            <div className="text-[9px] sm:text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1 sm:gap-1.5 mb-0.5">
+                                <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {page.likes ? 'Likes' : 'Following'}
                             </div>
-                            <div className="text-sm font-bold text-zinc-200">
+                            <div className="text-xs sm:text-sm font-bold text-zinc-200">
                                 {(page.likes || page.followings || 0).toLocaleString()}
                             </div>
                         </div>
-                        <div className="flex flex-col border-l border-white/5 pl-4">
-                            <div className="text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1.5 mb-0.5">
-                                <Users className="w-3 h-3" /> Followers
+                        <div className="flex flex-col border-l border-white/5 pl-3 sm:pl-4">
+                            <div className="text-[9px] sm:text-[10px] uppercase text-zinc-500 font-extrabold flex items-center gap-1 sm:gap-1.5 mb-0.5">
+                                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Followers
                             </div>
-                            <div className="text-sm font-bold text-zinc-200">
+                            <div className="text-xs sm:text-sm font-bold text-zinc-200">
                                 {(page.followers || 0).toLocaleString()}
                             </div>
                         </div>
@@ -793,18 +795,18 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                         href={pageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 text-zinc-300 font-bold text-xs hover:bg-white/10 hover:text-white transition-all border border-white/5 hover:border-white/10 group/btn"
+                        className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-white/5 text-zinc-300 font-bold text-[10px] sm:text-xs hover:bg-white/10 hover:text-white transition-all border border-white/5 hover:border-white/10 group/btn"
                     >
-                        <ExternalLink className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" />
+                        <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover/btn:scale-110 transition-transform" />
                         Visit
                     </a>
 
                     {/* Analyze Ads Button */}
                     <button
                         onClick={() => onSearchAds && onSearchAds(pageUrl || pageTitle || '')}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-xs hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-900/20 active:scale-95 group/btn border border-white/10"
+                        className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-[10px] sm:text-xs hover:from-purple-500 hover:to-blue-500 transition-all shadow-lg shadow-purple-900/20 active:scale-95 group/btn border border-white/10"
                     >
-                        <Play className="w-3.5 h-3.5 fill-white group-hover/btn:scale-110 transition-transform" />
+                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white group-hover/btn:scale-110 transition-transform" />
                         See Ads
                     </button>
                 </div>

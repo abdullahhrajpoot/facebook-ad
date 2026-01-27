@@ -123,25 +123,25 @@ export default function SearchHistory({ onSelect, refreshTrigger }: SearchHistor
     }
 
     if (loading) return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 animate-pulse">
             {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-32 bg-zinc-900/40 border border-zinc-800 rounded-2xl w-full"></div>
+                <div key={i} className="h-28 sm:h-32 bg-zinc-900/40 border border-zinc-800 rounded-xl sm:rounded-2xl w-full"></div>
             ))}
         </div>
     )
 
     if (history.length === 0) return (
-        <div className="flex flex-col items-center justify-center py-20 text-zinc-500 bg-white/5 rounded-3xl border border-dashed border-white/10">
-            <div className="mb-6 p-6 bg-zinc-900/50 rounded-full ring-1 ring-white/10">
-                <Archive className="w-8 h-8 opacity-40" />
+        <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-zinc-500 bg-white/5 rounded-2xl sm:rounded-3xl border border-dashed border-white/10 px-4">
+            <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-zinc-900/50 rounded-full ring-1 ring-white/10">
+                <Archive className="w-6 h-6 sm:w-8 sm:h-8 opacity-40" />
             </div>
-            <p className="text-zinc-400 font-medium">No search history found</p>
+            <p className="text-zinc-400 font-medium text-sm sm:text-base">No search history found</p>
             <p className="text-xs text-zinc-600 mt-1">Your recent searches will appear here</p>
         </div>
     )
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* Filter out Page Discovery entries if the feature is disabled */}
             {history.filter(item => {
                 const isPageDiscovery = (item as any).uiType === 'page_discovery'
@@ -158,40 +158,40 @@ export default function SearchHistory({ onSelect, refreshTrigger }: SearchHistor
                         key={item.id}
                         onClick={() => onSelect(item)}
                         className={`
-                            group relative p-5 bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl 
+                            group relative p-4 sm:p-5 bg-black/40 backdrop-blur-md border border-white/5 rounded-xl sm:rounded-2xl 
                             transition-all duration-300 hover:bg-zinc-900/60 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/50 cursor-pointer
                             ${config.border}
                         `}
                     >
                         {/* Header */}
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`p-2.5 rounded-xl ${config.bg} ${config.color} transition-colors`}>
-                                <Icon className="w-5 h-5" />
+                        <div className="flex justify-between items-start mb-3 sm:mb-4">
+                            <div className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl ${config.bg} ${config.color} transition-colors`}>
+                                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                             </div>
-                            <span className="text-[10px] font-medium text-zinc-500 bg-zinc-900/50 px-2 py-1 rounded-full border border-white/5">
+                            <span className="text-[9px] sm:text-[10px] font-medium text-zinc-500 bg-zinc-900/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full border border-white/5">
                                 {formatTime(item.created_at)}
                             </span>
                         </div>
 
                         {/* Content */}
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                             <div>
-                                <h4 className="font-bold text-lg text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 transition-all truncate pr-4">
+                                <h4 className="font-bold text-base sm:text-lg text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-zinc-400 transition-all truncate pr-4">
                                     {item.keyword}
                                 </h4>
-                                <div className="text-xs text-zinc-500 font-medium mt-0.5">{config.label}</div>
+                                <div className="text-[10px] sm:text-xs text-zinc-500 font-medium mt-0.5">{config.label}</div>
                             </div>
 
                             {/* Metrics / Details */}
-                            <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
-                                <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/30 px-2.5 py-1.5 rounded-lg border border-white/5">
-                                    <MapPin className="w-3 h-3 text-zinc-600" />
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-2 border-t border-white/5">
+                                <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-zinc-400 bg-zinc-900/30 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-white/5">
+                                    <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-zinc-600" />
                                     <span>
                                         {item.filters?.location || item.filters?.country || 'Global'}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900/30 px-2.5 py-1.5 rounded-lg border border-white/5">
-                                    <Filter className="w-3 h-3 text-zinc-600" />
+                                <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-zinc-400 bg-zinc-900/30 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg border border-white/5">
+                                    <Filter className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-zinc-600" />
                                     <span>
                                         Limit: {item.filters?.limit || item.filters?.maxResults || item.filters?.count || 20}
                                     </span>
@@ -200,9 +200,9 @@ export default function SearchHistory({ onSelect, refreshTrigger }: SearchHistor
                         </div>
 
                         {/* Hover Action */}
-                        <div className="absolute bottom-5 right-5 opacity-0 transform translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                            <div className={`p-2 rounded-full ${config.color} bg-white/5 border border-white/10`}>
-                                <ArrowRight className="w-4 h-4" />
+                        <div className="absolute bottom-4 sm:bottom-5 right-4 sm:right-5 opacity-0 transform translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                            <div className={`p-1.5 sm:p-2 rounded-full ${config.color} bg-white/5 border border-white/10`}>
+                                <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
                             </div>
                         </div>
                     </div>

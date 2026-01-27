@@ -415,11 +415,11 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                 </div>
 
                 {/* Main Heading Text */}
-                <div className="text-center mb-10 relative z-10">
-                    <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 tracking-tighter mb-4 drop-shadow-2xl">
+                <div className="text-center mb-6 sm:mb-10 relative z-10 px-4">
+                    <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50 tracking-tighter mb-3 sm:mb-4 drop-shadow-2xl">
                         Ad Intelligence<span className={`${theme.text}`}>.</span>
                     </h1>
-                    <p className="text-zinc-400 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-zinc-400 text-sm sm:text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
                         Uncover high-performing ads with precision. Analyze trends, creatives, and copy across the Meta ecosystem.
                     </p>
                 </div>
@@ -433,43 +433,43 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                     <div className="relative z-50 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-2 shadow-2xl flex flex-col md:flex-row items-center gap-2 overflow-visible ring-1 ring-white/5">
 
                         {/* Mode Switcher (Integrated) */}
-                        <div className="flex p-1.5 bg-zinc-900/50 rounded-[1.5rem] border border-white/5 self-stretch md:self-auto shrink-0 relative overflow-hidden">
+                        <div className="flex p-1 sm:p-1.5 bg-zinc-900/50 rounded-[1.2rem] sm:rounded-[1.5rem] border border-white/5 self-stretch md:self-auto shrink-0 relative overflow-hidden w-full md:w-auto">
                             {/* Animated Background Slider would go here, doing simple toggle for now */}
                             <button
                                 onClick={() => setSearchMode('keyword')}
                                 className={`
-                                    relative px-6 py-3 rounded-[1.2rem] text-sm font-bold transition-all duration-300 z-10 flex items-center gap-2
+                                    relative flex-1 md:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-[1rem] sm:rounded-[1.2rem] text-xs sm:text-sm font-bold transition-all duration-300 z-10 flex items-center justify-center gap-2
                                     ${searchMode === 'keyword' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}
                                 `}
                             >
                                 <Search className="w-4 h-4" />
-                                Keyword
+                                <span className="hidden sm:inline">Keyword</span>
                             </button>
                             <button
                                 onClick={() => setSearchMode('page')}
                                 className={`
-                                    relative px-6 py-3 rounded-[1.2rem] text-sm font-bold transition-all duration-300 z-10 flex items-center gap-2
+                                    relative flex-1 md:flex-initial px-4 sm:px-6 py-2.5 sm:py-3 rounded-[1rem] sm:rounded-[1.2rem] text-xs sm:text-sm font-bold transition-all duration-300 z-10 flex items-center justify-center gap-2
                                     ${searchMode === 'page' ? 'bg-zinc-800 text-white shadow-lg ring-1 ring-white/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}
                                 `}
                             >
                                 <Globe className="w-4 h-4" />
-                                Page URL
+                                <span className="hidden sm:inline">Page URL</span>
                             </button>
                         </div>
 
                         {/* Search Input Area */}
-                        <div className="flex-1 w-full relative h-[64px] flex items-center">
+                        <div className="flex-1 w-full relative h-[52px] sm:h-[64px] flex items-center">
                             <form onSubmit={handleSearch} className="w-full h-full flex items-center">
-                                <div className="relative w-full h-full flex items-center px-4 group/input">
-                                    <theme.icon className={`w-6 h-6 text-zinc-600 group-focus-within/input:${theme.text} transition-colors duration-300 mr-4`} />
+                                <div className="relative w-full h-full flex items-center px-3 sm:px-4 group/input">
+                                    <theme.icon className={`w-5 h-5 sm:w-6 sm:h-6 text-zinc-600 group-focus-within/input:${theme.text} transition-colors duration-300 mr-2 sm:mr-4`} />
                                     <input
                                         type="text"
                                         value={keyword}
                                         onChange={(e) => setKeyword(e.target.value)}
                                         onFocus={() => setShowHistory(true)}
                                         onBlur={() => setTimeout(() => setShowHistory(false), 200)}
-                                        placeholder={searchMode === 'keyword' ? "Search brands, products (e.g. 'Nike')..." : "Paste Facebook Page URL..."}
-                                        className="w-full bg-transparent border-none text-xl md:text-2xl font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full tracking-tight"
+                                        placeholder={searchMode === 'keyword' ? "Search brands, products..." : "Paste Facebook Page URL..."}
+                                        className="w-full bg-transparent border-none text-base sm:text-xl md:text-2xl font-bold text-white placeholder-zinc-700 focus:ring-0 focus:outline-none h-full tracking-tight"
                                         autoComplete="off"
                                     />
 
@@ -519,10 +519,10 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                         </div>
 
                         {/* Action Buttons Group */}
-                        <div className="flex items-center gap-2 pr-2 shrink-0 self-stretch md:self-auto">
+                        <div className="flex items-center gap-2 pr-2 shrink-0 self-stretch md:self-auto w-full md:w-auto justify-end">
                             {/* Settings / Limit / Country Popover Triggers (Simplified for now to match high-end sparse look) */}
                             {searchMode === 'keyword' && (
-                                <div className="relative z-50 h-full w-[150px]">
+                                <div className="relative z-50 h-full w-[100px] sm:w-[150px] hidden sm:block">
                                     <MaterialDropdown
                                         value={country}
                                         onChange={setCountry}
@@ -538,8 +538,8 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                 onClick={handleSearch}
                                 disabled={loading || !keyword}
                                 className={`
-                                    h-[56px] px-8 rounded-[1.5rem] font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-                                    bg-gradient-to-r ${theme.gradient} flex items-center gap-2 group/searchBtn
+                                    h-[44px] sm:h-[56px] px-4 sm:px-8 rounded-[1.2rem] sm:rounded-[1.5rem] font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                                    bg-gradient-to-r ${theme.gradient} flex items-center gap-2 group/searchBtn text-sm sm:text-base
                                 `}
                             >
                                 {loading ? (
@@ -555,9 +555,9 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                     </div>
 
                     {/* Secondary Filters Bar (Minimal) */}
-                    <div className="flex flex-wrap items-center justify-center gap-4 mt-6 text-zinc-500 relative z-20">
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-4 sm:mt-6 text-zinc-500 relative z-20 px-4">
                         {/* Results Limit */}
-                        <div className="w-[160px] relative z-30">
+                        <div className="w-[120px] sm:w-[160px] relative z-30">
                             <MaterialDropdown
                                 value={maxResults}
                                 onChange={setMaxResults}
@@ -568,16 +568,31 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                             />
                         </div>
 
+                        {/* Country selector for mobile when in keyword mode */}
+                        {searchMode === 'keyword' && (
+                            <div className="w-[100px] relative z-30 sm:hidden">
+                                <MaterialDropdown
+                                    value={country}
+                                    onChange={setCountry}
+                                    options={countryOptions}
+                                    label="Region"
+                                    icon={Globe}
+                                    width="w-full"
+                                />
+                            </div>
+                        )}
+
                         {/* Unique Filter */}
                         <button
                             onClick={() => setEnsureUnique(!ensureUnique)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold transition-all
+                                flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full border text-[10px] sm:text-xs font-bold transition-all
                                 ${ensureUnique ? `${theme.bgSoft} ${theme.text} ${theme.border}` : 'bg-zinc-900/30 border-white/5 text-zinc-500 hover:text-zinc-300'}
                             `}
                         >
-                            <Fingerprint className="w-3.5 h-3.5" />
-                            {ensureUnique ? 'Unique Only' : 'Allow Duplicates'}
+                            <Fingerprint className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <span className="hidden xs:inline">{ensureUnique ? 'Unique Only' : 'Allow Duplicates'}</span>
+                            <span className="xs:hidden">{ensureUnique ? 'Unique' : 'All'}</span>
                         </button>
                     </div>
 
@@ -586,8 +601,8 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
 
             {/* Results Filters & Content */}
             {ads.length > 0 && (
-                <div className="animate-fade-in-up md:px-4">
-                    <div className="flex flex-col gap-6 p-6 rounded-3xl bg-zinc-900/20 border border-white/5 backdrop-blur-sm">
+                <div className="animate-fade-in-up px-2 sm:px-4">
+                    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-zinc-900/20 border border-white/5 backdrop-blur-sm">
                         {/* Top Categories Chips */}
                         {availableCategories.length > 0 && (
                             <div className="flex flex-wrap gap-2 justify-center">
@@ -609,10 +624,10 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                         )}
 
                         {/* Refine Toolbar */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-6">
-                            <div className="flex items-center gap-3">
-                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest hidden md:block">Media:</span>
-                                <div className="flex p-1 bg-black/40 rounded-xl border border-white/5">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 sm:gap-4 border-t border-white/5 pt-4 sm:pt-6">
+                            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                                <span className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest hidden md:block">Media:</span>
+                                <div className="flex p-1 bg-black/40 rounded-lg sm:rounded-xl border border-white/5 flex-1 sm:flex-initial">
                                     {[
                                         { id: 'ALL', label: 'All', icon: LayoutGrid },
                                         { id: 'VIDEO', label: 'Video', icon: Play },
@@ -622,33 +637,34 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                             key={type.id}
                                             onClick={() => setMediaType(type.id as MediaType)}
                                             className={`
-                                                px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2
+                                                flex-1 sm:flex-initial px-2 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-2
                                                 ${mediaType === type.id ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}
                                             `}
                                         >
                                             <type.icon className="w-3 h-3" />
-                                            {type.label}
+                                            <span className="hidden xs:inline">{type.label}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 ml-auto">
+                            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-auto">
                                 <button
                                     onClick={() => setActiveOnly(!activeOnly)}
                                     className={`
-                                        flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all
+                                        flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold border transition-all
                                         ${activeOnly
                                             ? 'bg-green-500/10 border-green-500/50 text-green-400'
                                             : 'bg-black/40 border-white/5 text-zinc-400 hover:bg-zinc-800'}
                                     `}
                                 >
                                     <div className={`w-1.5 h-1.5 rounded-full ${activeOnly ? 'bg-green-500 animate-pulse' : 'bg-zinc-600'}`} />
-                                    Active Only
+                                    <span className="hidden xs:inline">Active Only</span>
+                                    <span className="xs:hidden">Active</span>
                                 </button>
 
                                 {/* Sort */}
-                                <div className="w-[200px] relative z-20">
+                                <div className="w-[140px] sm:w-[200px] relative z-20">
                                     <MaterialDropdown
                                         value={sortBy}
                                         onChange={setSortBy}
@@ -664,27 +680,27 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
             )}
             {/* Results Header & Grid */}
             {(hasSearched || loading) && (
-                <div className="space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <h2 className={`text-2xl font-black text-white tracking-tight flex items-center gap-3`}>
+                <div className="space-y-4 sm:space-y-6 px-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <h2 className={`text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 sm:gap-3`}>
                                 {loading ? (
                                     <>
-                                        <span>Scanning Ads Library</span>
-                                        <span className="flex h-3 w-3 relative"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${theme.bg} opacity-75`}></span><span className={`relative inline-flex rounded-full h-3 w-3 ${theme.bg}`}></span></span>
+                                        <span className="text-sm sm:text-base">Scanning Ads Library</span>
+                                        <span className="flex h-2 w-2 sm:h-3 sm:w-3 relative"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${theme.bg} opacity-75`}></span><span className={`relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 ${theme.bg}`}></span></span>
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className={`w-6 h-6 ${theme.text}`} />
+                                        <Sparkles className={`w-5 h-5 sm:w-6 sm:h-6 ${theme.text}`} />
                                         <span>Results Found</span>
-                                        {wasUniqueSearch && <span className={`text-[10px] uppercase font-bold py-1 px-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 tracking-wider`}>Unique Mode Active</span>}
+                                        {wasUniqueSearch && <span className={`text-[8px] sm:text-[10px] uppercase font-bold py-0.5 sm:py-1 px-1.5 sm:px-2 rounded-lg bg-zinc-800 text-zinc-400 border border-zinc-700 tracking-wider hidden sm:inline`}>Unique Mode Active</span>}
                                     </>
                                 )}
                             </h2>
                             {!loading && (
                                 <div className="flex items-center gap-2">
-                                    <span className={`px-3 py-1 bg-zinc-900/80 rounded-full text-xs font-bold text-zinc-300 border border-white/10 ${theme.shadow}`}>
-                                        {filteredAds.length} {showDuplicates ? 'Total' : 'Unique'} Ads
+                                    <span className={`px-2 sm:px-3 py-0.5 sm:py-1 bg-zinc-900/80 rounded-full text-[10px] sm:text-xs font-bold text-zinc-300 border border-white/10 ${theme.shadow}`}>
+                                        {filteredAds.length} {showDuplicates ? 'Total' : 'Unique'}
                                     </span>
                                     {wasUniqueSearch && duplicateCount > 0 && (
                                         <button
@@ -707,13 +723,13 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
 
 
                     {loading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                             {[...Array(8)].map((_, i) => (
                                 <SkeletonAdCard key={i} />
                             ))}
                         </div>
                     ) : filteredAds.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                             {filteredAds.map((ad, i) => (
                                 <AdCard
                                     key={ad.adArchiveID || i}

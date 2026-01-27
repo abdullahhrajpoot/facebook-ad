@@ -127,19 +127,19 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
             />
 
             {/* Modal Window */}
-            <div className="relative w-full max-w-5xl h-[90vh] bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-300 ring-1 ring-white/10">
+            <div className="relative w-full max-w-5xl h-[95vh] sm:h-[90vh] bg-zinc-950 border border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-300 ring-1 ring-white/10">
 
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-[60] p-2.5 bg-black/50 backdrop-blur-md text-zinc-200 rounded-full hover:bg-white/20 hover:text-white transition-all border border-white/10 group"
+                    className="absolute top-3 right-3 sm:top-4 sm:right-4 z-[60] p-2 sm:p-2.5 bg-black/50 backdrop-blur-md text-zinc-200 rounded-full hover:bg-white/20 hover:text-white transition-all border border-white/10 group"
                     aria-label="Close"
                 >
-                    <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform" />
                 </button>
 
                 {/* --- HERO SECTION --- */}
-                <div className="h-48 sm:h-64 shrink-0 relative overflow-hidden group/cover">
+                <div className="h-36 sm:h-48 md:h-64 shrink-0 relative overflow-hidden group/cover">
                     {/* Cover Image */}
                     <div className="absolute inset-0 bg-zinc-900">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -166,12 +166,12 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                 </div>
 
                 {/* --- HEADER CONTENT (Overlapping Hero) --- */}
-                <div className="px-6 sm:px-10 relative z-40 -mt-20 sm:-mt-24 pointer-events-none">
-                    <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="px-4 sm:px-6 md:px-10 relative z-40 -mt-16 sm:-mt-20 md:-mt-24 pointer-events-none">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
                         {/* Profile Picture */}
                         <div className="shrink-0 pointer-events-auto group/profile">
-                            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-zinc-900 border-[6px] border-zinc-950 shadow-2xl overflow-hidden relative">
-                                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-4xl font-bold text-zinc-600 select-none">
+                            <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl sm:rounded-3xl bg-zinc-900 border-4 sm:border-[6px] border-zinc-950 shadow-2xl overflow-hidden relative">
+                                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-2xl sm:text-4xl font-bold text-zinc-600 select-none">
                                     {page.title?.charAt(0).toUpperCase()}
                                 </div>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -192,17 +192,17 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
 
                         {/* Title & Actions */}
                         <div className="flex-1 pt-2 sm:pt-24 pointer-events-auto min-w-0 w-full">
-                            <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
-                                <div className="space-y-3">
-                                    <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight flex items-center gap-3 drop-shadow-lg">
+                            <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-3 sm:gap-4">
+                                <div className="space-y-2 sm:space-y-3">
+                                    <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white leading-tight flex items-center gap-2 sm:gap-3 drop-shadow-lg">
                                         <span className="truncate">{page.title || page.pageName}</span>
                                         {page.verificationStatus === 'verified' && (
-                                            <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 text-blue-500 fill-blue-500/10 shrink-0" />
+                                            <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-blue-500 fill-blue-500/10 shrink-0" />
                                         )}
                                     </h1>
 
                                     {/* Categories */}
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                         {(page.categories || [page.category]).filter(Boolean).filter(c => c !== 'Page').map((cat, i) => (
                                             <span key={i} className="px-2.5 py-1 bg-zinc-900/80 border border-zinc-700/50 rounded-lg text-xs font-medium text-zinc-300 shadow-sm backdrop-blur-sm">
                                                 {cat}
@@ -212,16 +212,17 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                                 </div>
 
                                 {/* Call to Actions */}
-                                <div className="flex flex-wrap gap-3 mt-2 xl:mt-0">
+                                <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 xl:mt-0">
                                     {(page.facebookUrl || page.pageUrl) && (
                                         <a
                                             href={page.facebookUrl || page.pageUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="h-10 px-5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
+                                            className="h-9 sm:h-10 px-4 sm:px-5 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
                                         >
-                                            <Facebook className="w-4 h-4 fill-white" />
-                                            Visit Page
+                                            <Facebook className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
+                                            <span className="hidden xs:inline">Visit Page</span>
+                                            <span className="xs:hidden">Visit</span>
                                         </a>
                                     )}
                                     <button
@@ -231,9 +232,9 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                                                 onClose()
                                             }
                                         }}
-                                        className="h-10 px-5 bg-white hover:bg-zinc-100 text-black rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-white/5 active:scale-95"
+                                        className="h-9 sm:h-10 px-4 sm:px-5 bg-white hover:bg-zinc-100 text-black rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-white/5 active:scale-95"
                                     >
-                                        <Play className="w-4 h-4 text-black fill-black" />
+                                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-black fill-black" />
                                         See Ads
                                     </button>
                                 </div>
@@ -243,14 +244,14 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                 </div>
 
                 {/* --- SCROLLABLE CONTENT BODY --- */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:px-10 py-8 bg-zinc-950 w-full">
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 md:px-10 py-6 sm:py-8 bg-zinc-950 w-full">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
 
                         {/* --- LEFT COLUMN: DETAILS --- */}
-                        <div className="xl:col-span-2 space-y-8">
+                        <div className="xl:col-span-2 space-y-6 sm:space-y-8">
 
                             {/* Key Metrics Grid */}
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
 
                                 <StatCard
                                     icon={<Users className="w-4 h-4 text-purple-400" />}

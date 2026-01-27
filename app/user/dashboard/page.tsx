@@ -153,24 +153,24 @@ export default function UserDashboard() {
             />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
-                    <h1 className="text-lg font-black italic tracking-tighter">
+                <header className="md:hidden flex items-center justify-between p-3 sm:p-4 border-b border-zinc-800 bg-zinc-950">
+                    <h1 className="text-base sm:text-lg font-black italic tracking-tighter">
                         <span className="text-white">IKONIC</span> <span className="text-blue-500">MARKETERS</span>
                     </h1>
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="p-2 text-zinc-400 hover:text-white"
+                        className="p-1.5 sm:p-2 text-zinc-400 hover:text-white"
                     >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto bg-black p-4 md:p-8 custom-scrollbar">
+                <main className="flex-1 overflow-y-auto bg-black p-3 sm:p-4 md:p-8 custom-scrollbar">
                     <div className="max-w-7xl mx-auto">
-                        <header className="mb-8 hidden md:block">
-                            <h2 className="text-2xl font-bold text-white">
+                        <header className="mb-6 sm:mb-8 hidden md:block">
+                            <h2 className="text-xl sm:text-2xl font-bold text-white">
                                 {header?.title}
                             </h2>
                             <p className="text-gray-500 text-sm mt-1">

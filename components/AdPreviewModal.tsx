@@ -154,19 +154,19 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
             <div className="absolute inset-0 bg-black/90 backdrop-blur-md animate-fade-in" aria-hidden="true" />
 
             <div
-                className="relative w-full max-w-6xl h-[90vh] bg-black/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in z-10 flex flex-col lg:flex-row ring-1 ring-white/5"
+                className="relative w-full max-w-6xl h-[95vh] sm:h-[90vh] bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in z-10 flex flex-col lg:flex-row ring-1 ring-white/5"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Close Button Mobile/Corner */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-white hover:bg-red-600 hover:border-red-500 transition-all duration-200 group lg:bg-zinc-900"
+                    className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50 p-1.5 sm:p-2 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-white hover:bg-red-600 hover:border-red-500 transition-all duration-200 group lg:bg-zinc-900"
                 >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
 
                 {/* LEFT COLUMN: Media Player */}
-                <div className="h-[40vh] lg:h-full lg:w-3/5 bg-black relative flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-900 group/media">
+                <div className="h-[35vh] sm:h-[40vh] lg:h-full lg:w-3/5 bg-black relative flex flex-col border-b lg:border-b-0 lg:border-r border-zinc-900 group/media">
                     <div className="flex-1 relative flex items-center justify-center bg-gradient-to-br from-zinc-900 to-black overflow-hidden">
                         {currentMedia ? (
                             currentMedia.type === 'image' ? (
@@ -278,12 +278,12 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
 
                     {/* Thumbnail Strip (Bottom of Left Column) */}
                     {hasMultipleMedia && (
-                        <div className="h-24 bg-zinc-950 border-t border-zinc-900 flex items-center px-4 gap-2 overflow-x-auto custom-scrollbar">
+                        <div className="h-16 sm:h-24 bg-zinc-950 border-t border-zinc-900 flex items-center px-2 sm:px-4 gap-1.5 sm:gap-2 overflow-x-auto custom-scrollbar">
                             {allMedia.map((media, index) => (
                                 <button
                                     key={index}
                                     onClick={() => setCurrentMediaIndex(index)}
-                                    className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 relative ${currentMediaIndex === index
+                                    className={`shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-md sm:rounded-lg overflow-hidden border-2 transition-all duration-200 relative ${currentMediaIndex === index
                                         ? 'border-blue-500 ring-2 ring-blue-500/20 opacity-100'
                                         : 'border-zinc-800 opacity-50 hover:opacity-100 hover:border-zinc-600'
                                         }`}
@@ -292,7 +292,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         <img src={media.url} alt="" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
-                                            <Video className="w-5 h-5 text-white/50" />
+                                            <Video className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" />
                                         </div>
                                     )}
                                 </button>
@@ -302,27 +302,27 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                 </div>
 
                 {/* RIGHT COLUMN: Info Stream */}
-                <div className="flex-1 h-[60vh] lg:h-full overflow-y-auto custom-scrollbar bg-zinc-950 flex flex-col">
+                <div className="flex-1 h-[60vh] sm:h-[55vh] lg:h-full overflow-y-auto custom-scrollbar bg-zinc-950 flex flex-col">
 
 
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                         {/* Page Info Header */}
-                        <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 pb-4 border-b border-zinc-800">
                             <div className="flex items-center gap-3">
                                 {ad.pageProfilePictureUrl ? (
                                     <img
                                         src={ad.pageProfilePictureUrl}
                                         alt={ad.pageName}
-                                        className="w-12 h-12 rounded-full border-2 border-zinc-700 object-cover"
+                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-zinc-700 object-cover"
                                     />
                                 ) : (
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg border-2 border-zinc-700">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg border-2 border-zinc-700">
                                         {ad.pageName[0]?.toUpperCase()}
                                     </div>
                                 )}
-                                <div>
-                                    <h2 className="text-lg font-bold text-white">{ad.pageName}</h2>
-                                    <p className="text-sm text-zinc-500">ID: {ad.adArchiveID}</p>
+                                <div className="min-w-0">
+                                    <h2 className="text-base sm:text-lg font-bold text-white truncate">{ad.pageName}</h2>
+                                    <p className="text-xs sm:text-sm text-zinc-500 truncate">ID: {ad.adArchiveID}</p>
                                 </div>
                             </div>
 
@@ -339,15 +339,15 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                         </div>
 
                         {/* Stats Row */}
-                        <div className={`grid gap-4 ${ad.impressions ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        <div className={`grid gap-3 sm:gap-4 ${ad.impressions ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
                             {/* Page Likes */}
-                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <ThumbsUp className="w-4 h-4 text-blue-500" />
-                                    <span className="text-xs font-bold text-zinc-500 uppercase">Page Likes</span>
+                            <div className="bg-white/5 border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 hover:bg-white/10 transition-colors">
+                                <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                                    <ThumbsUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+                                    <span className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase">Page Likes</span>
                                 </div>
-                                <p className="text-xl font-bold text-white">
-                                    {ad.pageLikeCount > 0 ? ad.pageLikeCount.toLocaleString() : <span className="text-sm text-zinc-600">No likes found</span>}
+                                <p className="text-lg sm:text-xl font-bold text-white">
+                                    {ad.pageLikeCount > 0 ? ad.pageLikeCount.toLocaleString() : <span className="text-xs sm:text-sm text-zinc-600">No likes found</span>}
                                 </p>
                             </div>
 
