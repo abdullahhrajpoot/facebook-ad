@@ -3,6 +3,192 @@ import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
 import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
 
+/**
+ * Normalizes various Facebook URL formats to standard page URL format
+ * Handles: /p/, /pages/, profile.php, /people/, numeric IDs, etc.
+ * Returns: { normalizedUrl, pageId, pageName, searchTerm }
+ */
+function normalizeFacebookUrl(url: string, log: (s: string, d?: any) => void): {
+    normalizedUrl: string;
+    pageId?: string;
+    pageName?: string;
+    searchTerm?: string;
+    urlVariants: string[];
+} {
+    log('URL_NORMALIZE_START', { originalUrl: url });
+    
+    const urlVariants: string[] = [];
+    let pageId: string | undefined;
+    let pageName: string | undefined;
+    let searchTerm: string | undefined;
+    let normalizedUrl = url.trim();
+    
+    // Remove trailing slashes for consistent parsing
+    normalizedUrl = normalizedUrl.replace(/\/+$/, '');
+    
+    try {
+        const urlObj = new URL(normalizedUrl);
+        const pathname = urlObj.pathname;
+        const pathParts = pathname.split('/').filter(p => p);
+        
+        log('URL_NORMALIZE_PARSED', { pathname, pathParts });
+        
+        // Extract page ID (numeric) if present in URL
+        // Patterns: Name-123456, /123456789/, etc.
+        const numericIdMatch = pathname.match(/(\d{10,})/);
+        if (numericIdMatch) {
+            pageId = numericIdMatch[1];
+            log('URL_NORMALIZE_FOUND_ID', { pageId });
+        }
+        
+        // Handle different Facebook URL formats
+        if (pathParts[0] === 'p' && pathParts.length >= 2) {
+            // Format: /p/PageName-123456/ (mobile/shortened format)
+            const pageSlug = pathParts[1];
+            pageName = pageSlug.replace(/-\d+$/, '').replace(/-/g, ' ');
+            searchTerm = pageName;
+            
+            // Try to extract clean page slug
+            const cleanSlug = pageSlug.replace(/-\d+$/, '');
+            
+            // Generate URL variants to try
+            urlVariants.push(`https://www.facebook.com/${pageSlug}`);
+            urlVariants.push(`https://www.facebook.com/${cleanSlug}`);
+            if (pageId) {
+                urlVariants.push(`https://www.facebook.com/${pageId}`);
+            }
+            
+            normalizedUrl = urlVariants[0];
+            log('URL_NORMALIZE_P_FORMAT', { pageSlug, cleanSlug, pageName, normalizedUrl });
+            
+        } else if (pathParts[0] === 'pages' && pathParts.length >= 2) {
+            // Format: /pages/category/PageName/123456 or /pages/PageName/123456
+            const lastPart = pathParts[pathParts.length - 1];
+            const secondLastPart = pathParts[pathParts.length - 2];
+            
+            // Check if last part is numeric ID
+            if (/^\d+$/.test(lastPart)) {
+                pageId = lastPart;
+                pageName = secondLastPart?.replace(/-/g, ' ');
+            } else {
+                pageName = lastPart.replace(/-/g, ' ');
+            }
+            
+            searchTerm = pageName;
+            
+            // Generate URL variants
+            if (pageId) {
+                urlVariants.push(`https://www.facebook.com/${pageId}`);
+            }
+            urlVariants.push(`https://www.facebook.com/${pathParts[pathParts.length - 1]}`);
+            if (secondLastPart && !/^\d+$/.test(secondLastPart)) {
+                urlVariants.push(`https://www.facebook.com/${secondLastPart}`);
+            }
+            
+            normalizedUrl = urlVariants[0] || url;
+            log('URL_NORMALIZE_PAGES_FORMAT', { pageName, pageId, normalizedUrl });
+            
+        } else if (pathParts[0] === 'people' && pathParts.length >= 2) {
+            // Format: /people/Name/123456
+            pageName = pathParts[1].replace(/-/g, ' ');
+            searchTerm = pageName;
+            
+            if (pathParts[2] && /^\d+$/.test(pathParts[2])) {
+                pageId = pathParts[2];
+            }
+            
+            // Generate URL variants
+            if (pageId) {
+                urlVariants.push(`https://www.facebook.com/${pageId}`);
+            }
+            urlVariants.push(`https://www.facebook.com/${pathParts[1]}`);
+            
+            normalizedUrl = urlVariants[0] || url;
+            log('URL_NORMALIZE_PEOPLE_FORMAT', { pageName, pageId, normalizedUrl });
+            
+        } else if (pathname.includes('profile.php')) {
+            // Format: /profile.php?id=123456
+            const params = new URLSearchParams(urlObj.search);
+            pageId = params.get('id') || undefined;
+            
+            if (pageId) {
+                normalizedUrl = `https://www.facebook.com/${pageId}`;
+                urlVariants.push(normalizedUrl);
+            }
+            
+            log('URL_NORMALIZE_PROFILE_PHP', { pageId, normalizedUrl });
+            
+        } else if (pathParts.length === 1) {
+            // Format: /PageName or /PageName-123456 (standard page URL)
+            const pageSlug = pathParts[0];
+            
+            // Extract name from slug (remove numeric suffix if present)
+            pageName = pageSlug.replace(/-\d+$/, '').replace(/-/g, ' ');
+            searchTerm = pageName;
+            
+            // Keep original but also try clean version
+            urlVariants.push(url);
+            const cleanSlug = pageSlug.replace(/-\d+$/, '');
+            if (cleanSlug !== pageSlug) {
+                urlVariants.push(`https://www.facebook.com/${cleanSlug}`);
+            }
+            if (pageId) {
+                urlVariants.push(`https://www.facebook.com/${pageId}`);
+            }
+            
+            // For standard format, keep as-is but ensure https and www
+            normalizedUrl = `https://www.facebook.com/${pageSlug}`;
+            log('URL_NORMALIZE_STANDARD_FORMAT', { pageSlug, pageName, normalizedUrl });
+            
+        } else if (pathParts.length >= 2) {
+            // Handle other multi-part paths - take the most relevant part
+            // Usually the last meaningful part is the page identifier
+            const relevantParts = pathParts.filter(p => 
+                !['about', 'posts', 'photos', 'videos', 'events', 'reviews', 'community', 'shop', 'services'].includes(p.toLowerCase())
+            );
+            
+            if (relevantParts.length > 0) {
+                const pageSlug = relevantParts[relevantParts.length - 1];
+                pageName = pageSlug.replace(/-\d+$/, '').replace(/-/g, ' ');
+                searchTerm = pageName;
+                
+                urlVariants.push(`https://www.facebook.com/${pageSlug}`);
+                if (pageId) {
+                    urlVariants.push(`https://www.facebook.com/${pageId}`);
+                }
+                
+                normalizedUrl = urlVariants[0];
+            }
+            
+            log('URL_NORMALIZE_MULTI_PART', { relevantParts, pageName, normalizedUrl });
+        }
+        
+    } catch (e) {
+        log('URL_NORMALIZE_PARSE_ERROR', { error: e, url });
+        // If URL parsing fails, return as-is
+    }
+    
+    // Remove duplicates from variants and ensure original is included
+    const uniqueVariants = [...new Set([normalizedUrl, ...urlVariants, url])].filter(Boolean);
+    
+    log('URL_NORMALIZE_COMPLETE', { 
+        original: url,
+        normalized: normalizedUrl, 
+        pageId, 
+        pageName, 
+        searchTerm,
+        variants: uniqueVariants 
+    });
+    
+    return {
+        normalizedUrl,
+        pageId,
+        pageName,
+        searchTerm,
+        urlVariants: uniqueVariants
+    };
+}
+
 // Helper to find page URL and ID if needed
 async function resolvePageDetails(client: ApifyClient, query: string, log: (s: string, d?: any) => void): Promise<{ url?: string; pageId?: string } | null> {
     try {
@@ -14,16 +200,24 @@ async function resolvePageDetails(client: ApifyClient, query: string, log: (s: s
         let method2Query = query;
         if (isUrl) {
             try {
-                const urlObj = new URL(query);
-                const parts = urlObj.pathname.split('/').filter(p => p && p !== 'pages' && p !== 'profile.php' && p !== 'home.php');
-                if (parts.length > 0) {
-                    let candidate = parts[parts.length - 1];
-                    // Remove numeric suffixes often found in slugs like 'name-123456'
-                    candidate = candidate.replace(/-\d+$/, '').replace(/-/g, ' ');
+                // Use the new URL normalizer to extract search term
+                const urlInfo = normalizeFacebookUrl(query, log);
+                if (urlInfo.searchTerm && urlInfo.searchTerm.length > 2) {
+                    method2Query = urlInfo.searchTerm;
+                    log('RESOLVE_PAGE_EXTRACTED_TERM', { method2Query, from: 'normalizer' });
+                } else {
+                    // Fallback to old logic
+                    const urlObj = new URL(query);
+                    const parts = urlObj.pathname.split('/').filter(p => p && p !== 'pages' && p !== 'profile.php' && p !== 'home.php' && p !== 'p');
+                    if (parts.length > 0) {
+                        let candidate = parts[parts.length - 1];
+                        // Remove numeric suffixes often found in slugs like 'name-123456'
+                        candidate = candidate.replace(/-\d+$/, '').replace(/-/g, ' ');
 
-                    if (candidate.length > 2) {
-                        method2Query = candidate;
-                        log('RESOLVE_PAGE_EXTRACTED_TERM', { method2Query });
+                        if (candidate.length > 2) {
+                            method2Query = candidate;
+                            log('RESOLVE_PAGE_EXTRACTED_TERM', { method2Query, from: 'fallback' });
+                        }
                     }
                 }
             } catch (e) {
@@ -147,14 +341,31 @@ export async function POST(request: Request) {
 
         const client = new ApifyClient({ token: token });
 
-        // 1. Resolve Target URL & ID
+        // 1. Resolve Target URL & ID with intelligent normalization
         let targetUrl = pageNameOrUrl.trim();
         let targetPageId: string | undefined;
+        let urlVariants: string[] = [];
+        let searchTerm: string | undefined;
 
         const isUrl = targetUrl.startsWith('http://') || targetUrl.startsWith('https://');
         const hasSpaces = targetUrl.includes(' ');
 
-        if (!isUrl && hasSpaces) {
+        if (isUrl) {
+            // Use the URL normalizer to handle various Facebook URL formats
+            const urlInfo = normalizeFacebookUrl(targetUrl, log);
+            targetUrl = urlInfo.normalizedUrl;
+            targetPageId = urlInfo.pageId;
+            urlVariants = urlInfo.urlVariants;
+            searchTerm = urlInfo.searchTerm;
+            
+            log('URL_NORMALIZED', { 
+                original: pageNameOrUrl,
+                normalized: targetUrl, 
+                pageId: targetPageId,
+                searchTerm,
+                variants: urlVariants 
+            });
+        } else if (hasSpaces) {
             log('RESOLVE_NEEDED', { reason: 'Name has spaces and is not URL' });
             const details = await resolvePageDetails(client, targetUrl, log);
             if (details) {
@@ -164,104 +375,166 @@ export async function POST(request: Request) {
                 targetUrl = `https://www.facebook.com/${targetUrl}`;
                 log('RESOLVE_FAILED_FALLBACK', { targetUrl });
             }
-        } else if (!isUrl) {
+            urlVariants = [targetUrl];
+        } else {
             targetUrl = `https://www.facebook.com/${targetUrl}`;
+            urlVariants = [targetUrl];
             log('HEURISTIC_URL', { targetUrl });
         }
 
         targetUrl = targetUrl.trim();
         const fetchLimit = Number(count) * (unique ? 3 : 1);
 
-        const runInput = {
-            "urls": [{ "url": targetUrl }],
-            "count": fetchLimit,
-            "scrapePageAds.activeStatus": "all",
-            "scrapePageAds.countryCode": "ALL",
-            "start_date_min": "2020-01-01",
-            "start_date_max": new Date().toISOString().split('T')[0],
-            "proxyConfiguration": {
-                "useApifyProxy": true,
-                "apifyProxyGroups": ["RESIDENTIAL"]
-            }
-        };
-
-        log('PRIMARY_ACTOR_INIT', { actorId: 'XtaWFhbtfxyzqrFmd', input: runInput });
-
-        // 2. Retry Logic
+        // 2. Try URL variants until we get results
         let items: any[] = [];
         let attempts = 0;
         const maxAttempts = 3;
         let success = false;
         let usedFallback = false;
         let lastError: any = null;
+        let successfulUrl: string | undefined;
 
-        while (attempts < maxAttempts && !success) {
-            attempts++;
-            try {
-                const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
-                    waitSecs: 300,
-                });
-
-                if (run && run.status === 'SUCCEEDED') {
-                    const dataset = await client.dataset(run.defaultDatasetId).listItems();
-                    items = dataset.items;
-
-                    log(`PRIMARY_ACTOR_ATTEMPT_${attempts}_COMPLETE`, { count: items.length });
-
-                    // DEBUG: Log detailed structure of first few items to see what Apify returns
-                    if (items.length > 0) {
-                        const sampleItem = items[0];
-                        const snap = sampleItem.snapshot || {};
-                        log('DEBUG_RAW_APIFY_RESPONSE', {
-                            itemKeys: Object.keys(sampleItem),
-                            snapshotKeys: Object.keys(snap),
-                            // Check all possible media locations
-                            media: {
-                                // Snapshot level
-                                'snapshot.images': snap.images ? { length: snap.images.length, sample: snap.images[0] } : 'MISSING',
-                                'snapshot.videos': snap.videos ? { length: snap.videos.length, sample: snap.videos[0] } : 'MISSING',
-                                'snapshot.cards': snap.cards ? { length: snap.cards.length, sample: snap.cards[0] } : 'MISSING',
-                                'snapshot.extra_images': snap.extra_images ? { length: snap.extra_images.length } : 'MISSING',
-                                'snapshot.extra_videos': snap.extra_videos ? { length: snap.extra_videos.length } : 'MISSING',
-                                // Root level
-                                'root.images': sampleItem.images ? { length: sampleItem.images.length, sample: sampleItem.images[0] } : 'MISSING',
-                                'root.videos': sampleItem.videos ? { length: sampleItem.videos.length, sample: sampleItem.videos[0] } : 'MISSING',
-                                'root.cards': sampleItem.cards ? { length: sampleItem.cards.length } : 'MISSING',
-                                'root.media': sampleItem.media ? { length: sampleItem.media?.length, sample: sampleItem.media?.[0] } : 'MISSING',
-                                // Singular fields
-                                'root.imageUrl': sampleItem.imageUrl || 'MISSING',
-                                'root.image': sampleItem.image || 'MISSING',
-                                'root.videoUrl': sampleItem.videoUrl || 'MISSING',
-                                'root.thumbnailUrl': sampleItem.thumbnailUrl || 'MISSING'
-                            },
-                            text: {
-                                'snapshot.body': snap.body ? (typeof snap.body === 'object' ? snap.body : { text: snap.body }) : 'MISSING',
-                                'snapshot.title': snap.title || 'MISSING',
-                                'root.body': sampleItem.body || 'MISSING',
-                                'root.title': sampleItem.title || 'MISSING'
-                            },
-                            links: {
-                                'snapshot.link_url': snap.link_url || snap.linkUrl || 'MISSING',
-                                'snapshot.extra_links': snap.extra_links ? { length: snap.extra_links.length } : 'MISSING',
-                                'root.link': sampleItem.link || sampleItem.url || 'MISSING'
-                            },
-                            identifiers: {
-                                'ad_archive_id': sampleItem.ad_archive_id || sampleItem.adArchiveID || sampleItem.adArchiveId || 'MISSING',
-                                'page_id': sampleItem.page_id || sampleItem.pageId || snap.page_id || snap.pageId || 'MISSING'
-                            }
-                        });
-                        success = true;
-                    }
-                } else {
-                    log(`PRIMARY_ACTOR_ATTEMPT_${attempts}_FAILED`, { status: run?.status });
+        // Try each URL variant
+        for (const urlToTry of urlVariants) {
+            if (success && items.length > 0) break;
+            
+            log('TRYING_URL_VARIANT', { url: urlToTry, variantIndex: urlVariants.indexOf(urlToTry) + 1, totalVariants: urlVariants.length });
+            
+            const runInput = {
+                "urls": [{ "url": urlToTry }],
+                "count": fetchLimit,
+                "scrapePageAds.activeStatus": "all",
+                "scrapePageAds.countryCode": "ALL",
+                "start_date_min": "2020-01-01",
+                "start_date_max": new Date().toISOString().split('T')[0],
+                "proxyConfiguration": {
+                    "useApifyProxy": true,
+                    "apifyProxyGroups": ["RESIDENTIAL"]
                 }
-            } catch (err) {
-                lastError = err;
-                errorLog(`PRIMARY_ACTOR_ATTEMPT_${attempts}_EXCEPTION`, err);
-            }
+            };
 
-            if (!success && attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
+            log('PRIMARY_ACTOR_INIT', { actorId: 'XtaWFhbtfxyzqrFmd', input: runInput });
+
+            attempts = 0;
+            while (attempts < maxAttempts && !success) {
+                attempts++;
+                try {
+                    const run = await client.actor('XtaWFhbtfxyzqrFmd').call(runInput, {
+                        waitSecs: 300,
+                    });
+
+                    if (run && run.status === 'SUCCEEDED') {
+                        const dataset = await client.dataset(run.defaultDatasetId).listItems();
+                        items = dataset.items;
+
+                        log(`PRIMARY_ACTOR_ATTEMPT_${attempts}_COMPLETE`, { url: urlToTry, count: items.length });
+
+                        if (items.length > 0) {
+                            success = true;
+                            successfulUrl = urlToTry;
+                            
+                            // DEBUG: Log detailed structure of first few items to see what Apify returns
+                            const sampleItem = items[0];
+                            const snap = sampleItem.snapshot || {};
+                            log('DEBUG_RAW_APIFY_RESPONSE', {
+                                itemKeys: Object.keys(sampleItem),
+                                snapshotKeys: Object.keys(snap),
+                                // Check all possible media locations
+                                media: {
+                                    // Snapshot level
+                                    'snapshot.images': snap.images ? { length: snap.images.length, sample: snap.images[0] } : 'MISSING',
+                                    'snapshot.videos': snap.videos ? { length: snap.videos.length, sample: snap.videos[0] } : 'MISSING',
+                                    'snapshot.cards': snap.cards ? { length: snap.cards.length, sample: snap.cards[0] } : 'MISSING',
+                                    'snapshot.extra_images': snap.extra_images ? { length: snap.extra_images.length } : 'MISSING',
+                                    'snapshot.extra_videos': snap.extra_videos ? { length: snap.extra_videos.length } : 'MISSING',
+                                    // Root level
+                                    'root.images': sampleItem.images ? { length: sampleItem.images.length, sample: sampleItem.images[0] } : 'MISSING',
+                                    'root.videos': sampleItem.videos ? { length: sampleItem.videos.length, sample: sampleItem.videos[0] } : 'MISSING',
+                                    'root.cards': sampleItem.cards ? { length: sampleItem.cards.length } : 'MISSING',
+                                    'root.media': sampleItem.media ? { length: sampleItem.media?.length, sample: sampleItem.media?.[0] } : 'MISSING',
+                                    // Singular fields
+                                    'root.imageUrl': sampleItem.imageUrl || 'MISSING',
+                                    'root.image': sampleItem.image || 'MISSING',
+                                    'root.videoUrl': sampleItem.videoUrl || 'MISSING',
+                                    'root.thumbnailUrl': sampleItem.thumbnailUrl || 'MISSING'
+                                },
+                                text: {
+                                    'snapshot.body': snap.body ? (typeof snap.body === 'object' ? snap.body : { text: snap.body }) : 'MISSING',
+                                    'snapshot.title': snap.title || 'MISSING',
+                                    'root.body': sampleItem.body || 'MISSING',
+                                    'root.title': sampleItem.title || 'MISSING'
+                                },
+                                links: {
+                                    'snapshot.link_url': snap.link_url || snap.linkUrl || 'MISSING',
+                                    'snapshot.extra_links': snap.extra_links ? { length: snap.extra_links.length } : 'MISSING',
+                                    'root.link': sampleItem.link || sampleItem.url || 'MISSING'
+                                },
+                                identifiers: {
+                                    'ad_archive_id': sampleItem.ad_archive_id || sampleItem.adArchiveID || sampleItem.adArchiveId || 'MISSING',
+                                    'page_id': sampleItem.page_id || sampleItem.pageId || snap.page_id || snap.pageId || 'MISSING'
+                                }
+                            });
+                            break; // Exit retry loop on success
+                        }
+                    } else {
+                        log(`PRIMARY_ACTOR_ATTEMPT_${attempts}_FAILED`, { url: urlToTry, status: run?.status });
+                    }
+                } catch (err) {
+                    lastError = err;
+                    errorLog(`PRIMARY_ACTOR_ATTEMPT_${attempts}_EXCEPTION`, err);
+                }
+
+                if (!success && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+            
+            // If this variant failed, try next one (reset for next variant)
+            if (!success) {
+                log('URL_VARIANT_FAILED', { url: urlToTry, trying_next: urlVariants.indexOf(urlToTry) < urlVariants.length - 1 });
+            }
+        }
+
+        // 3. If all URL variants failed, try resolving via search
+        if (!success && searchTerm) {
+            log('ALL_VARIANTS_FAILED_TRYING_SEARCH', { searchTerm });
+            
+            const resolvedDetails = await resolvePageDetails(client, searchTerm, log);
+            if (resolvedDetails?.url) {
+                log('SEARCH_RESOLVED_URL', { resolvedUrl: resolvedDetails.url });
+                
+                const searchRunInput = {
+                    "urls": [{ "url": resolvedDetails.url }],
+                    "count": fetchLimit,
+                    "scrapePageAds.activeStatus": "all",
+                    "scrapePageAds.countryCode": "ALL",
+                    "start_date_min": "2020-01-01",
+                    "start_date_max": new Date().toISOString().split('T')[0],
+                    "proxyConfiguration": {
+                        "useApifyProxy": true,
+                        "apifyProxyGroups": ["RESIDENTIAL"]
+                    }
+                };
+
+                try {
+                    const run = await client.actor('XtaWFhbtfxyzqrFmd').call(searchRunInput, {
+                        waitSecs: 300,
+                    });
+
+                    if (run && run.status === 'SUCCEEDED') {
+                        const dataset = await client.dataset(run.defaultDatasetId).listItems();
+                        items = dataset.items;
+                        
+                        if (items.length > 0) {
+                            success = true;
+                            successfulUrl = resolvedDetails.url;
+                            log('SEARCH_FALLBACK_SUCCESS', { url: resolvedDetails.url, count: items.length });
+                        }
+                    }
+                } catch (err) {
+                    lastError = err;
+                    errorLog('SEARCH_FALLBACK_EXCEPTION', err);
+                }
             }
         }
 
@@ -611,6 +884,19 @@ export async function POST(request: Request) {
                     { status: 429 }
                 );
             }
+        }
+
+        // Provide helpful message if no ads found
+        if (topAds.length === 0) {
+            log('NO_ADS_FOUND', { 
+                originalUrl: pageNameOrUrl, 
+                triedVariants: urlVariants.length,
+                searchTerm,
+                hadItems: items.length > 0
+            });
+            
+            // Return empty array with a helpful log but don't error - the page may just have no ads
+            // The frontend will display "No ads found" message
         }
 
         return NextResponse.json(topAds);
