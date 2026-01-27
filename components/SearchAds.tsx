@@ -194,6 +194,9 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
 
     // Save state to Local Storage on change
     useEffect(() => {
+        // Don't save while loading - wait for search to complete
+        if (loading) return;
+        
         const timer = setTimeout(() => {
             if (hasSearched || keyword) {
                 const stateToSave = {
@@ -202,8 +205,8 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                     maxResults,
                     searchMode,
                     ads,
-                    hasSearched: hasSearched && !loading, // Only save hasSearched=true if we are done loading, otherwise we rely on 'loading' flag
-                    loading,
+                    hasSearched,
+                    loading: false, // Never save loading=true state
                     ensureUnique,
                     wasUniqueSearch,
                     timestamp: Date.now()

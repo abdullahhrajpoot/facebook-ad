@@ -169,7 +169,7 @@ export async function POST(request: Request) {
 
         // STRATEGY: Over-fetch by 2x
         const requestedLimit = Number(limit);
-        const fetchLimit = Math.max(requestedLimit * 2, 20);
+        const fetchLimit = Math.max(requestedLimit, 20);
 
         // PRIMARY ACTOR: Fast Facebook Search (YAg3YuPbbASz7JzWG) - gets pages by keyword
         const primaryActorInput = {

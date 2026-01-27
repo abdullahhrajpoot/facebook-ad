@@ -187,6 +187,9 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
 
     // Save state to Local Storage
     React.useEffect(() => {
+        // Don't save while loading - wait for search to complete
+        if (loading) return;
+        
         const timer = setTimeout(() => {
             if (hasSearched || keywords) {
                 const stateToSave = {
@@ -194,8 +197,8 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
                     location,
                     limit,
                     pages,
-                    hasSearched: hasSearched && !loading, // Don't persist hasSearched=true if strictly stuck in loading, wait for done. OR keep it true if we re-trigger.
-                    loading,
+                    hasSearched,
+                    loading: false, // Never save loading=true state
                     filterAdsOnly,
                     filterHasEmail,
                     filterHasWebsite,
