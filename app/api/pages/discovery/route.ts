@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
+import { checkRateLimit, getRateLimitIdentifier } from '@/utils/rateLimit';
+import { generateDiscoveryCacheKey, getFromCache, setInCache, CACHE_TTL } from '@/utils/cache';
 
 // Read feature flag from Supabase database
 async function isPageDiscoveryEnabled(): Promise<boolean> {
@@ -138,6 +140,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Rate Limiting Check (discovery is expensive - stricter limits)
+        const rateLimitId = getRateLimitIdentifier(user.id, request);
+        const rateLimit = await checkRateLimit(rateLimitId, 'discovery');
+        if (!rateLimit.success) {
+            log('RATE_LIMITED', { identifier: rateLimitId, remaining: rateLimit.remaining });
+            return rateLimit.error;
+        }
+        log('RATE_LIMIT_OK', { remaining: rateLimit.remaining });
+
         const body = await request.json();
         const { keywords, location, limit = 10 } = body;
 
@@ -151,6 +162,21 @@ export async function POST(request: Request) {
             );
         }
 
+        // Check cache first
+        const categories = Array.isArray(keywords) ? keywords : [keywords];
+        const cacheKey = generateDiscoveryCacheKey({
+            keywords: categories,
+            location: location || '',
+            limit: Number(limit),
+        });
+        
+        const cached = await getFromCache<any[]>(cacheKey);
+        if (cached) {
+            log('CACHE_HIT', { cacheKey, count: cached.length });
+            return NextResponse.json(cached);
+        }
+        log('CACHE_MISS', { cacheKey });
+
         const token = process.env.APIFY_API_TOKEN;
         if (!token) {
             errorLog('CONFIG_ERROR', 'APIFY_API_TOKEN missing');
@@ -163,7 +189,6 @@ export async function POST(request: Request) {
         const client = new ApifyClient({ token: token });
 
         // Prepare Input
-        const categories = Array.isArray(keywords) ? keywords : [keywords];
         const locations = location ? [location] : [];
         const searchQuery = categories.join(' ');
 
@@ -546,6 +571,13 @@ export async function POST(request: Request) {
 
         if (finalItems.length === 0) {
             log('EMPTY_RESULTS_FINAL', { pipeline: 'fast_search->detail_scraper->discovery_fallback', phase1: fastSearchItems.length, phase2: items.length });
+        }
+
+        // Cache successful results
+        if (finalItems.length > 0) {
+            setInCache(cacheKey, finalItems, CACHE_TTL.PAGE_DISCOVERY).then(cached => {
+                if (cached) log('CACHE_SET', { cacheKey, count: finalItems.length });
+            });
         }
 
         return NextResponse.json(finalItems);

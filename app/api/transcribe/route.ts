@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/utils/supabase/server'
+import { checkRateLimit, getRateLimitIdentifier } from '@/utils/rateLimit'
 
 export async function POST(req: NextRequest) {
     try {
+        // Authenticate and rate limit
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Rate limiting (transcription is expensive)
+        const rateLimitId = getRateLimitIdentifier(user.id, req)
+        const rateLimit = await checkRateLimit(rateLimitId, 'transcribe')
+        if (!rateLimit.success) {
+            return rateLimit.error
+        }
+
         const { videoUrl } = await req.json()
 
         if (!videoUrl) {

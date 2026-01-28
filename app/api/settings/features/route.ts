@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { deleteFromCache } from '@/utils/cache';
 
 // Default feature flags
 const DEFAULT_FLAGS: Record<string, boolean> = {
@@ -127,6 +128,9 @@ export async function POST(request: Request) {
                 { status: 500 }
             );
         }
+
+        // Invalidate cache so changes take effect immediately
+        await deleteFromCache('feature_flags');
 
         console.log(`Feature flag '${featureId}' set to ${enabled} by user ${user.id}`);
 

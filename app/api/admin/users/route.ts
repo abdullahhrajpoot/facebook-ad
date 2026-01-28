@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/utils/supabase/server'
+import { checkRateLimit, getRateLimitIdentifier } from '@/utils/rateLimit'
 
 // Helper to get Service Role client safely
 function getAdminClient() {
@@ -29,10 +30,25 @@ async function isAdmin() {
     return profile?.role === 'admin'
 }
 
+// Helper to get admin user ID for rate limiting
+async function getAdminUserId(): Promise<string | null> {
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    return user?.id || null
+}
+
 export async function DELETE(request: Request) {
     try {
-        if (!await isAdmin()) {
+        const adminId = await getAdminUserId()
+        if (!adminId || !await isAdmin()) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Rate limiting for admin operations
+        const rateLimitId = getRateLimitIdentifier(adminId, request)
+        const rateLimit = await checkRateLimit(rateLimitId, 'admin')
+        if (!rateLimit.success) {
+            return rateLimit.error
         }
 
         const supabaseAdmin = getAdminClient()
@@ -56,8 +72,16 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
     try {
-        if (!await isAdmin()) {
+        const adminId = await getAdminUserId()
+        if (!adminId || !await isAdmin()) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Rate limiting for admin operations
+        const rateLimitId = getRateLimitIdentifier(adminId, request)
+        const rateLimit = await checkRateLimit(rateLimitId, 'admin')
+        if (!rateLimit.success) {
+            return rateLimit.error
         }
 
         const supabaseAdmin = getAdminClient()
@@ -79,8 +103,16 @@ export async function PUT(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        if (!await isAdmin()) {
+        const adminId = await getAdminUserId()
+        if (!adminId || !await isAdmin()) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Rate limiting for admin operations
+        const rateLimitId = getRateLimitIdentifier(adminId, request)
+        const rateLimit = await checkRateLimit(rateLimitId, 'admin')
+        if (!rateLimit.success) {
+            return rateLimit.error
         }
 
         const supabaseAdmin = getAdminClient()

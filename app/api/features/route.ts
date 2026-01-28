@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { getFromCache, setInCache, CACHE_TTL } from '@/utils/cache';
 
 // Default feature flags
 const DEFAULT_FLAGS: Record<string, boolean> = {
     page_discovery: false
 };
+
+const CACHE_KEY = 'feature_flags';
 
 // Read feature flags from Supabase (public endpoint)
 async function readFeatureFlags(): Promise<Record<string, boolean>> {
@@ -15,7 +18,7 @@ async function readFeatureFlags(): Promise<Record<string, boolean>> {
             .select('*');
         
         if (error) {
-            console.error('Error reading feature flags from database:', error);
+            console.error('Error reading feature flag from database:', error);
             return DEFAULT_FLAGS;
         }
 
@@ -32,10 +35,20 @@ async function readFeatureFlags(): Promise<Record<string, boolean>> {
     }
 }
 
-// GET - Fetch current feature flags (public endpoint)
+// GET - Fetch current feature flags (public endpoint with caching)
 export async function GET() {
     try {
+        // Check cache first
+        const cached = await getFromCache<Record<string, boolean>>(CACHE_KEY);
+        if (cached) {
+            return NextResponse.json(cached);
+        }
+
         const flags = await readFeatureFlags();
+        
+        // Cache the result
+        await setInCache(CACHE_KEY, flags, CACHE_TTL.FEATURE_FLAGS);
+        
         return NextResponse.json(flags);
     } catch (error: any) {
         console.error('Error fetching feature flags:', error);

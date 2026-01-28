@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { ApifyClient } from 'apify-client';
 import { createClient } from '@/utils/supabase/server';
 import { normalizeAdData, validateAd, AdData } from '@/utils/adValidation';
+import { checkRateLimit, getRateLimitIdentifier } from '@/utils/rateLimit';
+import { generateSearchCacheKey, getFromCache, setInCache, CACHE_TTL } from '@/utils/cache';
 
 /**
  * Normalizes various Facebook URL formats to standard page URL format
@@ -318,6 +320,15 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Rate Limiting Check
+        const rateLimitId = getRateLimitIdentifier(user.id, request);
+        const rateLimit = await checkRateLimit(rateLimitId, 'search');
+        if (!rateLimit.success) {
+            log('RATE_LIMITED', { identifier: rateLimitId, remaining: rateLimit.remaining });
+            return rateLimit.error;
+        }
+        log('RATE_LIMIT_OK', { remaining: rateLimit.remaining });
+
         const body = await request.json();
         const { pageNameOrUrl, count = 100, unique = false } = body;
 
@@ -328,6 +339,23 @@ export async function POST(request: Request) {
                 { error: 'Page name or URL is required' },
                 { status: 400 }
             );
+        }
+
+        // Check cache first (skip for unique searches)
+        if (!unique) {
+            const cacheKey = generateSearchCacheKey({
+                type: 'page',
+                query: pageNameOrUrl,
+                country: 'ALL',
+                maxResults: Number(count),
+            });
+            
+            const cached = await getFromCache<AdData[]>(cacheKey);
+            if (cached) {
+                log('CACHE_HIT', { cacheKey, count: cached.length });
+                return NextResponse.json(cached);
+            }
+            log('CACHE_MISS', { cacheKey });
         }
 
         const token = process.env.APIFY_API_TOKEN;
@@ -897,6 +925,19 @@ export async function POST(request: Request) {
             
             // Return empty array with a helpful log but don't error - the page may just have no ads
             // The frontend will display "No ads found" message
+        }
+
+        // Cache successful results (only for non-unique searches)
+        if (topAds.length > 0 && !unique) {
+            const cacheKey = generateSearchCacheKey({
+                type: 'page',
+                query: pageNameOrUrl,
+                country: 'ALL',
+                maxResults: Number(count),
+            });
+            setInCache(cacheKey, topAds, CACHE_TTL.SEARCH_RESULTS).then(cached => {
+                if (cached) log('CACHE_SET', { cacheKey, count: topAds.length });
+            });
         }
 
         return NextResponse.json(topAds);
