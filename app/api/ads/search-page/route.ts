@@ -341,23 +341,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check cache first (skip for unique searches)
-        if (!unique) {
-            const cacheKey = generateSearchCacheKey({
-                type: 'page',
-                query: pageNameOrUrl,
-                country: 'ALL',
-                maxResults: Number(count),
-            });
-            
-            const cached = await getFromCache<AdData[]>(cacheKey);
-            if (cached) {
-                log('CACHE_HIT', { cacheKey, count: cached.length });
-                return NextResponse.json(cached);
-            }
-            log('CACHE_MISS', { cacheKey });
-        }
-
         const token = process.env.APIFY_API_TOKEN;
         if (!token) {
             errorLog('CONFIG_ERROR', 'APIFY_API_TOKEN missing');
@@ -369,7 +352,7 @@ export async function POST(request: Request) {
 
         const client = new ApifyClient({ token: token });
 
-        // 1. Resolve Target URL & ID with intelligent normalization
+        // 1. Resolve Target URL & ID with intelligent normalization (before cache check)
         let targetUrl = pageNameOrUrl.trim();
         let targetPageId: string | undefined;
         let urlVariants: string[] = [];
@@ -408,6 +391,23 @@ export async function POST(request: Request) {
             targetUrl = `https://www.facebook.com/${targetUrl}`;
             urlVariants = [targetUrl];
             log('HEURISTIC_URL', { targetUrl });
+        }
+
+        // Check cache with normalized URL (skip for unique searches)
+        if (!unique) {
+            const cacheKey = generateSearchCacheKey({
+                type: 'page',
+                query: targetUrl, // Use normalized URL instead of raw input
+                country: 'ALL',
+                maxResults: Number(count),
+            });
+            
+            const cached = await getFromCache<AdData[]>(cacheKey);
+            if (cached) {
+                log('CACHE_HIT', { cacheKey, normalizedFrom: pageNameOrUrl, count: cached.length });
+                return NextResponse.json(cached);
+            }
+            log('CACHE_MISS', { cacheKey });
         }
 
         targetUrl = targetUrl.trim();
@@ -903,15 +903,22 @@ export async function POST(request: Request) {
         // Check for specific Apify errors if no items found
         if (items.length === 0 && lastError) {
             const errorMessage = lastError.message || '';
-            // Check for Usage Limit / Plan limits
+            // Check for Usage Limit / Plan limits - ONLY for actual usage limit errors
+            // actor-is-not-rented is a backend configuration issue, not a user limit
             if (errorMessage.includes('Monthly usage hard limit exceeded') ||
-                lastError.type === 'platform-feature-disabled' ||
-                lastError.statusCode === 403) {
+                lastError.type === 'platform-feature-disabled') {
                 return NextResponse.json(
                     { error: 'Service usage limit exceeded. Please contact administrator.' },
                     { status: 429 }
                 );
             }
+            // For other errors (like actor not rented), log them but return empty results
+            log('NO_ADS_FOUND_AFTER_ERROR', { 
+                originalUrl: pageNameOrUrl,
+                errorType: lastError.type,
+                errorMessage: errorMessage,
+                statusCode: lastError.statusCode
+            });
         }
 
         // Provide helpful message if no ads found
@@ -928,15 +935,17 @@ export async function POST(request: Request) {
         }
 
         // Cache successful results (only for non-unique searches)
+        // Use the URL that actually worked (successfulUrl) or fall back to normalized targetUrl
         if (topAds.length > 0 && !unique) {
+            const resolvedUrl = successfulUrl || targetUrl;
             const cacheKey = generateSearchCacheKey({
                 type: 'page',
-                query: pageNameOrUrl,
+                query: resolvedUrl, // Use resolved URL instead of raw input
                 country: 'ALL',
                 maxResults: Number(count),
             });
             setInCache(cacheKey, topAds, CACHE_TTL.SEARCH_RESULTS).then(cached => {
-                if (cached) log('CACHE_SET', { cacheKey, count: topAds.length });
+                if (cached) log('CACHE_SET', { cacheKey, resolvedUrl, originalInput: pageNameOrUrl, count: topAds.length });
             });
         }
 

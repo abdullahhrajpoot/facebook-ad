@@ -284,10 +284,7 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
             // The API handles normalization now
             const validAds = Array.isArray(data) ? data : []
 
-            if (validAds.length === 0 && Array.isArray(data) && data.length > 0) {
-                setError(`Found ${data.length} raw ads, but 0 passed quality filters.`)
-            }
-
+            // Don't set error for empty results - that's a valid outcome
             setAds(validAds)
         } catch (err: any) {
             setError(err.message)
@@ -780,27 +777,141 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                                     )}
                                 </div>
                             ) : (
-                                <div className="max-w-xl relative">
+                                <div className="max-w-2xl relative">
                                     <div className={`absolute inset-0 ${theme.bg}/20 blur-[80px] rounded-full pointer-events-none`} />
                                     <div className="relative z-10 w-24 h-24 bg-zinc-900/80 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-2xl backdrop-blur-md rotate-3 hover:rotate-6 transition-transform group">
                                         <Search className="w-10 h-10 text-zinc-500 group-hover:text-white transition-colors" />
                                     </div>
                                     <h3 className="text-3xl font-black text-white mb-3">No Ads Found</h3>
-                                    <p className="text-zinc-400 leading-relaxed font-medium">
-                                        We couldn't find any ads matching your criteria. Try adjusting your timeframe or using broader keywords.
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            setSelectedCategories(new Set())
-                                            setMediaType('ALL')
-                                            setActiveOnly(false)
-                                            setActiveOnly(false)
-                                            setMinDaysActive(0)
-                                        }}
-                                        className={`mt-8 ${theme.text} hover:opacity-80 font-bold text-sm tracking-wide uppercase border-b border-transparent hover:border-current transition-all pb-0.5`}
-                                    >
-                                        Clear and Reset Filters
-                                    </button>
+                                    
+                                    {/* Context-aware explanation */}
+                                    <div className="text-zinc-400 leading-relaxed font-medium space-y-4 mb-6">
+                                        <p className="text-lg">
+                                            {searchMode === 'page' 
+                                                ? `We couldn't find any active ads from "${keyword}".`
+                                                : `No ads match your search for "${keyword}"${country !== 'ALL' ? ` in ${country}` : ''}.`
+                                            }
+                                        </p>
+                                        
+                                        {/* Why this might have happened */}
+                                        <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 text-left space-y-2">
+                                            <p className="text-xs uppercase font-bold text-zinc-500 tracking-wider">Possible Reasons:</p>
+                                            <ul className="text-sm space-y-1.5 text-zinc-400">
+                                                {wasUniqueSearch && (
+                                                    <li className="flex items-start gap-2">
+                                                        <span className="text-amber-400 mt-0.5">•</span>
+                                                        <span><span className="text-amber-400 font-semibold">Unique Mode</span> is filtering out duplicate creatives</span>
+                                                    </li>
+                                                )}
+                                                {(selectedCategories.size > 0 || mediaType !== 'ALL' || activeOnly || minDaysActive > 0) && (
+                                                    <li className="flex items-start gap-2">
+                                                        <span className="text-blue-400 mt-0.5">•</span>
+                                                        <span>Active filters are too restrictive</span>
+                                                    </li>
+                                                )}
+                                                {searchMode === 'page' ? (
+                                                    <>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-zinc-500 mt-0.5">•</span>
+                                                            <span>The page may not be running ads currently</span>
+                                                        </li>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-zinc-500 mt-0.5">•</span>
+                                                            <span>The page URL/name might be incorrect</span>
+                                                        </li>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-zinc-500 mt-0.5">•</span>
+                                                            <span>No advertisers are using this exact keyword</span>
+                                                        </li>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-zinc-500 mt-0.5">•</span>
+                                                            <span>Try a broader or different keyword variation</span>
+                                                        </li>
+                                                    </>
+                                                )}
+                                            </ul>
+                                        </div>
+
+                                        {/* What to do about it */}
+                                        <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl p-4 text-left space-y-2">
+                                            <p className="text-xs uppercase font-bold text-emerald-400 tracking-wider">Try These Steps:</p>
+                                            <ul className="text-sm space-y-1.5 text-zinc-300">
+                                                {(selectedCategories.size > 0 || mediaType !== 'ALL' || activeOnly || minDaysActive > 0 || wasUniqueSearch) && (
+                                                    <li className="flex items-start gap-2">
+                                                        <span className="text-emerald-400 mt-0.5">→</span>
+                                                        <span className="font-medium">Clear filters and try again</span>
+                                                    </li>
+                                                )}
+                                                {searchMode === 'keyword' && (
+                                                    <>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-emerald-400 mt-0.5">→</span>
+                                                            <span>Use broader keywords (e.g., "fitness" instead of "crossfit workout plans")</span>
+                                                        </li>
+                                                        {country !== 'ALL' && (
+                                                            <li className="flex items-start gap-2">
+                                                                <span className="text-emerald-400 mt-0.5">→</span>
+                                                                <span>Try searching in all countries or different regions</span>
+                                                            </li>
+                                                        )}
+                                                    </>
+                                                )}
+                                                {searchMode === 'page' && (
+                                                    <>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-emerald-400 mt-0.5">→</span>
+                                                            <span>Verify the page name/URL is correct</span>
+                                                        </li>
+                                                        <li className="flex items-start gap-2">
+                                                            <span className="text-emerald-400 mt-0.5">→</span>
+                                                            <span>Check if the page exists in Facebook's Ad Library</span>
+                                                        </li>
+                                                    </>
+                                                )}
+                                                <li className="flex items-start gap-2">
+                                                    <span className="text-emerald-400 mt-0.5">→</span>
+                                                    <span>Check spelling and try alternative terms</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    {/* Action buttons */}
+                                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                        {(selectedCategories.size > 0 || mediaType !== 'ALL' || activeOnly || minDaysActive > 0 || wasUniqueSearch) && (
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedCategories(new Set())
+                                                    setMediaType('ALL')
+                                                    setActiveOnly(false)
+                                                    setMinDaysActive(0)
+                                                    setEnsureUnique(false)
+                                                    // Re-run search with cleared filters
+                                                    executeSearch(keyword, searchMode, country, maxResults)
+                                                }}
+                                                className={`px-6 py-3 ${theme.bg} ${theme.text} hover:opacity-90 font-bold text-sm tracking-wide uppercase rounded-xl transition-all shadow-lg border ${theme.border}`}
+                                            >
+                                                Clear Filters & Retry
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                setKeyword('')
+                                                setAds([])
+                                                setHasSearched(false)
+                                                setSelectedCategories(new Set())
+                                                setMediaType('ALL')
+                                                setActiveOnly(false)
+                                                setMinDaysActive(0)
+                                            }}
+                                            className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-bold text-sm tracking-wide uppercase rounded-xl transition-all border border-white/10"
+                                        >
+                                            New Search
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

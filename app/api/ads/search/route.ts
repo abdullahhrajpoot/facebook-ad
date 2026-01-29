@@ -466,6 +466,7 @@ export async function POST(request: Request) {
             }
         }
 
+        // Return successful response even if no ads found (genuinely no results, not an error)
         return NextResponse.json(topAds);
 
     } catch (error: any) {
