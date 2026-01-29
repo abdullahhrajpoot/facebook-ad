@@ -36,10 +36,10 @@ export const rateLimiters = {
         prefix: 'ratelimit:transcribe',
     }),
 
-    // Auth endpoints: 5 requests per minute per IP (prevent brute force)
+    // Auth endpoints: 50 requests per minute per IP (prevent brute force but allow normal usage)
     auth: () => new Ratelimit({
         redis: getRedis(),
-        limiter: Ratelimit.slidingWindow(5, '1 m'),
+        limiter: Ratelimit.slidingWindow(50, '1 m'),
         analytics: true,
         prefix: 'ratelimit:auth',
     }),
