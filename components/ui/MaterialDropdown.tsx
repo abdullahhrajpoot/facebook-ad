@@ -31,11 +31,18 @@ export default function MaterialDropdown({
     const buttonRef = useRef<HTMLButtonElement>(null)
     const dropdownRef = useRef<HTMLDivElement>(null) // Points to the wrapper div
 
-    // Close on resize or scroll to avoid detached menus
+    // Close on resize or scroll to avoid detached menus (but not on internal dropdown scroll)
     useEffect(() => {
-        const handleResizeOrScroll = () => {
+        const handleResizeOrScroll = (event: Event) => {
+            // Don't close if scrolling inside the dropdown menu itself
+            const portalEl = document.getElementById(`dropdown-portal-${label || 'menu'}`)
+            if (portalEl && portalEl.contains(event.target as Node)) {
+                return
+            }
+            
             if (isOpen) setIsOpen(false)
         }
+        
         window.addEventListener('resize', handleResizeOrScroll)
         window.addEventListener('scroll', handleResizeOrScroll, true) // capture phase for all scrollable parents
 
@@ -43,7 +50,7 @@ export default function MaterialDropdown({
             window.removeEventListener('resize', handleResizeOrScroll)
             window.removeEventListener('scroll', handleResizeOrScroll, true)
         }
-    }, [isOpen])
+    }, [isOpen, label])
 
     // Handle Outside Click (Needs to check both button and portal)
     useEffect(() => {
