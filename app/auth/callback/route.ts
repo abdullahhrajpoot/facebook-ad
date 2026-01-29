@@ -3,6 +3,7 @@ import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { isSafeRedirect } from '@/utils/urlValidation'
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
@@ -15,8 +16,16 @@ export async function GET(request: NextRequest) {
     const errorParam = searchParams.get('error')
     const errorDescription = searchParams.get('error_description')
     if (errorParam) {
-        console.error('Auth Error from URL:', errorParam, errorDescription)
-        return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=${encodeURIComponent(errorDescription || errorParam)}`)
+        console.error('Auth Error from URL:', errorParam)
+        // Don't expose full error message in URL to prevent info leakage
+        return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=authentication_failed`)
+    }
+
+    // CRITICAL: Validate redirect URL to prevent open redirects
+    if (!isSafeRedirect(next, request.nextUrl.origin)) {
+        console.warn('Unsafe redirect attempt:', next)
+        // Redirect to dashboard instead of following untrusted URL
+        return NextResponse.redirect(`${request.nextUrl.origin}/user/dashboard`)
     }
 
     console.log('Auth Callback Triggered')
@@ -24,7 +33,7 @@ export async function GET(request: NextRequest) {
         token_hash: token_hash ? 'found' : 'missing',
         code: code ? 'found' : 'missing',
         type,
-        next
+        next: next.substring(0, 100) // Log safely
     })
 
     const cookieStore = await cookies()
@@ -59,7 +68,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(`${request.nextUrl.origin}${next}`)
         } else {
             console.error('Supabase verifyOtp Error:', error)
-            return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=${encodeURIComponent(error.message)}`)
+            return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=verification_failed`)
         }
     }
 
@@ -71,10 +80,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(`${request.nextUrl.origin}${next}`)
         } else {
             console.error('Supabase exchangeCode for Session Error:', error)
-            return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=${encodeURIComponent(error.message)}`)
+            return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=exchange_failed`)
         }
     }
 
     // return the user to an error page with some instructions
-    return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=Invalid%20Link`)
+    return NextResponse.redirect(`${request.nextUrl.origin}/auth/auth-code-error?error=invalid_link`)
 }

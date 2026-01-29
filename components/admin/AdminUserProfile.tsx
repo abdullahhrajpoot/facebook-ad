@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { createClient } from '../../utils/supabase/client'
 import { ArrowLeft, Trash2, Save, User, Mail, Shield, Lock, Activity, CheckCircle2 } from 'lucide-react'
 
@@ -14,6 +14,7 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
     const isNew = !user // Determine if strict creation mode
 
     const [loading, setLoading] = useState(false)
+    const [csrfToken, setCSRFToken] = useState('')
     const [formData, setFormData] = useState({
         full_name: user?.full_name || '',
         email: user?.email || '',
@@ -21,6 +22,20 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
         password: '' // Only used for new users now
     })
     const supabase = createClient()
+
+    // Get CSRF token on component mount
+    useEffect(() => {
+        const fetchCSRFToken = async () => {
+            try {
+                const res = await fetch('/api/csrf-token')
+                const data = await res.json()
+                setCSRFToken(data.token)
+            } catch (error) {
+                console.error('Failed to fetch CSRF token:', error)
+            }
+        }
+        fetchCSRFToken()
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -38,7 +53,10 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
 
             const res = await fetch('/api/admin/users', {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                },
                 body: JSON.stringify(body)
             })
             const data = await res.json()
@@ -58,7 +76,12 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
 
         try {
             setLoading(true)
-            const res = await fetch(`/api/admin/users?id=${user.id}`, { method: 'DELETE' })
+            const res = await fetch(`/api/admin/users?id=${user.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                }
+            })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error)
             onSave()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { checkRateLimit, getRateLimitIdentifier } from '@/utils/rateLimit'
+import { isSafeUrl } from '@/utils/urlValidation'
 
 export async function POST(req: NextRequest) {
     try {
@@ -23,6 +24,14 @@ export async function POST(req: NextRequest) {
 
         if (!videoUrl) {
             return NextResponse.json({ error: 'Video URL is required' }, { status: 400 })
+        }
+
+        // CRITICAL: Validate URL to prevent SSRF attacks
+        if (!isSafeUrl(videoUrl)) {
+            return NextResponse.json(
+                { error: 'Invalid video URL. Only public HTTPS URLs are allowed' },
+                { status: 400 }
+            )
         }
 
         const apiKey = process.env.ELEVENLABS_API_KEY

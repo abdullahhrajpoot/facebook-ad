@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, UserPlus, Filter, MoreHorizontal, Shield, Mail, Calendar, User, ChevronRight, Activity } from 'lucide-react'
 import UserActionModal from '../modals/UserActionModal'
 
@@ -13,6 +13,21 @@ interface UsersListProps {
 export default function UsersList({ users, onSelectUser, onAddUser }: UsersListProps) {
     const [searchQuery, setSearchQuery] = useState('')
     const [actionUser, setActionUser] = useState<any | null>(null)
+    const [csrfToken, setCSRFToken] = useState('')
+
+    // Fetch CSRF token on mount
+    useEffect(() => {
+        const fetchCSRFToken = async () => {
+            try {
+                const res = await fetch('/api/csrf-token')
+                const data = await res.json()
+                setCSRFToken(data.token)
+            } catch (error) {
+                console.error('Failed to fetch CSRF token:', error)
+            }
+        }
+        fetchCSRFToken()
+    }, [])
 
     // Filter users based on search query
     const filteredUsers = users.filter(user => {
@@ -35,17 +50,13 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
     }
 
     const handleDeleteUser = (userId: string) => {
-        // Implementation for delete would go here (API call)
-        console.log('Deleting user:', userId)
+        // Refresh users list - parent component will handle this
         setActionUser(null)
-        // Ideally trigger a refresh or optimistically update
     }
 
     const handleUpdateRole = (userId: string, newRole: string) => {
-        // Implementation for role update would go here (API call)
-        console.log('Updating role for:', userId, 'to', newRole)
+        // Refresh users list - parent component will handle this
         setActionUser(null)
-        // Ideally trigger a refresh
     }
 
     return (
@@ -182,6 +193,7 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
                 onViewProfile={handleViewProfile}
                 onDeleteUser={handleDeleteUser}
                 onUpdateRole={handleUpdateRole}
+                csrfToken={csrfToken}
             />
         </div>
     )

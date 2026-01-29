@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/utils/supabase/server'
 import { checkRateLimit, getRateLimitIdentifier } from '@/utils/rateLimit'
+import { validateCSRFToken, setCSRFTokenCookie } from '@/utils/csrf'
+import { validatePassword, validateEmail } from '@/utils/passwordValidation'
 
 // Helper to get Service Role client safely
 function getAdminClient() {
@@ -16,18 +18,17 @@ function getAdminClient() {
 }
 
 // Helper to verify if current user is Admin
-async function isAdmin() {
+async function isAdmin(userId: string): Promise<boolean> {
     const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
-
-    const { data: profile } = await supabase
+    
+    const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
-    return profile?.role === 'admin'
+    if (error || !profile) return false
+    return profile.role === 'admin'
 }
 
 // Helper to get admin user ID for rate limiting
@@ -39,9 +40,21 @@ async function getAdminUserId(): Promise<string | null> {
 
 export async function DELETE(request: Request) {
     try {
+        // Verify admin user exists and is authenticated
         const adminId = await getAdminUserId()
-        if (!adminId || !await isAdmin()) {
+        if (!adminId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Verify CSRF token
+        const isValidCSRF = await validateCSRFToken(request)
+        if (!isValidCSRF) {
+            return NextResponse.json({ error: 'CSRF token invalid' }, { status: 403 })
+        }
+
+        // Verify admin role
+        if (!await isAdmin(adminId)) {
+            return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 
         // Rate limiting for admin operations
@@ -51,7 +64,6 @@ export async function DELETE(request: Request) {
             return rateLimit.error
         }
 
-        const supabaseAdmin = getAdminClient()
         const { searchParams } = new URL(request.url)
         const userId = searchParams.get('id')
 
@@ -59,22 +71,40 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'User ID required' }, { status: 400 })
         }
 
+        // Prevent self-deletion
+        if (userId === adminId) {
+            return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
+        }
+
+        const supabaseAdmin = getAdminClient()
         const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
         if (error) throw error
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
-        // Return JSON error even if config is missing
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('Delete user error:', error)
+        return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
     }
 }
 
 export async function PUT(request: Request) {
     try {
+        // Verify admin user exists and is authenticated
         const adminId = await getAdminUserId()
-        if (!adminId || !await isAdmin()) {
+        if (!adminId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Verify CSRF token
+        const isValidCSRF = await validateCSRFToken(request)
+        if (!isValidCSRF) {
+            return NextResponse.json({ error: 'CSRF token invalid' }, { status: 403 })
+        }
+
+        // Verify admin role
+        if (!await isAdmin(adminId)) {
+            return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 
         // Rate limiting for admin operations
@@ -84,28 +114,54 @@ export async function PUT(request: Request) {
             return rateLimit.error
         }
 
-        const supabaseAdmin = getAdminClient()
         const body = await request.json()
         const { id, full_name, gender, role } = body
 
+        if (!id) {
+            return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+        }
+
+        // Prevent privilege escalation: non-admin users can't change role
+        const targetUserRole = role || 'user'
+        if (targetUserRole === 'admin' && !await isAdmin(id)) {
+            // Only admins can promote users to admin
+            if (!await isAdmin(adminId)) {
+                return NextResponse.json({ error: 'Insufficient permissions to grant admin role' }, { status: 403 })
+            }
+        }
+
+        const supabaseAdmin = getAdminClient()
         const { error } = await supabaseAdmin
             .from('profiles')
-            .update({ full_name, gender, role })
+            .update({ full_name, gender, role: targetUserRole })
             .eq('id', id)
 
         if (error) throw error
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('Update user error:', error)
+        return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
     }
 }
 
 export async function POST(request: Request) {
     try {
+        // Verify admin user exists and is authenticated
         const adminId = await getAdminUserId()
-        if (!adminId || !await isAdmin()) {
+        if (!adminId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // Verify CSRF token
+        const isValidCSRF = await validateCSRFToken(request)
+        if (!isValidCSRF) {
+            return NextResponse.json({ error: 'CSRF token invalid' }, { status: 403 })
+        }
+
+        // Verify admin role
+        if (!await isAdmin(adminId)) {
+            return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
         }
 
         // Rate limiting for admin operations
@@ -115,13 +171,29 @@ export async function POST(request: Request) {
             return rateLimit.error
         }
 
-        const supabaseAdmin = getAdminClient()
         const body = await request.json()
         const { email, password, full_name, gender, role } = body
 
+        // Validate required fields
         if (!email || !password) {
             return NextResponse.json({ error: 'Email and Password are required' }, { status: 400 })
         }
+
+        // Validate email format
+        if (!validateEmail(email)) {
+            return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+        }
+
+        // Validate password strength
+        const passwordValidation = validatePassword(password)
+        if (!passwordValidation.isValid) {
+            return NextResponse.json(
+                { error: 'Password does not meet requirements', details: passwordValidation.errors },
+                { status: 400 }
+            )
+        }
+
+        const supabaseAdmin = getAdminClient()
 
         // 1. Create Auth User
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -147,8 +219,9 @@ export async function POST(request: Request) {
 
         if (profileError) throw profileError
 
-        return NextResponse.json({ success: true, user: authData.user })
+        return NextResponse.json({ success: true, user: { id: authData.user.id, email: authData.user.email } })
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error('Create user error:', error)
+        return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
     }
 }

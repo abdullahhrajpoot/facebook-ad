@@ -24,10 +24,22 @@ export default function AdminSettings() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState<string | null>(null)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+    const [csrfToken, setCSRFToken] = useState('')
 
     useEffect(() => {
+        fetchCSRFToken()
         fetchFeatureFlags()
     }, [])
+
+    const fetchCSRFToken = async () => {
+        try {
+            const res = await fetch('/api/csrf-token')
+            const data = await res.json()
+            setCSRFToken(data.token)
+        } catch (error) {
+            console.error('Failed to fetch CSRF token:', error)
+        }
+    }
 
     const fetchFeatureFlags = async () => {
         try {
@@ -56,7 +68,10 @@ export default function AdminSettings() {
         try {
             const res = await fetch('/api/settings/features', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                },
                 body: JSON.stringify({
                     featureId,
                     enabled: !feature.enabled

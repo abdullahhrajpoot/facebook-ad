@@ -10,11 +10,13 @@ interface UserActionModalProps {
     onViewProfile: (user: any) => void
     onDeleteUser: (userId: string) => void
     onUpdateRole: (userId: string, newRole: string) => void
+    csrfToken?: string
 }
 
-export default function UserActionModal({ user, onClose, onViewProfile, onDeleteUser, onUpdateRole }: UserActionModalProps) {
+export default function UserActionModal({ user, onClose, onViewProfile, onDeleteUser, onUpdateRole, csrfToken = '' }: UserActionModalProps) {
     const [mounted, setMounted] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isUpdatingRole, setIsUpdatingRole] = useState(false)
 
     useEffect(() => {
         setMounted(true)
@@ -117,10 +119,35 @@ export default function UserActionModal({ user, onClose, onViewProfile, onDelete
                                 </div>
                             </div>
                             <button
-                                onClick={() => onUpdateRole(user.id, user.role === 'admin' ? 'user' : 'admin')}
-                                className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-black hover:bg-white text-white hover:text-black border border-white/10 rounded-lg transition-all"
+                                onClick={async () => {
+                                    setIsUpdatingRole(true)
+                                    try {
+                                        const res = await fetch('/api/admin/users', {
+                                            method: 'PUT',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                                            },
+                                            body: JSON.stringify({
+                                                id: user.id,
+                                                role: user.role === 'admin' ? 'user' : 'admin'
+                                            })
+                                        })
+                                        if (res.ok) {
+                                            onUpdateRole(user.id, user.role === 'admin' ? 'user' : 'admin')
+                                        } else {
+                                            alert('Failed to update role')
+                                        }
+                                    } catch (error) {
+                                        alert('Error updating role')
+                                    } finally {
+                                        setIsUpdatingRole(false)
+                                    }
+                                }}
+                                disabled={isUpdatingRole}
+                                className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-black hover:bg-white text-white hover:text-black border border-white/10 rounded-lg transition-all disabled:opacity-50"
                             >
-                                {user.role === 'admin' ? 'Revoke' : 'Promote'}
+                                {isUpdatingRole ? 'Updating...' : (user.role === 'admin' ? 'Revoke' : 'Promote')}
                             </button>
                         </div>
 
@@ -158,8 +185,25 @@ export default function UserActionModal({ user, onClose, onViewProfile, onDelete
                                             Cancel
                                         </button>
                                         <button
-                                            onClick={() => onDeleteUser(user.id)}
-                                            className="h-9 sm:h-10 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[10px] sm:text-xs font-bold shadow-lg shadow-red-900/20 transition-all uppercase tracking-wider"
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await fetch(`/api/admin/users?id=${user.id}`, {
+                                                        method: 'DELETE',
+                                                        headers: {
+                                                            'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                                                        }
+                                                    })
+                                                    if (res.ok) {
+                                                        onDeleteUser(user.id)
+                                                        onClose()
+                                                    } else {
+                                                        alert('Failed to delete user')
+                                                    }
+                                                } catch (error) {
+                                                    alert('Error deleting user')
+                                                }
+                                            }}
+                                            className="h-9 sm:h-10 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[10px] sm:text-xs font-bold shadow-lg shadow-red-900/20 transition-all uppercase tracking-wider disabled:opacity-50"
                                         >
                                             Confirm
                                         </button>
