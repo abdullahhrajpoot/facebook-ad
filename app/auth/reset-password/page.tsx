@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuthRedirect } from '@/utils/useAuthRedirect'
 
 export default function ResetPassword() {
     const router = useRouter()
@@ -13,8 +14,10 @@ export default function ResetPassword() {
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
-    // Optional: Validate that the session is valid (recovery type)
-    // But usually supabase client on load will recover the session from the URL hash.
+    // Note: Reset password page should be accessible during recovery flow
+    // Even if user has a session, they might be using a recovery token
+    // So we only check if they have a valid recovery session
+    const supabase = createClient()
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -29,8 +32,6 @@ export default function ResetPassword() {
 
         setLoading(true)
         setError(null)
-
-        const supabase = createClient()
 
         const { error } = await supabase.auth.updateUser({
             password: password

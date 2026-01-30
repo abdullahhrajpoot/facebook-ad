@@ -5,6 +5,7 @@ import { createClient } from '../../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react'
+import { useAuthRedirect } from '@/utils/useAuthRedirect'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -13,6 +14,9 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const supabase = createClient()
+    
+    // Redirect if already authenticated
+    const { isLoading: isAuthChecking } = useAuthRedirect()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -47,6 +51,18 @@ export default function LoginPage() {
                 router.push('/')
             }
         }
+    }
+
+    // Show loading state while checking auth
+    if (isAuthChecking) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-black">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                    <p className="text-zinc-400 text-sm">Verifying access...</p>
+                </div>
+            </div>
+        )
     }
 
     return (

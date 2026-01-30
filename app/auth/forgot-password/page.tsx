@@ -5,12 +5,16 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { checkEmail } from './actions'
 import { ArrowRight, Mail, CheckCircle2, ChevronLeft, ShieldAlert } from 'lucide-react'
+import { useAuthRedirect } from '@/utils/useAuthRedirect'
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    
+    // Redirect if already authenticated
+    const { isLoading: isAuthChecking } = useAuthRedirect()
 
     const handleReset = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -45,6 +49,18 @@ export default function ForgotPassword() {
         } finally {
             setLoading(false)
         }
+    }
+
+    // Show loading state while checking auth
+    if (isAuthChecking) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-black">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                    <p className="text-zinc-400 text-sm">Verifying access...</p>
+                </div>
+            </div>
+        )
     }
 
     return (

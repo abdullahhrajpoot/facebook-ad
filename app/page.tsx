@@ -33,6 +33,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -52,7 +53,6 @@ export default function Home() {
   }, [])
 
   // --- MOUSE SPOTLIGHT EFFECT ---
-  const containerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return
@@ -65,10 +65,6 @@ export default function Home() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
-
-  const dashboardLink = user
-    ? (profile?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard')
-    : '/auth/login'
 
   if (loading) return null // Instant load feel or skeleton
 
@@ -109,10 +105,23 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/auth/login" className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">Log In</Link>
-            <Link href="/auth/login" className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors shadow-lg shadow-white/10">
-              Access Terminal
-            </Link>
+            {!user ? (
+              <Link href="/auth/login" className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-white text-black text-[10px] sm:text-xs font-bold uppercase tracking-wide hover:bg-zinc-200 transition-colors shadow-lg shadow-white/10">
+                Get Started
+              </Link>
+            ) : (
+              <>
+                <span className="hidden sm:block text-xs font-bold uppercase tracking-widest text-emerald-400">
+                  ✓ Logged In
+                </span>
+                <Link 
+                  href={profile?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard'} 
+                  className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-indigo-600 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wide hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/30"
+                >
+                  {profile?.role === 'admin' ? 'Admin Panel' : 'Search Ads'}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -144,15 +153,55 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 animate-fade-in-up delay-300 w-full justify-center px-4">
-            <Link href={dashboardLink} className="group relative h-11 sm:h-12 px-6 sm:px-8 rounded-full bg-white text-black font-bold flex items-center justify-center gap-2 overflow-hidden hover:scale-105 transition-transform duration-300 text-sm sm:text-base">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
-              <span className="relative z-10">Initialize Search</span>
-              <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <button className="h-11 sm:h-12 px-6 sm:px-8 rounded-full border border-white/10 bg-black/50 text-white font-bold hover:bg-white/10 transition-all backdrop-blur-md flex items-center justify-center gap-2 text-sm sm:text-base">
-              <Play className="w-4 h-4 fill-white" />
-              <span>Watch Demo</span>
-            </button>
+            {!user ? (
+              <>
+                <Link href="/auth/login" className="group relative h-11 sm:h-12 px-6 sm:px-8 rounded-full bg-white text-black font-bold flex items-center justify-center gap-2 overflow-hidden hover:scale-105 transition-transform duration-300 text-sm sm:text-base">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <span className="relative z-10">Start Analyzing Ads</span>
+                  <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <a href="#features" className="h-11 sm:h-12 px-6 sm:px-8 rounded-full border border-white/10 bg-black/50 text-white font-bold hover:bg-white/10 transition-all backdrop-blur-md flex items-center justify-center gap-2 text-sm sm:text-base">
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>See Features</span>
+                </a>
+              </>
+            ) : profile?.role === 'admin' ? (
+              <>
+                <Link 
+                  href="/admin/dashboard" 
+                  className="group relative h-11 sm:h-12 px-6 sm:px-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center gap-2 overflow-hidden hover:scale-105 transition-transform duration-300 text-sm sm:text-base"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-blue-600 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <span className="relative z-10">Manage Users</span>
+                  <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link 
+                  href="/admin/dashboard" 
+                  className="h-11 sm:h-12 px-6 sm:px-8 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-bold hover:bg-emerald-500/20 transition-all backdrop-blur-md flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>View All Ads</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/user/dashboard" 
+                  className="group relative h-11 sm:h-12 px-6 sm:px-8 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center gap-2 overflow-hidden hover:scale-105 transition-transform duration-300 text-sm sm:text-base"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-700 to-blue-600 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <span className="relative z-10">Start New Search</span>
+                  <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link 
+                  href="/user/dashboard" 
+                  className="h-11 sm:h-12 px-6 sm:px-8 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-bold hover:bg-emerald-500/20 transition-all backdrop-blur-md flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>View History</span>
+                </Link>
+              </>
+            )}
           </div>
 
         </div>
@@ -178,7 +227,7 @@ export default function Home() {
       </div>
 
       {/* --- INTELLIGENCE MODULES --- */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-32 space-y-16 sm:space-y-24 md:space-y-32">
+      <section id="features" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 md:py-32 space-y-16 sm:space-y-24 md:space-y-32">
 
         {/* Module 01: Deep Search */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center group">
