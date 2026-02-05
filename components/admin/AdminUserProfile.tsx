@@ -51,12 +51,17 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
                 delete body.password
             }
 
+            // Get auth token to pass in header (needed for iframe contexts where cookies are blocked)
+            const { data: { session } } = await supabase.auth.getSession()
+
             const res = await fetch('/api/admin/users', {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                    'x-csrf-token': csrfToken,
+                    ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
                 },
+                credentials: 'include',
                 body: JSON.stringify(body)
             })
             const data = await res.json()
@@ -76,11 +81,17 @@ export default function AdminUserProfile({ user, onBack, onSave }: AdminUserProf
 
         try {
             setLoading(true)
+            
+            // Get auth token to pass in header (needed for iframe contexts where cookies are blocked)
+            const { data: { session } } = await supabase.auth.getSession()
+            
             const res = await fetch(`/api/admin/users?id=${user.id}`, {
                 method: 'DELETE',
                 headers: {
-                    'x-csrf-token': csrfToken // ADD CSRF TOKEN
-                }
+                    'x-csrf-token': csrfToken,
+                    ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                },
+                credentials: 'include'
             })
             const data = await res.json()
             if (!res.ok) throw new Error(data.error)

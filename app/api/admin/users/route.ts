@@ -31,9 +31,21 @@ async function isAdmin(userId: string): Promise<boolean> {
     return profile.role === 'admin'
 }
 
-// Helper to get admin user ID for rate limiting
-async function getAdminUserId(): Promise<string | null> {
+// Helper to get admin user ID for rate limiting - supports both cookies and Bearer token
+async function getAdminUserId(request: Request): Promise<string | null> {
     const supabase = await createServerClient()
+    
+    // Check for Authorization header first (works in iframe where cookies are blocked)
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data, error } = await supabase.auth.getUser(token);
+        if (!error && data.user) {
+            return data.user.id;
+        }
+    }
+    
+    // Fall back to cookie-based auth
     const { data: { user } } = await supabase.auth.getUser()
     return user?.id || null
 }
@@ -41,7 +53,7 @@ async function getAdminUserId(): Promise<string | null> {
 export async function DELETE(request: Request) {
     try {
         // Verify admin user exists and is authenticated
-        const adminId = await getAdminUserId()
+        const adminId = await getAdminUserId(request)
         if (!adminId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
@@ -91,7 +103,7 @@ export async function DELETE(request: Request) {
 export async function PUT(request: Request) {
     try {
         // Verify admin user exists and is authenticated
-        const adminId = await getAdminUserId()
+        const adminId = await getAdminUserId(request)
         if (!adminId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
@@ -148,7 +160,7 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
     try {
         // Verify admin user exists and is authenticated
-        const adminId = await getAdminUserId()
+        const adminId = await getAdminUserId(request)
         if (!adminId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }

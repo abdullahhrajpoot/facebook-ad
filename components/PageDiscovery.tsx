@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import PagePreviewModal from './modals/PagePreviewModal'
 import MaterialDropdown from '@/components/ui/MaterialDropdown'
+import { createClient } from '@/utils/supabase/client'
 // Redefine locally to ensure self-contained type safety and avoid import issues
 interface FacebookPageLocal {
     // Core identifiers
@@ -241,9 +242,17 @@ export default function PageDiscovery({ onSearchAds, initialState }: PageDiscove
             // Split keywords by comma
             const keywordList = searchKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0)
 
+            // Get auth token to pass in header (needed for iframe contexts where cookies are blocked)
+            const supabase = createClient()
+            const { data: { session } } = await supabase.auth.getSession()
+
             const res = await fetch('/api/pages/discovery', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                },
+                credentials: 'include',
                 body: JSON.stringify({
                     keywords: keywordList,
                     location: searchLocation.trim(),
@@ -638,6 +647,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                         src={coverImgSrc || ''}
                         alt="Cover"
                         className={`w-full h-full object-cover transition-transform duration-700 group-hover/header:rotate-1 group-hover/header:scale-105 ${!coverImgSrc || coverImgSrc === profileImgSrc ? 'blur-2xl opacity-40 scale-125' : ''}`}
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';
                         }}
@@ -680,6 +690,7 @@ function PageCard({ page, onSearchAds, onView }: { page: FacebookPageLocal, onSe
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={profileImgSrc || ''}
+                            referrerPolicy="no-referrer"
                             onError={(e) => {
                                 // Fallback logic
                                 if (pageIdValue && !e.currentTarget.src.includes('graph.facebook')) {

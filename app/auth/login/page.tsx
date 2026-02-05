@@ -1,55 +1,119 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '../../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react'
 import { useAuthRedirect } from '@/utils/useAuthRedirect'
+import { isInIframe, notifyAuthenticationComplete } from '@/utils/iframeUtils'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isInIframeMode, setIsInIframeMode] = useState(false)
     const router = useRouter()
     const supabase = createClient()
     
     // Redirect if already authenticated
     const { isLoading: isAuthChecking } = useAuthRedirect()
 
+    useEffect(() => {
+        // Check if we're in iframe mode
+        setIsInIframeMode(isInIframe())
+    }, [])
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
+        console.log('🔐 Login attempt with:', { email, password: '***' })
+        console.log('🖼️ In iframe mode:', isInIframeMode)
+        
         setLoading(true)
         setError(null)
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
+        try {
+            console.log('📤 Sending auth request to Supabase...')
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
 
-        if (error) {
-            setError(error.message)
-            setLoading(false)
-        } else {
-            // Check user role
-            const { data: { user } } = await supabase.auth.getUser()
+            console.log('📥 Auth response:', { error: error?.message, hasData: !!data })
 
-            if (user) {
-                const { data: profile } = await supabase
+            if (error) {
+                console.error('❌ Auth error:', error.message)
+                setError(error.message)
+                setLoading(false)
+                return
+            }
+
+            if (!data?.user || !data?.session) {
+                console.error('❌ No user/session data returned from auth')
+                setError('Login failed: No user data returned')
+                setLoading(false)
+                return
+            }
+
+            console.log('✅ Auth successful for user:', data.user.id)
+            console.log('🔑 Session established, expires at:', data.session.expires_at)
+            
+            const user = data.user
+
+            try {
+                console.log('👤 Fetching user profile...')
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('role')
                     .eq('id', user.id)
                     .single()
 
-                if (profile?.role === 'admin') {
-                    router.push('/admin/dashboard')
-                } else {
-                    router.push('/user/dashboard')
+                console.log('📋 Profile fetch:', { hasProfile: !!profile, role: profile?.role, error: profileError?.message })
+
+                const redirectPath = profile?.role === 'admin' ? '/admin/dashboard' : '/user/dashboard'
+
+                // If in iframe, notify parent of successful login
+                if (isInIframeMode) {
+                    console.log('📤 Notifying parent window of auth...')
+                    notifyAuthenticationComplete(true, {
+                        userId: user.id,
+                        role: profile?.role || 'user',
+                    })
                 }
-            } else {
-                router.push('/')
+
+                // Verify session is stored before redirecting
+                console.log('🔍 Verifying session storage...')
+                const { data: verifySession } = await supabase.auth.getSession()
+                console.log('✔️ Session verification:', { stored: !!verifySession?.session })
+
+                console.log('🚀 Redirecting to:', redirectPath)
+                // Longer delay in iframe to ensure localStorage is synced
+                const delay = isInIframeMode ? 500 : 300
+                setTimeout(() => {
+                    window.location.href = redirectPath
+                }, delay)
+            } catch (profileError) {
+                console.error('⚠️ Error fetching profile:', profileError)
+                // Still redirect even if profile fetch fails
+                const defaultPath = '/user/dashboard'
+                
+                if (isInIframeMode) {
+                    notifyAuthenticationComplete(true, {
+                        userId: user.id,
+                        role: 'user',
+                    })
+                }
+
+                console.log('🚀 Redirecting to default:', defaultPath)
+                setTimeout(() => {
+                    window.location.href = defaultPath
+                }, 300)
             }
+        } catch (err) {
+            console.error('❌ Login exception:', err)
+            setError(err instanceof Error ? err.message : 'An error occurred during login')
+            setLoading(false)
         }
     }
 

@@ -288,26 +288,42 @@ export async function POST(request: Request) {
     try {
         log('START_REQUEST', { method: request.method, url: request.url });
 
-        // Authenticate User
+        // Authenticate User - try Bearer token first (for iframe contexts), then cookies
         const supabase = await createClient();
         let user = null;
         let authError = null;
 
-        log('AUTH_START');
-        for (let i = 0; i < 3; i++) {
-            const result = await supabase.auth.getUser();
-            user = result.data.user;
-            authError = result.error;
-            if (!authError) {
-                log('AUTH_SUCCESS', { attempt: i + 1 });
-                break;
+        // Check for Authorization header first (works in iframe where cookies are blocked)
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            log('AUTH_VIA_BEARER_TOKEN');
+            const { data, error } = await supabase.auth.getUser(token);
+            user = data.user;
+            authError = error;
+            if (!error && user) {
+                log('AUTH_SUCCESS_BEARER', { userId: user.id });
             }
-            const isNetwork = authError.message && (
-                authError.message.toLowerCase().includes('fetch failed') ||
-                authError.message.toLowerCase().includes('timeout')
-            );
-            if (!isNetwork) break;
-            if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        // Fall back to cookie-based auth if no bearer token or it failed
+        if (!user) {
+            log('AUTH_START_COOKIE');
+            for (let i = 0; i < 3; i++) {
+                const result = await supabase.auth.getUser();
+                user = result.data.user;
+                authError = result.error;
+                if (!authError) {
+                    log('AUTH_SUCCESS', { attempt: i + 1 });
+                    break;
+                }
+                const isNetwork = authError.message && (
+                    authError.message.toLowerCase().includes('fetch failed') ||
+                    authError.message.toLowerCase().includes('timeout')
+                );
+                if (!isNetwork) break;
+                if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
 
         if (authError && (authError.message?.toLowerCase().includes('fetch') || authError.message?.toLowerCase().includes('timeout'))) {
@@ -935,18 +951,22 @@ export async function POST(request: Request) {
         }
 
         // Cache successful results (only for non-unique searches)
-        // Use the URL that actually worked (successfulUrl) or fall back to normalized targetUrl
+        // Use targetUrl (the normalized URL) for cache key - MUST match the GET cache key
+        // IMPORTANT: We must await this in serverless environments or the function may terminate before cache is set
         if (topAds.length > 0 && !unique) {
-            const resolvedUrl = successfulUrl || targetUrl;
             const cacheKey = generateSearchCacheKey({
                 type: 'page',
-                query: resolvedUrl, // Use resolved URL instead of raw input
+                query: targetUrl, // Use same normalized URL as cache GET (not successfulUrl which may differ)
                 country: 'ALL',
                 maxResults: Number(count),
             });
-            setInCache(cacheKey, topAds, CACHE_TTL.SEARCH_RESULTS).then(cached => {
-                if (cached) log('CACHE_SET', { cacheKey, resolvedUrl, originalInput: pageNameOrUrl, count: topAds.length });
-            });
+            try {
+                const cached = await setInCache(cacheKey, topAds, CACHE_TTL.SEARCH_RESULTS);
+                if (cached) log('CACHE_SET_SUCCESS', { cacheKey, targetUrl, originalInput: pageNameOrUrl, count: topAds.length });
+                else log('CACHE_SET_FAILED', { cacheKey });
+            } catch (cacheError) {
+                console.error('[Cache] Failed to set cache:', cacheError);
+            }
         }
 
         return NextResponse.json(topAds);

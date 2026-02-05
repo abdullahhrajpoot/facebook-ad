@@ -271,9 +271,16 @@ export default function SearchAds({ initialPageQuery, initialSearchState }: Sear
                     unique: ensureUnique
                 }
 
+            // Get auth token to pass in header (needed for iframe contexts where cookies are blocked)
+            const { data: { session } } = await supabase.auth.getSession()
+            
             const res = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                },
+                credentials: 'include', // Still include cookies as fallback
                 body: JSON.stringify(body)
             })
 

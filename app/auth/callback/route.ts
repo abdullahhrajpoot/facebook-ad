@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as EmailOtpType | null
     const next = searchParams.get('next') ?? '/'
     const code = searchParams.get('code')
+    const isInIframe = searchParams.get('iframe') === 'true'
 
     // Handle standard/URL fragment errors that might be passed as query params
     const errorParam = searchParams.get('error')
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${request.nextUrl.origin}/user/dashboard`)
     }
 
-    console.log('Auth Callback Triggered')
+    console.log('Auth Callback Triggered', { isInIframe, next })
     console.log('Params:', {
         token_hash: token_hash ? 'found' : 'missing',
         code: code ? 'found' : 'missing',
@@ -47,9 +48,15 @@ export async function GET(request: NextRequest) {
                 },
                 setAll(cookiesToSet) {
                     try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        )
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            // Ensure cookies work in iframe context
+                            const modifiedOptions = {
+                                ...options,
+                                sameSite: 'none' as const,
+                                secure: true,
+                            }
+                            cookieStore.set(name, value, modifiedOptions)
+                        })
                     } catch {
                         // The `setAll` method was called from a Server Component.
                     }

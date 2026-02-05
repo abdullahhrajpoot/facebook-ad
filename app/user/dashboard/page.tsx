@@ -23,22 +23,70 @@ export default function UserDashboard() {
     const { isEnabled } = useFeatureFlags()
 
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
+        const checkUser = async (retryCount = 0) => {
+            // Add delay to ensure session is established (especially important in iframe)
+            await new Promise(resolve => setTimeout(resolve, 200))
+            
+            // Check if we're in an iframe
+            const isInIframe = typeof window !== 'undefined' && window !== window.parent
+            console.log('🖼️ Running in iframe:', isInIframe)
+            
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+            console.log('📋 Dashboard session check:', { 
+                hasSession: !!session, 
+                error: sessionError?.message,
+                retryCount,
+                isInIframe
+            })
+
+            // If no session and we're in iframe, try to get user directly (may be in localStorage)
+            if (!session && isInIframe) {
+                const { data: { user }, error: userError } = await supabase.auth.getUser()
+                console.log('🔄 Iframe fallback - getUser:', { hasUser: !!user, error: userError?.message })
+                
+                if (user) {
+                    // We have a user from localStorage, fetch profile and continue
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single()
+                    
+                    setProfile(profile || { id: user.id, role: 'user' })
+                    setLoading(false)
+                    return
+                }
+            }
 
             if (!session) {
-                router.push('/auth/login')
+                // Retry a few times before giving up (session might not be ready yet)
+                if (retryCount < 3) {
+                    console.log(`⏳ No session, retrying... (${retryCount + 1}/3)`)
+                    setTimeout(() => checkUser(retryCount + 1), 500)
+                    return
+                }
+                
+                console.log('❌ No session found after retries, redirecting to login')
+                // Use hard navigation for iframe compatibility
+                window.location.href = '/auth/login'
                 return
             }
 
-            const { data: profile } = await supabase
+            console.log('✅ Session found for user:', session.user.id)
+            
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
                 .single()
 
+            console.log('👤 Profile check:', { hasProfile: !!profile, error: profileError?.message })
+
             if (!profile) {
-                router.push('/auth/login')
+                console.log('⚠️ No profile found, but user is authenticated - creating default')
+                setProfile({ id: session.user.id, role: 'user' })
+                setLoading(false)
                 return
             }
 

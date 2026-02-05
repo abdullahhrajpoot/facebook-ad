@@ -100,34 +100,50 @@ export async function POST(request: Request) {
     try {
         log('START_REQUEST', { method: request.method, url: request.url });
 
-        // Authenticate User with Retry for Robustness
+        // Authenticate User - try Bearer token first (for iframe contexts), then cookies
         const supabase = await createClient();
         let user = null;
         let authError = null;
 
-        log('AUTH_START');
-        for (let i = 0; i < 3; i++) {
-            const result = await supabase.auth.getUser();
-            user = result.data.user;
-            authError = result.error;
-
-            if (!authError) {
-                log('AUTH_SUCCESS', { attempt: i + 1 });
-                break;
+        // Check for Authorization header first (works in iframe where cookies are blocked)
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            log('AUTH_VIA_BEARER_TOKEN');
+            const { data, error } = await supabase.auth.getUser(token);
+            user = data.user;
+            authError = error;
+            if (!error && user) {
+                log('AUTH_SUCCESS_BEARER', { userId: user.id });
             }
+        }
 
-            const isNetwork = authError.message && (
-                authError.message.toLowerCase().includes('fetch failed') ||
-                authError.message.toLowerCase().includes('timeout') ||
-                authError.message.toLowerCase().includes('network') ||
-                authError.message.toLowerCase().includes('connection')
-            );
+        // Fall back to cookie-based auth if no bearer token or it failed
+        if (!user) {
+            log('AUTH_START_COOKIE');
+            for (let i = 0; i < 3; i++) {
+                const result = await supabase.auth.getUser();
+                user = result.data.user;
+                authError = result.error;
 
-            log('AUTH_ATTEMPT_FAILED', { attempt: i + 1, error: authError.message, isNetwork });
+                if (!authError) {
+                    log('AUTH_SUCCESS', { attempt: i + 1 });
+                    break;
+                }
 
-            if (!isNetwork) break;
+                const isNetwork = authError.message && (
+                    authError.message.toLowerCase().includes('fetch failed') ||
+                    authError.message.toLowerCase().includes('timeout') ||
+                    authError.message.toLowerCase().includes('network') ||
+                    authError.message.toLowerCase().includes('connection')
+                );
 
-            if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+                log('AUTH_ATTEMPT_FAILED', { attempt: i + 1, error: authError.message, isNetwork });
+
+                if (!isNetwork) break;
+
+                if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
 
         if (authError && (authError.message?.toLowerCase().includes('fetch') || authError.message?.toLowerCase().includes('timeout'))) {
@@ -574,10 +590,15 @@ export async function POST(request: Request) {
         }
 
         // Cache successful results
+        // IMPORTANT: We must await this in serverless environments or the function may terminate before cache is set
         if (finalItems.length > 0) {
-            setInCache(cacheKey, finalItems, CACHE_TTL.PAGE_DISCOVERY).then(cached => {
-                if (cached) log('CACHE_SET', { cacheKey, count: finalItems.length });
-            });
+            try {
+                const cached = await setInCache(cacheKey, finalItems, CACHE_TTL.PAGE_DISCOVERY);
+                if (cached) log('CACHE_SET_SUCCESS', { cacheKey, count: finalItems.length });
+                else log('CACHE_SET_FAILED', { cacheKey });
+            } catch (cacheError) {
+                console.error('[Cache] Failed to set cache:', cacheError);
+            }
         }
 
         return NextResponse.json(finalItems);

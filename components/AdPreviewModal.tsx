@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AdData } from '@/utils/adValidation'
+import { createClient } from '@/utils/supabase/client'
 import {
     X, ChevronLeft, ChevronRight, Image as ImageIcon, Video,
     ThumbsUp, Eye, Layers, Calendar, FileText, Monitor, Link as LinkIcon,
@@ -64,9 +65,17 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
             const timer2 = setTimeout(() => setLoadingMessage('Processing audio...'), 4000)
             const timer3 = setTimeout(() => setLoadingMessage('Transcribing with AI...'), 8000)
 
+            // Get auth token to pass in header (needed for iframe contexts where cookies are blocked)
+            const supabase = createClient()
+            const { data: { session } } = await supabase.auth.getSession()
+
             const response = await fetch('/api/transcribe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                },
+                credentials: 'include',
                 body: JSON.stringify({ videoUrl })
             })
 
@@ -114,9 +123,18 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
         try {
             setIsDownloading(true)
             const filename = `${ad.pageName.replace(/\s+/g, '_')}_${type}_${Date.now()}.${type === 'video' ? 'mp4' : 'jpg'}`
+            
+            // Get auth token to pass in header (needed for iframe contexts where cookies are blocked)
+            const supabase = createClient()
+            const { data: { session } } = await supabase.auth.getSession()
+
             const response = await fetch('/api/download-media', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                },
+                credentials: 'include',
                 body: JSON.stringify({ url, filename }),
             })
 
@@ -175,6 +193,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         src={currentMedia.url}
                                         alt={ad.title || ad.pageName}
                                         className="w-full h-full object-contain"
+                                        referrerPolicy="no-referrer"
                                     />
                                     {/* Image Actions Overlay */}
                                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-4">
@@ -289,7 +308,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         }`}
                                 >
                                     {media.type === 'image' ? (
-                                        <img src={media.url} alt="" className="w-full h-full object-cover" />
+                                        <img src={media.url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                     ) : (
                                         <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
                                             <Video className="w-4 h-4 sm:w-5 sm:h-5 text-white/50" />
@@ -314,6 +333,7 @@ export default function AdPreviewModal({ ad, isOpen, onClose }: AdPreviewModalPr
                                         src={ad.pageProfilePictureUrl}
                                         alt={ad.pageName}
                                         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-zinc-700 object-cover"
+                                        referrerPolicy="no-referrer"
                                     />
                                 ) : (
                                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-base sm:text-lg border-2 border-zinc-700">
