@@ -48,7 +48,12 @@ export async function GET(request: NextRequest) {
                 setAll(cookiesToSet) {
                     try {
                         cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
+                            cookieStore.set(name, value, {
+                                ...options,
+                                sameSite: 'none',
+                                secure: true,
+                                partitioned: true,
+                            })
                         )
                     } catch {
                         // The `setAll` method was called from a Server Component.

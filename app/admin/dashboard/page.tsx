@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import SearchAds from '@/components/SearchAds'
 import AdminSidebar from '@/components/AdminSidebar'
@@ -14,6 +13,8 @@ import SavedAds from '@/components/SavedAds'
 import PageDiscovery from '@/components/PageDiscovery'
 import AdminSettings from '@/components/admin/AdminSettings'
 import useFeatureFlags from '@/utils/useFeatureFlags'
+import { useIframeSession } from '@/contexts/IframeSessionContext'
+import { createClient } from '@/utils/supabase/client'
 
 export default function AdminDashboard() {
     const [loading, setLoading] = useState(true)
@@ -30,33 +31,36 @@ export default function AdminDashboard() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
     const router = useRouter()
-    const supabase = createClient()
     const { isEnabled } = useFeatureFlags()
+    const { user, isLoading: isAuthLoading, signOut, isAuthenticated, supabaseClient: supabase } = useIframeSession()
 
     useEffect(() => {
         fetchData()
-    }, [router])
+    }, [isAuthLoading, isAuthenticated, user, router])
 
     const fetchData = async () => {
-        const { data: { session } } = await supabase.auth.getSession()
+        if (isAuthLoading) return
 
-        if (!session) {
+        if (!isAuthenticated || !user) {
             router.push('/auth/login')
             return
         }
 
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+        // Fetch profile
+        if (!profile) {
+            const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single()
 
-        if (profile?.role !== 'admin') {
-            router.push('/user/dashboard')
-            return
+            if (userProfile?.role !== 'admin') {
+                router.push('/user/dashboard')
+                return
+            }
+
+            setProfile(userProfile)
         }
-
-        setProfile(profile)
 
         // Fetch users
         const { data: fetchedUsers } = await supabase
@@ -69,7 +73,7 @@ export default function AdminDashboard() {
     }
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut()
+        await signOut()
         router.push('/')
     }
 
@@ -128,7 +132,7 @@ export default function AdminDashboard() {
         }
     }
 
-    if (loading) {
+    if (isAuthLoading || !profile) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-black text-white">
                 <div className="animate-spin h-8 w-8 border-4 border-red-500 border-t-transparent rounded-full"></div>

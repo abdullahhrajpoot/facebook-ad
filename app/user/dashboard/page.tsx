@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import SearchAds from '@/components/SearchAds'
 import UserSidebar from '@/components/UserSidebar'
@@ -10,6 +9,8 @@ import SearchHistory from '@/components/SearchHistory'
 import SavedAds from '@/components/SavedAds'
 import PageDiscovery from '@/components/PageDiscovery'
 import useFeatureFlags from '@/utils/useFeatureFlags'
+import { useIframeSession } from '@/contexts/IframeSessionContext'
+import { createClient } from '@/utils/supabase/client'
 
 export default function UserDashboard() {
     const [loading, setLoading] = useState(true)
@@ -19,38 +20,42 @@ export default function UserDashboard() {
     const [initialAdQuery, setInitialAdQuery] = useState<string | null>(null)
 
     const router = useRouter()
-    const supabase = createClient()
     const { isEnabled } = useFeatureFlags()
+    const { user, isLoading: isAuthLoading, signOut, isAuthenticated, supabaseClient: supabase } = useIframeSession()
 
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
+            if (isAuthLoading) return
 
-            if (!session) {
+            if (!isAuthenticated || !user) {
+                console.log('[Dashboard] Not authenticated, redirecting...')
                 router.push('/auth/login')
                 return
             }
 
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single()
+            // Fetch profile if not already loaded
+            if (!profile && user) {
+                try {
+                    const { data: userProfile } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single()
 
-            if (!profile) {
-                router.push('/auth/login')
-                return
+                    if (userProfile) {
+                        setProfile(userProfile)
+                    }
+                } catch (err) {
+                    console.error('[Dashboard] Error fetching profile:', err)
+                }
             }
-
-            setProfile(profile)
-            setLoading(false)
         }
 
         checkUser()
-    }, [router])
+    }, [isAuthLoading, isAuthenticated, user, router, profile])
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut()
+        await signOut()
         router.push('/')
     }
 
@@ -85,7 +90,7 @@ export default function UserDashboard() {
         }
     }
 
-    if (loading) {
+    if (isAuthLoading || !profile) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-black text-white">
                 <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>

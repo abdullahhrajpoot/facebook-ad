@@ -11,9 +11,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if user is authenticated on auth pages
-    const isAuthPage = request.nextUrl.pathname.startsWith('/auth/login') || 
-                       request.nextUrl.pathname.startsWith('/auth/forgot-password') ||
-                       request.nextUrl.pathname.startsWith('/auth/reset-password')
+    const isAuthPage = request.nextUrl.pathname.startsWith('/auth/login') ||
+        request.nextUrl.pathname.startsWith('/auth/forgot-password') ||
+        request.nextUrl.pathname.startsWith('/auth/reset-password')
 
     if (isAuthPage) {
         try {
@@ -29,7 +29,12 @@ export async function middleware(request: NextRequest) {
                         setAll(cookiesToSet) {
                             try {
                                 cookiesToSet.forEach(({ name, value, options }) =>
-                                    cookieStore.set(name, value, options)
+                                    cookieStore.set(name, value, {
+                                        ...options,
+                                        sameSite: 'none',
+                                        secure: true,
+                                        partitioned: true,
+                                    })
                                 )
                             } catch {
                                 // Ignore cookie setting errors in middleware

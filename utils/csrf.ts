@@ -13,13 +13,15 @@ export function generateCSRFToken(): string {
 
 /**
  * Set CSRF token in response cookies
+ * NOTE: Using sameSite: 'none' for iframe compatibility
  */
 export async function setCSRFTokenCookie(token: string): Promise<void> {
     const cookieStore = await cookies()
     cookieStore.set(CSRF_COOKIE_NAME, token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: true, // Required for sameSite: 'none'
+        sameSite: 'none', // Required for iframe context
+        partitioned: true, // CHIPS support for Chrome
         maxAge: 60 * 60 * 24 // 24 hours
     })
 }
