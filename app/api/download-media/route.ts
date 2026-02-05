@@ -24,9 +24,25 @@ function isAllowedUrl(url: string): boolean {
 
 export async function POST(req: NextRequest) {
     try {
-        // Authenticate and rate limit
+        // Authenticate - try Bearer token first (for iframe contexts), then cookies
         const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        let user = null;
+
+        // Check for Authorization header first (works in iframe where cookies are blocked)
+        const authHeader = req.headers.get('Authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            const { data, error } = await supabase.auth.getUser(token);
+            if (!error && data.user) {
+                user = data.user;
+            }
+        }
+
+        // Fall back to cookie-based auth
+        if (!user) {
+            const { data: { user: cookieUser } } = await supabase.auth.getUser()
+            user = cookieUser;
+        }
         
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

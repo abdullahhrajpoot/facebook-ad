@@ -147,6 +147,7 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                             src={coverImgSrc}
                             alt="Cover"
                             className={`w-full h-full object-cover transition-transform duration-1000 group-hover/cover:scale-105 ${!page.coverPhotoUrl && !page.coverUrl ? 'blur-2xl opacity-40 scale-110' : ''}`}
+                            referrerPolicy="no-referrer"
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none'
                             }}
@@ -179,6 +180,7 @@ export default function PagePreviewModal({ page, onClose, onSearchAds }: PagePre
                                     src={profileImgSrc}
                                     alt={page.title}
                                     className="w-full h-full object-cover relative z-10 bg-zinc-800 transition-transform duration-500 group-hover/profile:scale-110"
+                                    referrerPolicy="no-referrer"
                                     onError={(e) => {
                                         if ((page.facebookId || page.pageId) && !e.currentTarget.src.includes('graph.facebook')) {
                                             e.currentTarget.src = `https://graph.facebook.com/${page.facebookId || page.pageId}/picture?type=large`;

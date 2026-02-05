@@ -2,11 +2,11 @@ import { getRedis, isRedisConfigured } from './redis'
 
 // Cache TTL configurations (in seconds)
 export const CACHE_TTL = {
-    // Search results: 1 hour (ads don't change that frequently)
-    SEARCH_RESULTS: 60 * 60,
+    // Search results: 2 hours (ads don't change that frequently)
+    SEARCH_RESULTS: 60 * 60 * 2,
     
     // Page discovery results: 2 hours
-    PAGE_DISCOVERY: 60 * 60 * 2,
+    PAGE_DISCOVERY: 60 * 60 * 3,
     
     // Feature flags: 5 minutes
     FEATURE_FLAGS: 60 * 5,
@@ -54,15 +54,32 @@ export function generateDiscoveryCacheKey(params: {
  */
 export async function getFromCache<T>(key: string): Promise<T | null> {
     if (!isRedisConfigured()) {
+        console.log('[Cache] Redis not configured, skipping cache', {
+            hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+            hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN
+        })
         return null
     }
 
     try {
         const redis = getRedis()
+        console.log('[Cache] GET attempting...', { key })
         const cached = await redis.get<T>(key)
+        const found = cached !== null && cached !== undefined
+        console.log('[Cache] GET result', { 
+            key, 
+            found,
+            type: typeof cached,
+            isArray: Array.isArray(cached),
+            length: Array.isArray(cached) ? cached.length : 'N/A'
+        })
         return cached
     } catch (error) {
-        console.error('[Cache] Error getting from cache:', error)
+        console.error('[Cache] GET Error:', {
+            key,
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        })
         return null
     }
 }
@@ -76,15 +93,34 @@ export async function setInCache<T>(
     ttlSeconds: number
 ): Promise<boolean> {
     if (!isRedisConfigured()) {
+        console.log('[Cache] Redis not configured, skipping cache set', {
+            hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+            hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN
+        })
         return false
     }
 
     try {
         const redis = getRedis()
-        await redis.set(key, data, { ex: ttlSeconds })
+        const dataStr = JSON.stringify(data)
+        console.log('[Cache] SET attempting...', { 
+            key, 
+            ttlSeconds, 
+            dataSize: dataStr.length,
+            dataType: typeof data,
+            isArray: Array.isArray(data),
+            arrayLength: Array.isArray(data) ? data.length : 'N/A'
+        })
+        
+        const result = await redis.set(key, data, { ex: ttlSeconds })
+        console.log('[Cache] SET result', { key, result, success: result === 'OK' })
         return true
     } catch (error) {
-        console.error('[Cache] Error setting cache:', error)
+        console.error('[Cache] SET Error:', {
+            key,
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        })
         return false
     }
 }

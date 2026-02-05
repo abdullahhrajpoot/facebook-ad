@@ -37,22 +37,82 @@ export default function AdminDashboard() {
         fetchData()
     }, [router])
 
-    const fetchData = async () => {
-        const { data: { session } } = await supabase.auth.getSession()
+    const fetchData = async (retryCount = 0) => {
+        // Add delay to ensure session is established (especially important in iframe)
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        // Check if we're in an iframe
+        const isInIframe = typeof window !== 'undefined' && window !== window.parent
+        console.log('🖼️ Admin - Running in iframe:', isInIframe)
+        
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        console.log('📋 Admin dashboard session check:', { 
+            hasSession: !!session, 
+            error: sessionError?.message,
+            retryCount,
+            isInIframe
+        })
+
+        // If no session and we're in iframe, try to get user directly (may be in localStorage)
+        if (!session && isInIframe) {
+            const { data: { user }, error: userError } = await supabase.auth.getUser()
+            console.log('🔄 Admin iframe fallback - getUser:', { hasUser: !!user, error: userError?.message })
+            
+            if (user) {
+                // We have a user from localStorage, fetch profile and continue
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single()
+                
+                if (profile?.role !== 'admin') {
+                    window.location.href = '/user/dashboard'
+                    return
+                }
+                
+                setProfile(profile)
+                
+                // Fetch users
+                const { data: fetchedUsers } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+
+                if (fetchedUsers) setUsers(fetchedUsers)
+                setLoading(false)
+                return
+            }
+        }
 
         if (!session) {
-            router.push('/auth/login')
+            // Retry a few times before giving up (session might not be ready yet)
+            if (retryCount < 3) {
+                console.log(`⏳ Admin - No session, retrying... (${retryCount + 1}/3)`)
+                setTimeout(() => fetchData(retryCount + 1), 500)
+                return
+            }
+            
+            console.log('❌ No session found after retries, redirecting to login')
+            // Use hard navigation for iframe compatibility
+            window.location.href = '/auth/login'
             return
         }
 
-        const { data: profile } = await supabase
+        console.log('✅ Session found for user:', session.user.id)
+
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single()
 
+        console.log('👤 Admin profile check:', { hasProfile: !!profile, role: profile?.role, error: profileError?.message })
+
         if (profile?.role !== 'admin') {
-            router.push('/user/dashboard')
+            console.log('⚠️ User is not admin, redirecting to user dashboard')
+            window.location.href = '/user/dashboard'
             return
         }
 

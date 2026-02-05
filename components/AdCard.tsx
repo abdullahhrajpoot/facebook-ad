@@ -1,5 +1,4 @@
 'use client'
-import Image from 'next/image'
 
 import { useState, useEffect } from 'react'
 import { normalizeAdData, AdData } from '@/utils/adValidation'
@@ -156,13 +155,16 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                 {/* Image Section */}
                 <div className="relative aspect-[4/5] bg-zinc-900 overflow-hidden">
                     {primaryImage ? (
-                        <Image
+                        <img
                             src={primaryImage}
                             alt={ad.title || ad.pageName}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover transform group-hover:scale-105 transition-transform duration-700"
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                             loading="lazy"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                                // Hide broken image
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-zinc-800/50">
@@ -183,12 +185,14 @@ export default function AdCard({ ad: rawAd, initialIsSaved = false, onToggleSave
                         {/* Page Profile Picture */}
                         <div className="shrink-0 relative">
                             {ad.pageProfilePictureUrl ? (
-                                <Image
+                                <img
                                     src={ad.pageProfilePictureUrl}
                                     alt={ad.pageName}
-                                    width={40}
-                                    height={40}
                                     className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-zinc-800 object-cover bg-zinc-800"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
                                 />
                             ) : (
                                 <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br ${theme.placeholderGradient} flex items-center justify-center text-white font-bold text-xs sm:text-sm border-2 border-zinc-800`}>
