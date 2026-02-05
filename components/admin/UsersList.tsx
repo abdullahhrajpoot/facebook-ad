@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Search, UserPlus, Filter, MoreHorizontal, Shield, Mail, Calendar, User, ChevronRight, Activity } from 'lucide-react'
+import { createClient } from '../../utils/supabase/client'
 import UserActionModal from '../modals/UserActionModal'
 
 interface UsersListProps {
@@ -14,20 +15,29 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
     const [searchQuery, setSearchQuery] = useState('')
     const [actionUser, setActionUser] = useState<any | null>(null)
     const [csrfToken, setCSRFToken] = useState('')
+    const [accessToken, setAccessToken] = useState('')
+    const supabase = createClient()
 
-    // Fetch CSRF token on mount
+    // Fetch CSRF token and access token on mount
     useEffect(() => {
-        const fetchCSRFToken = async () => {
+        const fetchTokens = async () => {
             try {
+                // Get CSRF token
                 const res = await fetch('/api/csrf-token')
                 const data = await res.json()
                 setCSRFToken(data.token)
+                
+                // Get access token from session
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.access_token) {
+                    setAccessToken(session.access_token)
+                }
             } catch (error) {
-                console.error('Failed to fetch CSRF token:', error)
+                console.error('Failed to fetch tokens:', error)
             }
         }
-        fetchCSRFToken()
-    }, [])
+        fetchTokens()
+    }, [supabase.auth])
 
     // Filter users based on search query
     const filteredUsers = users.filter(user => {
@@ -194,6 +204,7 @@ export default function UsersList({ users, onSelectUser, onAddUser }: UsersListP
                 onDeleteUser={handleDeleteUser}
                 onUpdateRole={handleUpdateRole}
                 csrfToken={csrfToken}
+                accessToken={accessToken}
             />
         </div>
     )

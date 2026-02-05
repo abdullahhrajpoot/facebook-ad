@@ -11,9 +11,10 @@ interface UserActionModalProps {
     onDeleteUser: (userId: string) => void
     onUpdateRole: (userId: string, newRole: string) => void
     csrfToken?: string
+    accessToken?: string // For Bearer auth in iframe contexts
 }
 
-export default function UserActionModal({ user, onClose, onViewProfile, onDeleteUser, onUpdateRole, csrfToken = '' }: UserActionModalProps) {
+export default function UserActionModal({ user, onClose, onViewProfile, onDeleteUser, onUpdateRole, csrfToken = '', accessToken = '' }: UserActionModalProps) {
     const [mounted, setMounted] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [isUpdatingRole, setIsUpdatingRole] = useState(false)
@@ -126,8 +127,10 @@ export default function UserActionModal({ user, onClose, onViewProfile, onDelete
                                             method: 'PUT',
                                             headers: {
                                                 'Content-Type': 'application/json',
-                                                'x-csrf-token': csrfToken // ADD CSRF TOKEN
+                                                'x-csrf-token': csrfToken,
+                                                ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
                                             },
+                                            credentials: 'include',
                                             body: JSON.stringify({
                                                 id: user.id,
                                                 role: user.role === 'admin' ? 'user' : 'admin'
@@ -190,8 +193,10 @@ export default function UserActionModal({ user, onClose, onViewProfile, onDelete
                                                     const res = await fetch(`/api/admin/users?id=${user.id}`, {
                                                         method: 'DELETE',
                                                         headers: {
-                                                            'x-csrf-token': csrfToken // ADD CSRF TOKEN
-                                                        }
+                                                            'x-csrf-token': csrfToken,
+                                                            ...(accessToken && { 'Authorization': `Bearer ${accessToken}` })
+                                                        },
+                                                        credentials: 'include'
                                                     })
                                                     if (res.ok) {
                                                         onDeleteUser(user.id)
